@@ -1,0 +1,20 @@
+digraph robot_controller {
+	rankdir=LR;
+	size="8,5"
+
+#	node [style=invis] START;
+	node [shape=ellipse, label="IDLE"] IDLE;
+	node [shape=ellipse, label="TASK_BID"] TASK_BID;
+	node [shape=ellipse, label="CHOOSE_GOAL"] CHOOSE_GOAL;
+	node [shape=ellipse, label="SEND_GOAL"] SEND_GOAL;
+	node [shape=ellipse, label="RESOLVE_COLLISION"] RESOLVE_COLLISION;
+	
+	
+	START       -> IDLE;
+	IDLE        -> TASK_BID [label="TASK_ANNOUNCE"];
+	TASK_BID    -> IDLE;
+	IDLE        -> CHOOSE_GOAL [label="TASK_WON, TASK_FINISHED"];
+#	CHOOSE_GOAL -> SEND_GOAL;
+	
+	
+}
