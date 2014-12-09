@@ -1,0 +1,13 @@
+#!/bin/sh
+
+ROS_PORT=11312
+export ROS_HOSTNAME=localhost
+
+export ROS_MASTER_URI=http://${ROS_HOSTNAME}:{ROS_PORT}
+
+xterm -e 'source ~/.bashrc; roslaunch multirobot_stage stage-3-robots.launch' &
+
+while [ 1 ]
+do
+ sleep 1
+done
