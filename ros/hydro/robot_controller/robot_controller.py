@@ -1,9 +1,33 @@
 #!/usr/bin/env python
 
-# Standard modules
+"""robot_controller.py
+
+This script (and class) controls the task-bidding and goal-seeking behavior of a robot.
+
+Usage: robot_controller.py [robot_name] [goal-x-pos] [goal-y-pos]
+
+ robot_name: the desired ROS node name of the robot. If none is given, then a
+  random name is chosen using uuid.uuid1()
+
+ goal-x-pos:
+ goal-y-pos: coordinates of an initial goal that the robot will towards. These arguments
+  are used for testing. Normally, goals will be awarded (via ROS messages) to the robot
+  by an auctioneer agent.
+
+
+The RobotController class uses a state machine to implement bidding and goal-seeking
+behavior.
+
+Eric Schneider <eric.schneider@liverpool.ac.uk>
+"""
+
+# Standard Python modules
 import sys
 import time
 import uuid
+
+# Fysom state machine
+from fysom import Fysom
 
 # ROS modules
 import actionlib
@@ -16,6 +40,7 @@ from std_msgs.msg import String
 # Rate (Hz) at which we do work
 RATE = 10
 
+# Enumeration of states for our 
 class RCState:
     IDLE      = 1
     INIT_POSE = 2
@@ -23,48 +48,41 @@ class RCState:
 
 class RobotController:
 
-    def __init__(self):
+    def __init__(self, robot_name=None, goal_x=None, goal_y=None):
+        """
+        Initialize some ROS stuff (pub/sub, actionlib client) and also
+        our state machine.
+        """
 
-#        time.sleep(5)
-        
-        argv = rospy.myargv(argv=sys.argv[1:])
-        print "arguments: {0}".format(argv)
+        # List of tasks/goals that we have been awarded
+        self.agenda = []
 
-        # Our robot name is the first arg to our program 
-        self.robot_name = None
-        if not argv:
+        # Node name
+        if robot_name:
+            self.robot_name = robot_name
+        else:
             # a random ID with dashes and underscores removed
             self.robot_name = str(uuid.uuid1()).replace('-','').replace('_','')
-        else:
-            self.robot_name = argv[0]
-
         print "Robot name: {0}".format(self.robot_name)
 
-        self.goal_x = float(argv[1])
-        self.goal_y = float(argv[2])
-
+        # Initial goal, if any
+        self.goal_x = goal_x
+        self.goal_y = goal_y
         print "Goal: ({0}, {1})".format(self.goal_x, self.goal_y)
-
-        # What messages do we want to publish?
-        # - Send bids to auctioneer
-        # - Send goals to navigation stack
-        # - Send collision resolution messages
-#        self.pub = rospy.Publisher('robot_status', String, queue_size=10)
 
         # Initialize our node
         node_name = "rc_{0}".format(self.robot_name)
-#        rospy.loginfo("Starting node '{0}'...".format(node_name))
+        #rospy.loginfo("Starting node '{0}'...".format(node_name))
         print("Starting node '{0}'...".format(node_name))
         rospy.init_node(node_name)
 
-        # Subscribed topics
+        # Topics we wish to subscribe to
         self.init_subscribers()
 
-        # Topics to publish
+        # Topics we wish to publish
         self.init_publishers()
 
         # actionlib client; used to send goals to the navigation stack
-#        ac_name = "ac_{0}".format(self.robot_name)
         ac_name = "/{0}/move_base".format(self.robot_name)
         print "Starting actionlib client '{0}'".format(ac_name)
         self.aclient = actionlib.SimpleActionClient(ac_name,
@@ -72,7 +90,6 @@ class RobotController:
 
         # Wait until the action server has started up
         self.aclient.wait_for_server()
-
         print "{0} connected.".format(ac_name)
 
         # Set up state machine
@@ -152,7 +169,10 @@ class RobotController:
 
 if __name__ == '__main__':
     try:
-        rc = RobotController()
+        argv = rospy.myargv(argv=sys.argv[1:])
+        print "arguments: {0}".format(argv)
+
+        rc = RobotController(*argv)
         rc.spin()
     except rospy.ROSInterruptException:
         pass
