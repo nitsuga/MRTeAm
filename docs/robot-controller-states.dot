@@ -1,20 +1,42 @@
 digraph robot_controller {
-	rankdir=LR;
-	size="8,5"
+#	rankdir=LR;
+	size="8,12"
 
-#	node [style=invis] START;
-	node [shape=ellipse, label="IDLE"] IDLE;
-	node [shape=ellipse, label="TASK_BID"] TASK_BID;
-	node [shape=ellipse, label="CHOOSE_GOAL"] CHOOSE_GOAL;
-	node [shape=ellipse, label="SEND_GOAL"] SEND_GOAL;
-	node [shape=ellipse, label="RESOLVE_COLLISION"] RESOLVE_COLLISION;
+	# node [style=invis] START;
+	node [shape=ellipse, label="running"] running;
+	node [shape=ellipse, label="paused"] paused;
+	node [shape=ellipse, label="bid"] bid;
+	node [shape=ellipse, label="won"] won;
+	node [shape=ellipse, label="choose_goal"] choose_goal;
+	node [shape=ellipse, label="send_goal"] send_goal;
+	node [shape=ellipse, label="goal_success"] goal_success;
+	node [shape=ellipse, label="goal_failure"] goal_failure;
+	node [shape=point] start;
 	
-	
-	START       -> IDLE;
-	IDLE        -> TASK_BID [label="TASK_ANNOUNCE"];
-	TASK_BID    -> IDLE;
-	IDLE        -> CHOOSE_GOAL [label="TASK_WON, TASK_FINISHED"];
-#	CHOOSE_GOAL -> SEND_GOAL;
-	
+	start        -> running;
+	running      -> choose_goal [label="has_goal"];
+
+	# Make a bid
+	running      -> bid [label="task_announced"];
+	bid          -> running [label="bid_sent"];
+
+	# Task won; add to agenda
+	running      -> won [label="task_won"];
+	won          -> running [label="goal_added"];
+
+	# Agenda is non-empty; choose a goal and go to it.
+	choose_goal  -> send_goal [label="goal_chosen"];
+	send_goal    -> running [label="goal_sent"];
+
+	# Pause/resume
+	running      -> paused [label="pause"];
+	paused       -> running [label="resume"];
+
+	# Success/failure
+	running      -> goal_success [label="goal_reached"];
+	goal_success -> running [label="resume"];
+
+	running      -> goal_failure [label="goal_failed"];
+	goal_failure -> running [label="resume"];
 	
 }

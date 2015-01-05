@@ -37,7 +37,11 @@ import nav_msgs.msg
 import rospy
 from std_msgs.msg import String
 
-# Rate (Hz) at which we do work
+## TODO:
+# Import auction, collision avoidance message types
+# Import Task class
+
+# We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 10
 
 # Enumeration of states for our 
@@ -96,6 +100,36 @@ class RobotController:
         #        self._state = RCState.IDLE
         #self._state = RCState.INIT_POSE
         self._state = RCState.SEND_GOAL
+
+        self.fsm = Fysom( {'initial': 'running',
+                          'events': [
+                              # Bidding on tasks/adding goals
+                              {'name': 'task_announced', 'src': 'running', 'dst': 'bid'},
+                              {'name': 'bid_sent', 'src': 'bid', 'dst': 'running'},
+                              {'name': 'task_won', 'src': 'running', 'dst': 'won'},
+                              {'name': 'goal_added', 'src': 'won', 'dst': 'running'},
+                              # Choosing/sending goals
+                              {'name': 'has_goals', 'src': 'running', 'dst': 'choose_goal'},
+                              {'name': 'goal_chosen', 'src': 'choose_goal', 'dst': 'send_goal'},
+                              {'name': 'goal_sent', 'src': 'send_goal', 'dst': 'running'},
+                              # Goal success/failure
+                              {'name': 'goal_reached', 'src': 'running', 'dst': 'goal_success'},
+                              {'name': 'goal_failed', 'src': 'running', 'dst': 'goal_failure'},
+                              # Pause/resume
+                              {'name': 'pause', 'src': 'running', 'dst': 'paused'},
+                              {'name': 'resume', 'src': ['paused', 'goal_success', 'goal_failure'], 'dst': 'running'}                              
+                          ],
+                        'callbacks': {
+                            'onbid': self.bid,
+                            'onwon': self.add_task }
+                       }
+        )
+
+    def bid(self, e):
+        pass
+
+    def add_task(self, e):
+        pass
 
     def set_gound_truth_pose(self, data):
 #        print 'Setting ground truth pose...'
