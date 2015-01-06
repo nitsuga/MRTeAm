@@ -1,0 +1,31 @@
+digraph auctioneer {
+#	rankdir=LR;
+	size="8,12"
+
+	# node [style=invis] START;
+	node [shape=point] start;
+	node [shape=ellipse, label="load_tasks"] load_tasks;
+	node [shape=ellipse, label="identify_team"] identify_team;
+	node [shape=ellipse, label="allocate"] allocate;
+	node [shape=ellipse, label="announce"] announce;
+	node [shape=ellipse, label="collect_bids"] collect_bids;
+	node [shape=ellipse, label="determine_winner"] determine_winner;
+	node [shape=ellipse, label="award"] award;
+	node [shape=ellipse, label="idle"] idle;
+	
+	start          -> load_tasks;
+	load_tasks     -> identify_team [label="tasks_loaded"];
+	identify_team  -> idle [label="team_identified"];
+
+	allocate       -> announce [label="have_tasks"];
+	allocate       -> determine_winner [label="round_robin"];
+	announce       -> collect_bids [label="announced"];
+	collect_bids   -> determine_winner [label="bids_collected"];
+	determine_winner -> award [label="winner_determined"];
+	award            -> allocate [label="have_tasks"];
+	
+	allocate       -> idle [label="no_tasks"];
+	idle           -> allocate [label="have_tasks"];
+	idle           -> idle [label="no_tasks"];
+	
+}

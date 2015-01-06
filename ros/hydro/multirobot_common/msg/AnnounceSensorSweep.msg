@@ -1,0 +1,1 @@
+SensorSweepTask[] tasks		# Tasks to annouce. A list lets us announce bundles of tasks.
