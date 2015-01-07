@@ -86,12 +86,25 @@ class Auctioneer:
         # Topics we wish to publish
         self.init_publishers()
 
-        self.fsm = Fysom( {'initial': 'running',
-                           'events': [
-                           ],
-                           'callbacks': {}
-
-                          }
+        # See multirobot/docs/auctioneer-fsm.png
+        self.fsm = Fysom( initial='load_tasks',
+                          events=[
+                              ('tasks_loaded', 'load_tasks', 'identify_team'),
+                              ('team_identified', 'identify_team', 'idle'),
+                              ('no_tasks', '*', 'idle'),
+                              ('have_tasks', 'idle', 'choose_mechanism'),
+                              
+                              ('OSI', 'choose_mechanism', 'announce'),
+                              ('PSI', 'choose_mechanism', 'announce'),
+                              ('SSI', 'choose_mechanism', 'announce'),
+                              ('RR', 'choose_mechanism', 'determine_winner'),
+                              
+                              ('announced', 'announce', 'collect_bids'),
+                              ('bids_collected', 'collect_bids', 'determine_winner'),
+                              ('winner_determined', 'determine_winner', 'award')
+                              ('have_tasks', 'award', 'choose_mechanism')
+                          ],
+                          callbacks={}
                       )
 
     def init_subscribers(self):
