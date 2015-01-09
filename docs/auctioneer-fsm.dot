@@ -20,8 +20,8 @@ digraph auctioneer {
 
 	idle             -> choose_mechanism [label="have_tasks"];
 
-	choose_mechanism -> announce [label="OSI,PSI,SSI"];
-	choose_mechanism -> determine_winner [label="RR"];
+	choose_mechanism -> announce [label="choose_[OSI,PSI,SSI]"];
+	choose_mechanism -> determine_winner [label="choose_RR"];
 
 	announce         -> collect_bids [label="announced"];
 	collect_bids     -> determine_winner [label="bids_collected"];

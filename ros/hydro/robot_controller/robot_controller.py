@@ -101,29 +101,28 @@ class RobotController:
         #self._state = RCState.INIT_POSE
         self._state = RCState.SEND_GOAL
 
-        self.fsm = Fysom( {'initial': 'running',
-                          'events': [
+        self.fsm = Fysom( initial='running',
+                           events=[
                               # Bidding on tasks/adding goals
-                              {'name': 'task_announced', 'src': 'running', 'dst': 'bid'},
-                              {'name': 'bid_sent', 'src': 'bid', 'dst': 'running'},
-                              {'name': 'task_won', 'src': 'running', 'dst': 'won'},
-                              {'name': 'goal_added', 'src': 'won', 'dst': 'running'},
+                              ('task_announced', 'running', 'bid'),
+                              ('bid_sent', 'bid', 'running'),
+                              ('task_won', 'running', 'won'),
+                              ('goal_added', 'won', 'running'),
                               # Choosing/sending goals
-                              {'name': 'has_goals', 'src': 'running', 'dst': 'choose_goal'},
-                              {'name': 'goal_chosen', 'src': 'choose_goal', 'dst': 'send_goal'},
-                              {'name': 'goal_sent', 'src': 'send_goal', 'dst': 'running'},
+                              ('has_goals', 'running', 'choose_goal'),
+                              ('goal_chosen', 'choose_goal', 'send_goal'),
+                              ('goal_sent', 'send_goal', 'running'),
                               # Goal success/failure
-                              {'name': 'goal_reached', 'src': 'running', 'dst': 'goal_success'},
-                              {'name': 'goal_failed', 'src': 'running', 'dst': 'goal_failure'},
+                              ('goal_reached', 'running', 'goal_success'),
+                              ('goal_failed', 'running', 'goal_failure'),
                               # Pause/resume
-                              {'name': 'pause', 'src': 'running', 'dst': 'paused'},
-                              {'name': 'resume', 'src': ['paused', 'goal_success', 'goal_failure'], 'dst': 'running'}                              
+                              ('pause', 'running', 'paused'),
+                              ('resume', ['paused', 'goal_success', 'goal_failure'], 'running')
                           ],
-                        'callbacks': {
+                        callbacks={
                             'onbid': self.bid,
                             'onwon': self.add_task }
-                       }
-        )
+                      )
 
     def bid(self, e):
         pass
