@@ -1,0 +1,1 @@
+string robot_id		# May be a wildcard '*', to mean all robots

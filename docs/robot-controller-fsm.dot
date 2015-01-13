@@ -3,40 +3,47 @@ digraph robot_controller {
 	size="8,12"
 
 	# node [style=invis] START;
-	node [shape=ellipse, label="running"] running;
+	node [shape=ellipse, label="idle"] idle;
+	node [shape=ellipse, label="moving"] moving;
+	node [shape=ellipse, label="resolve_collision"] resolve_collision;
 	node [shape=ellipse, label="paused"] paused;
 	node [shape=ellipse, label="bid"] bid;
 	node [shape=ellipse, label="won"] won;
-	node [shape=ellipse, label="choose_goal"] choose_goal;
+	node [shape=ellipse, label="choose_task"] choose_task;
 	node [shape=ellipse, label="send_goal_to_nav_stack"] send_goal_to_nav_stack;
-	node [shape=ellipse, label="goal_success"] goal_success;
-	node [shape=ellipse, label="goal_failure"] goal_failure;
+	node [shape=ellipse, label="task_success"] task_success;
+	node [shape=ellipse, label="task_failure"] task_failure;
 	node [shape=point] start;
 	
-	start        -> running;
-	running      -> choose_goal [label="has_goal"];
+	start        -> idle;
+	idle         -> choose_task [label="have_tasks"];
+	idle         -> idle [label="no_tasks"];
 
 	# Make a bid
-	running      -> bid [label="task_announced"];
-	bid          -> running [label="bid_sent"];
+	idle         -> bid [label="task_announced"];
+	bid          -> idle [label="bid_sent"];
 
 	# Task won; add to agenda
-	running      -> won [label="task_won"];
-	won          -> running [label="goal_added"];
+	idle         -> won [label="task_won"];
+	won          -> idle [label="task_added"];
 
-	# Agenda is non-empty; choose a goal and go to it.
-	choose_goal  -> send_goal_to_nav_stack [label="goal_chosen"];
-	send_goal_to_nav_stack    -> running [label="goal_sent_to_nav_stack"];
+	# Agenda is non-empty; choose a task and go to it.
+	choose_task  -> send_goal_to_nav_stack [label="goal_chosen"];
+	send_goal_to_nav_stack    -> moving [label="sent_to_nav_stack"];
 
 	# Pause/resume
-	running      -> paused [label="pause"];
-	paused       -> running [label="resume"];
-
+	moving      -> paused [label="pause, collision_detected"];
+	paused       -> moving [label="resume"];
+	
+	# Collision resolution
+	paused      -> resolve_collision [label="collision_detected"];
+	resolve_collision -> moving [label="collision_resolved"];
+		
 	# Success/failure
-	running      -> goal_success [label="goal_reached"];
-	goal_success -> running [label="resume"];
+	moving      -> task_success [label="goal_reached"];
+	task_success -> idle [label="resume"];
 
-	running      -> goal_failure [label="goal_failed"];
-	goal_failure -> running [label="resume"];
+	moving      -> task_failure [label="goal_cannot_be_reached"];
+	task_failure -> idle [label="resume"];
 	
 }

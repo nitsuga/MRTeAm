@@ -7,7 +7,7 @@ This script (and class) controls the task-bidding and goal-seeking behavior of a
 Usage: robot_controller.py [robot_name] [goal-x-pos] [goal-y-pos]
 
  robot_name: the desired ROS node name of the robot. If none is given, then a
-  random name is chosen using uuid.uuid1()
+  random name is chosen.
 
  goal-x-pos:
  goal-y-pos: coordinates of an initial goal that the robot will towards. These arguments
@@ -22,6 +22,8 @@ Eric Schneider <eric.schneider@liverpool.ac.uk>
 """
 
 # Standard Python modules
+import math
+import pprint
 import sys
 import time
 import uuid
@@ -34,21 +36,18 @@ import actionlib
 import geometry_msgs.msg
 import move_base_msgs.msg
 import nav_msgs.msg
+import nav_msgs.srv
+import navfn.srv
 import rospy
-from std_msgs.msg import String
+import tf.transformations
+#from std_msgs.msg import String
 
-## TODO:
-# Import auction, collision avoidance message types
-# Import Task class
+import multirobot_common.msg
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 10
 
-# Enumeration of states for our 
-class RCState:
-    IDLE      = 1
-    INIT_POSE = 2
-    SEND_GOAL = 3
+pp = pprint.PrettyPrinter(indent=2)
 
 class RobotController:
 
@@ -57,10 +56,6 @@ class RobotController:
         Initialize some ROS stuff (pub/sub, actionlib client) and also
         our state machine.
         """
-
-        # List of tasks/goals that we have been awarded
-        self.agenda = []
-
         # Node name
         if robot_name:
             self.robot_name = robot_name
@@ -96,76 +91,280 @@ class RobotController:
         self.aclient.wait_for_server()
         print "{0} connected.".format(ac_name)
 
-        # Set up state machine
-        #        self._state = RCState.IDLE
-        #self._state = RCState.INIT_POSE
-        self._state = RCState.SEND_GOAL
+        # The name of the planner service
+        self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
 
-        self.fsm = Fysom( initial='running',
-                           events=[
+        # Our current estimated pose. This should be received the navigation
+        # stack's amcl localization package. See on_amcl_pose_received().
+        self.current_pose = None
+
+        # For some mechanisms, in order to compute a bid value (path cost)
+        # we need to compute a path from the position of the most-recently-awarded
+        # task point, rather than from the robot's current position
+        self.last_won_location = None
+
+        # The rate at which we'll sleep while idle
+        self.rate = rospy.Rate(RATE)
+
+        # List of tasks/goals that we have been awarded
+        self.agenda = []
+
+        # Set up state machine.
+        # See multirobot/docs/robot-controller.fsm.png
+        self.fsm = Fysom(
+                          events=[
+                              ('startup', 'none', 'idle'),
+
                               # Bidding on tasks/adding goals
-                              ('task_announced', 'running', 'bid'),
-                              ('bid_sent', 'bid', 'running'),
-                              ('task_won', 'running', 'won'),
-                              ('goal_added', 'won', 'running'),
+                              ('task_announced', 'idle', 'bid'),
+                              ('bid_sent', 'bid', 'idle'),
+                              ('bid_not_sent', 'bid', 'idle'),
+                              ('task_won', 'idle', 'won'),
+                              ('task_added', 'won', 'idle'),
+
                               # Choosing/sending goals
-                              ('has_goals', 'running', 'choose_goal'),
-                              ('goal_chosen', 'choose_goal', 'send_goal'),
-                              ('goal_sent', 'send_goal', 'running'),
+                              ('have_tasks', 'idle', 'choose_task'),
+                              ('goal_chosen', 'choose_task', 'send_goal'),
+                              ('goal_sent', 'send_goal', 'moving'),
+
                               # Goal success/failure
-                              ('goal_reached', 'running', 'goal_success'),
-                              ('goal_failed', 'running', 'goal_failure'),
+                              ('goal_reached', 'moving', 'task_success'),
+                              ('resume', 'task_success', 'idle'),
+                              ('goal_cannon_be_reached', 'moving', 'task_failure'),
+                              ('resume', 'task_failure', 'idle'),
+
                               # Pause/resume
-                              ('pause', 'running', 'paused'),
-                              ('resume', ['paused', 'goal_success', 'goal_failure'], 'running')
+                              ('pause', 'moving', 'paused'),
+                              ('resume', 'paused', 'moving'),
+
+                              # Collision avoidance
+                              ('collision_detected', 'moving', 'paused'),
+                              ('collision_detected', 'paused', 'resolve_collision'),
+                              ('collision_resolved', 'resolve_collision', 'moving'),
+
                           ],
                         callbacks={
+                            'onidle': self.idle,
                             'onbid': self.bid,
-                            'onwon': self.add_task }
+                            'onwon': self.won }
                       )
 
+        # Start the state machine
+        self.fsm.startup()
+
+    def _point_to_pose(self, point):
+        pose_msg = geometry_msgs.msg.Pose()
+        pose_msg.position = point
+        pose_msg.orientation.w = 1.0
+        
+        return pose_msg
+
+    def _pose_to_posestamped(self, pose, frame_id='map'):
+        pose_stamped_msg = geometry_msgs.msg.PoseStamped()
+
+        pose_stamped_msg.header.stamp = rospy.get_rostime()
+        pose_stamped_msg.header.frame_id = frame_id
+        pose_stamped_msg.pose = pose
+
+        return pose_stamped_msg
+
+    def _make_nav_plan_client(self, start, goal):
+
+        print("Waiting for service {0}".format(self.plan_srv_name))
+        rospy.wait_for_service(self.plan_srv_name)
+        print("Service ready.")
+
+        try:
+            make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
+                                               nav_msgs.srv.GetPlan)
+
+            # We need to convert start and goal from type geometry_msgs.Pose
+            # to type geometry_msgs.PoseStamped. Tolerance (from the docs):
+            # "If the goal is obstructed, how many meters the planner can 
+            # relax the constraint in x and y before failing."
+            start_stamped = self._pose_to_posestamped(start)
+            goal_stamped = self._pose_to_posestamped(goal)
+
+            print("start_stamped:")
+            pp.pprint(start_stamped)
+
+            print("goal_stamped:")
+            pp.pprint(goal_stamped)
+
+            req = nav_msgs.srv.GetPlanRequest()
+            req.start = start_stamped
+            req.goal = goal_stamped
+            req.tolerance = 0.1
+
+            #resp = make_nav_plan(start_stamped,
+            #                     goal_stamped,
+            #                     0.1)
+            resp = make_nav_plan( req )
+
+            print("Got plan:")
+            pp.pprint(resp)
+            
+            return resp.plan.poses
+
+        except rospy.ServiceException, e:
+            print("Service call failed: {0}".format(e))
+
+    def _normalize_angle(angle):
+        res = angle
+        while res > pi:
+            res -= 2.0*pi
+        while res < -pi:
+            res += 2.0*pi
+        return res
+
+    def get_path_cost(self, start, goal):
+        """
+        Return the cost of a path from start to goal. The path is obtained
+        from the navfn/MakeNavPlan service. The cost is the sum of distances
+        between points in the path PLUS the angular changes (in randians)
+        needed to re-orient from every point to its successor.
+
+        This is taken from the alufr ROS package. See getPlanCost() in
+        navstack_module.cpp at:
+        https://code.google.com/p/alufr-ros-pkg/source/browse/.
+        """
+
+        print("Getting path from navfn/MakeNavPlan...")
+
+        # 'path' is a list of objects of type geometry_msgs.PoseStamped
+        path = self._make_nav_plan_client(start, goal)
+
+        print("Got path")
+
+        path_cost = 0.0
+        from_pose = None
+        for pose_stamped in path:
+            if from_pose is None:
+                from_pose = pose_stamped.pose
+                continue
+            else:
+                to_pose = pose_stamped.pose
+                
+                pos_delta = math.hypot(to_pose.position.x - from_pose.position.x,
+                                       to_pose.position.y - from_pose.position.y)
+
+                print("pos_delta: {0}".format(pos_delta))
+
+                path_cost += pos_delta
+
+                #yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
+                #yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
+                #yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
+
+                #path_cost += yaw_delta
+
+                from_pose = pose_stamped.pose
+
+        return path_cost
+
+    def on_task_announced(self, msg):
+#        print("task announced:")
+#        pp.pprint(msg)
+
+        # Trigger the 'task_announced' fsm event, with the message as a parameter
+        self.fsm.task_announced(msg=msg)
+
+    def on_task_award(self, msg):
+        # Trigger the 'task_won' fsm event, with the message as a parameter
+        self.fsm.task_won(msg=msg)
+
+    def _construct_bid_msg(self, task_id, robot_id, bid):
+        bid_msg = multirobot_common.msg.TaskBid()
+        bid_msg.task_id = task_id
+        bid_msg.robot_id = robot_id
+        bid_msg.bid = bid
+
+        return bid_msg
+
     def bid(self, e):
-        pass
+        announce_msg = e.msg
 
-    def add_task(self, e):
-        pass
+        # Our bid-from point is the location of our most recently won task,
+        # if any. If we haven't won any tasks, bid from our current position.
+        bid_from = None
+        if self.last_won_location:
+            # Convert last_won_location from a Point to a Pose
+            bid_from = self._point_to_pose(self.last_won_pose)
+        else:
+            bid_from = self.current_pose
 
-    def set_gound_truth_pose(self, data):
-#        print 'Setting ground truth pose...'
-        self.ground_truth_pose = data
-#        print self.ground_truth_pose
+        # The mechanism determines the number and kind of bids we make
+        if announce_msg.mechanism == 'OSI':
+            print("mechanism == OSI")
+
+            task_msg = announce_msg.tasks[0]
+            path_cost = self.get_path_cost(bid_from,
+                                           self._point_to_pose(task_msg.location))
+
+            print("path_cost={0}".format(path_cost))
+
+            bid_msg = self._construct_bid_msg(task_msg.task.task_id,
+                                              self.robot_name,
+                                              path_cost)
+
+            print("bid_msg:")
+            pp.pprint(bid_msg)
+
+            self.bid_pub.publish(bid_msg)
+            
+        elif announce_msg.mechanism == 'SSI':
+            pass
+        elif announce_msg.mechanism == 'PSI':
+            pass
+        else:
+            print("bid(): mechanism '{0}' not supported".format(self.mechanism))
+            
+        self.fsm.bid_sent()
+
+    def won(self, e):
+        award_msg = e.msg
+
+        self.agenda.append(award_msg.task)
+
+        self.fsm.task_won()
+
+    def on_amcl_pose_received(self, amcl_pose_msg):
+        # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
+        # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as
+        # geometry_msgs/Pose
+        self.current_pose = amcl_pose_msg.pose.pose
 
     def init_subscribers(self):
         print 'Initializing subscribers...'
 
-        # 'base_pose_ground_truth'
-        print '  base_pose_ground_truth'
-        self.ground_truth_sub = rospy.Subscriber("/{0}/base_pose_ground_truth".format(self.robot_name),
-                                                 nav_msgs.msg.Odometry,
-                                                 self.set_gound_truth_pose)
+        # '/robot_<n>/amcl_pose'
+        print "- /robot_{0}/amcl_pose".format(self.robot_name)
+        self.amcl_pose_sub = rospy.Subscriber("/{0}/amcl_pose".format(self.robot_name),
+                                                 geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                 self.on_amcl_pose_received)
+
+        # '/tasks/announce'
+        # We respond only to sensor sweep task announcements (for now)
+        print '- /tasks/announce'
+        self.announce_sub = rospy.Subscriber('/tasks/announce',
+                                             multirobot_common.msg.AnnounceSensorSweep,
+                                             self.on_task_announced)
+
+        # '/tasks/award'
+        print '- /tasks/award'
+        self.announce_sub = rospy.Subscriber('/tasks/award',
+                                             multirobot_common.msg.TaskAward,
+                                             self.on_task_award)
+
 
     def init_publishers(self):
         # 'initialpose'
         self.initial_pose_pub = rospy.Publisher("/{0}/initialpose".format(self.robot_name),
                                                 geometry_msgs.msg.PoseWithCovarianceStamped)
 
-    def send_initial_pose(self):
-
-        # Wait until we get a ground truth pose
-        rate = rospy.Rate(RATE)
-        while not self.ground_truth_pose:
-            rate.sleep()
-
-        print 'Sending initialpose...'
-
-        initpose = geometry_msgs.msg.PoseWithCovarianceStamped()
-        initpose.header.frame_id = 'map'
-
-        initpose.pose = self.ground_truth_pose.pose
-
-        self.initial_pose_pub.publish(initpose)
-
-        self._state = RCState.SEND_GOAL
+        # '/tasks/bid'
+        self.bid_pub = rospy.Publisher('/tasks/bid',
+                                       multirobot_common.msg.TaskBid)
 
     def send_goal(self):
         goal = move_base_msgs.msg.MoveBaseGoal()
@@ -183,29 +382,19 @@ class RobotController:
         # Wait until the goal is reached
         #self.aclient.wait_for_result()
 
-        self._state = RCState.IDLE
+    def idle(self, e):
 
-    def spin(self):
+        while not self.agenda:
+#            print("idle..")
+            self.rate.sleep()
 
-        rate = rospy.Rate(RATE)
-        while not rospy.is_shutdown():
-            # Do something
-            if self._state == RCState.IDLE:
-                #print "Idle..."
-                pass
-            elif self._state == RCState.INIT_POSE:
-                self.send_initial_pose()
-            elif self._state == RCState.SEND_GOAL:
-                self.send_goal()
-
-            rate.sleep()
+        # We've been awarded least one task while idling
+        self.fsm.have_tasks()
 
 if __name__ == '__main__':
     try:
         argv = rospy.myargv(argv=sys.argv[1:])
         print "arguments: {0}".format(argv)
-
         rc = RobotController(*argv)
-        rc.spin()
     except rospy.ROSInterruptException:
         pass

@@ -114,8 +114,11 @@ class Auctioneer:
         # A simple list for now
         self.tasks = []
 
+        # Keep track of bids, indexed by task_id
+        self.bids = {}
+
+        # Set up state machine.
         # See multirobot/docs/auctioneer-fsm.png
-#        self.fsm = Fysom( initial='load_tasks',
         self.fsm = Fysom( 
                           events=[
                               ('startup', 'none', 'load_tasks'),
@@ -160,7 +163,7 @@ class Auctioneer:
         # Listen for bids on '/tasks/bid'
         self.bid_sub = rospy.Subscriber('/tasks/bid',
                                         multirobot_common.msg.TaskBid,
-                                        self.on_bid)
+                                        self.on_bid_received)
 
     def init_publishers(self):
 
@@ -172,6 +175,8 @@ class Auctioneer:
         # Award tasks on '/tasks/award'
         self.award_pub = rospy.Publisher('/tasks/award',
                                          multirobot_common.msg.TaskAward)
+
+        time.sleep(5)
 
     def load_tasks(self, data):
         print("Loading tasks from {0}...".format(self.task_file))
@@ -314,27 +319,71 @@ class Auctioneer:
         print('Announcement:')
         pp.pprint(announcement_msg)
 
+        # Make sure we have at least one subscriber before announcing
+#        while self.announce_pub.get_num_connections < 1:
+#            self.rate.sleep()
+
         self.announce_pub.publish(announcement_msg)
 
         self.fsm.announced()
 
-
     def collect_bids(self, e):
-        time.sleep(5)
+        """
+        Here, we can either wait for a time limit (deadline) to pass or,
+        if we know the size of the team and the mechanism being used, we
+        can calculate how many bids we expect to receive before we consider
+        the collection phase finished.
 
-        self.fsm.bids_collected()
+        Before the time limit passes, we expect to receive multiple bid
+        messages, which will trigger multiple calls to on_bid_received().
 
-    def on_bid(self, data):
-        # TODO: implement!
-        pass
+        We'll use a time limit for now.
+        """
 
+        time.sleep(2)
+
+        self.fsm.bids_collected(task_id=1)
+
+    def on_bid_received(self, bid_msg):
+        task_id = bid_msg.task_id
+        robot_id = bid_msg.robot_id
+        bid = bid_msg.bid
+
+        if task_id not in self.bids:
+            self.bids[task_id] = {}
+
+        if robot_id not in self.bids[task_id]:
+            self.bids[task_id] = {}
+
+        self.bids[task_id][robot_id] = bid
 
     def determine_winner(self, e):
         
-        self.fsm.winner_determined()
+        # Get the id of the task to award from the event object
+        task_id = e.task_id
+
+        while not task_id in self.bids:
+            print("Waiting for bids for task {0}".format(task_id))
+            time.sleep(5)
+
+        bids_by_robot = self.bids[task_id]
+        
+        winner_id = None
+        minimum_bid = None
+        for robot_id in bids_by_robot.keys():
+            if minimum_bid is None or bids_by_robot[robot_id] < minimum_bid:
+                winner_id = robot_id
+
+
+        self.fsm.winner_determined(task_id=task_id, winner_id=winner_id)
 
     def award(self, e):
         # send award message
+        award_msg = multirobot_common.msgs.TaskAward()
+        award_msg.task_id = e.task_id
+        award_msg.robot_id = e.winner_id
+
+        self.award_pub.publish(award_msg)
 
         if self.tasks:
             self.fsm.have_tasks()
@@ -350,6 +399,5 @@ if __name__ == '__main__':
         argv = rospy.myargv(argv=sys.argv[1:])
 #        print "arguments: {0}".format(argv)
         auc = Auctioneer(*argv)
-#        auc.spin()
     except rospy.ROSInterruptException:
         pass
