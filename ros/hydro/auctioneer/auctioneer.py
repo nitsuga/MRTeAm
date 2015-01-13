@@ -176,7 +176,7 @@ class Auctioneer:
         self.award_pub = rospy.Publisher('/tasks/award',
                                          multirobot_common.msg.TaskAward)
 
-        time.sleep(5)
+        time.sleep(3)
 
     def load_tasks(self, data):
         print("Loading tasks from {0}...".format(self.task_file))

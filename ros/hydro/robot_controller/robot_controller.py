@@ -170,39 +170,30 @@ class RobotController:
 
     def _make_nav_plan_client(self, start, goal):
 
-        print("Waiting for service {0}".format(self.plan_srv_name))
+        #print("Waiting for service {0}".format(self.plan_srv_name))
         rospy.wait_for_service(self.plan_srv_name)
-        print("Service ready.")
+        #print("Service ready.")
 
         try:
             make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
                                                nav_msgs.srv.GetPlan)
 
             # We need to convert start and goal from type geometry_msgs.Pose
-            # to type geometry_msgs.PoseStamped. Tolerance (from the docs):
+            # to type geometry_msgs.PoseStamped. tolerance (from the docs):
             # "If the goal is obstructed, how many meters the planner can 
             # relax the constraint in x and y before failing."
             start_stamped = self._pose_to_posestamped(start)
             goal_stamped = self._pose_to_posestamped(goal)
-
-            print("start_stamped:")
-            pp.pprint(start_stamped)
-
-            print("goal_stamped:")
-            pp.pprint(goal_stamped)
 
             req = nav_msgs.srv.GetPlanRequest()
             req.start = start_stamped
             req.goal = goal_stamped
             req.tolerance = 0.1
 
-            #resp = make_nav_plan(start_stamped,
-            #                     goal_stamped,
-            #                     0.1)
             resp = make_nav_plan( req )
 
             print("Got plan:")
-            pp.pprint(resp)
+            #pp.pprint(resp)
             
             return resp.plan.poses
 
@@ -248,14 +239,16 @@ class RobotController:
                 pos_delta = math.hypot(to_pose.position.x - from_pose.position.x,
                                        to_pose.position.y - from_pose.position.y)
 
-                print("pos_delta: {0}".format(pos_delta))
+#                print("pos_delta: {0}".format(pos_delta))
 
                 path_cost += pos_delta
 
+                ## Adding rotational distance to the path cost sounds cool, but
+                ## the path returned by make_plan doesn't seem to specify
+                ## orientations in its poses.
                 #yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
                 #yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
                 #yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
-
                 #path_cost += yaw_delta
 
                 from_pose = pose_stamped.pose
