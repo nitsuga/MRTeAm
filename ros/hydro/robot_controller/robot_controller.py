@@ -42,6 +42,7 @@ import rospy
 import tf.transformations
 #from std_msgs.msg import String
 
+import multirobot_common
 import multirobot_common.msg
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
@@ -106,51 +107,87 @@ class RobotController:
         # The rate at which we'll sleep while idle
         self.rate = rospy.Rate(RATE)
 
-        # List of tasks/goals that we have been awarded
+        # List of tasks that we have been awarded (multirobot_common.SensorSweepTask)
         self.agenda = []
 
         # Set up state machine.
         # See multirobot/docs/robot-controller.fsm.png
         self.fsm = Fysom(
-                          events=[
-                              ('startup', 'none', 'idle'),
+            events=[
+                ('startup', 'none', 'idle'),
 
-                              # Bidding on tasks/adding goals
-                              ('task_announced', 'idle', 'bid'),
-                              ('bid_sent', 'bid', 'idle'),
-                              ('bid_not_sent', 'bid', 'idle'),
-                              ('task_won', 'idle', 'won'),
-                              ('task_added', 'won', 'idle'),
-
-                              # Choosing/sending goals
-                              ('have_tasks', 'idle', 'choose_task'),
-                              ('goal_chosen', 'choose_task', 'send_goal'),
-                              ('goal_sent', 'send_goal', 'moving'),
-
-                              # Goal success/failure
-                              ('goal_reached', 'moving', 'task_success'),
-                              ('resume', 'task_success', 'idle'),
-                              ('goal_cannon_be_reached', 'moving', 'task_failure'),
-                              ('resume', 'task_failure', 'idle'),
-
-                              # Pause/resume
-                              ('pause', 'moving', 'paused'),
-                              ('resume', 'paused', 'moving'),
-
-                              # Collision avoidance
-                              ('collision_detected', 'moving', 'paused'),
-                              ('collision_detected', 'paused', 'resolve_collision'),
-                              ('collision_resolved', 'resolve_collision', 'moving'),
-
-                          ],
-                        callbacks={
-                            'onidle': self.idle,
-                            'onbid': self.bid,
-                            'onwon': self.won }
-                      )
+                # Bidding on tasks/adding goals
+                ('task_announced', 'idle', 'bid'),
+                ('bid_sent', 'bid', 'idle'),
+                ('bid_not_sent', 'bid', 'idle'),
+                ('task_won', 'idle', 'won'),
+                ('task_added', 'won', 'idle'),
+                
+                # Choosing/sending goals
+                ('have_tasks', 'idle', 'choose_task'),
+                ('goal_chosen', 'choose_task', 'send_goal'),
+                ('goal_sent', 'send_goal', 'moving'),
+                
+                # Goal success/failure
+                ('goal_reached', 'moving', 'task_success'),
+                ('resume', 'task_success', 'idle'),
+                ('goal_cannot_be_reached', 'moving', 'task_failure'),
+                ('resume', 'task_failure', 'idle'),
+                
+                # Pause/resume
+                ('pause', 'moving', 'paused'),
+                ('resume', 'paused', 'moving'),
+                
+                # Collision avoidance
+                ('collision_detected', 'moving', 'paused'),
+                ('collision_detected', 'paused', 'resolve_collision'),
+                ('collision_resolved', 'resolve_collision', 'moving'),
+                
+            ],
+            callbacks={
+                'onidle': self.idle,
+                'onbid': self.bid,
+                'onwon': self.won,
+                'onchoose_task': self.choose_task,
+                'onsend_goal': self.send_goal,
+                'ontask_success': self.task_success,
+                'ontask_failure': self.task_failure
+            }
+        )
 
         # Start the state machine
         self.fsm.startup()
+
+    def init_subscribers(self):
+        print 'Initializing subscribers...'
+
+        # '/robot_<n>/amcl_pose'
+        print "- /robot_{0}/amcl_pose".format(self.robot_name)
+        self.amcl_pose_sub = rospy.Subscriber("/{0}/amcl_pose".format(self.robot_name),
+                                                 geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                 self.on_amcl_pose_received)
+
+        # '/tasks/announce'
+        # We respond only to sensor sweep task announcements (for now)
+        print '- /tasks/announce'
+        self.announce_sub = rospy.Subscriber('/tasks/announce',
+                                             multirobot_common.msg.AnnounceSensorSweep,
+                                             self.on_task_announced)
+
+        # '/tasks/award'
+        print '- /tasks/award'
+        self.announce_sub = rospy.Subscriber('/tasks/award',
+                                             multirobot_common.msg.TaskAward,
+                                             self.on_task_award)
+
+    def init_publishers(self):
+        # 'initialpose'
+        self.initial_pose_pub = rospy.Publisher("/{0}/initialpose".format(self.robot_name),
+                                                geometry_msgs.msg.PoseWithCovarianceStamped)
+
+        # '/tasks/bid'
+        self.bid_pub = rospy.Publisher('/tasks/bid',
+                                       multirobot_common.msg.TaskBid)
 
     def _point_to_pose(self, point):
         pose_msg = geometry_msgs.msg.Pose()
@@ -275,6 +312,7 @@ class RobotController:
         return bid_msg
 
     def bid(self, e):
+        print("state: bid")
         announce_msg = e.msg
 
         # Our bid-from point is the location of our most recently won task,
@@ -317,9 +355,24 @@ class RobotController:
     def won(self, e):
         award_msg = e.msg
 
-        self.agenda.append(award_msg.task)
+        for task_msg in award_msg.tasks:
+            new_task = multirobot_common.SensorSweepTask(str(task_msg.task.task_id),
+                                                         float(task_msg.location.x),
+                                                         float(task_msg.location.y))
+            self.agenda.append(new_task)
 
-        self.fsm.task_won()
+        self.fsm.task_added()
+
+    def choose_task(self, e):
+        print("state: choose_task")
+
+        goal_task = None
+        for task in self.agenda:
+            if not task.completed:
+                goal_task = task
+                break
+
+        self.fsm.goal_chosen(goal_task=goal_task)
 
     def on_amcl_pose_received(self, amcl_pose_msg):
         # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
@@ -327,55 +380,47 @@ class RobotController:
         # geometry_msgs/Pose
         self.current_pose = amcl_pose_msg.pose.pose
 
-    def init_subscribers(self):
-        print 'Initializing subscribers...'
 
-        # '/robot_<n>/amcl_pose'
-        print "- /robot_{0}/amcl_pose".format(self.robot_name)
-        self.amcl_pose_sub = rospy.Subscriber("/{0}/amcl_pose".format(self.robot_name),
-                                                 geometry_msgs.msg.PoseWithCovarianceStamped,
-                                                 self.on_amcl_pose_received)
+    def send_goal(self, e):
+        print("state: send_goal")
 
-        # '/tasks/announce'
-        # We respond only to sensor sweep task announcements (for now)
-        print '- /tasks/announce'
-        self.announce_sub = rospy.Subscriber('/tasks/announce',
-                                             multirobot_common.msg.AnnounceSensorSweep,
-                                             self.on_task_announced)
+        goal_task = e.goal_task
+        
+        goal_msg = move_base_msgs.msg.MoveBaseGoal()
 
-        # '/tasks/award'
-        print '- /tasks/award'
-        self.announce_sub = rospy.Subscriber('/tasks/award',
-                                             multirobot_common.msg.TaskAward,
-                                             self.on_task_award)
+        goal_msg.target_pose.header.frame_id = 'map'
+        goal_msg.target_pose.header.stamp = rospy.Time.now()
 
+        goal_msg.target_pose.pose.position.x = float(goal_task.location.x)
+        goal_msg.target_pose.pose.position.y = float(goal_task.location.y)
+        goal_msg.target_pose.pose.orientation.w = 1.0
 
-    def init_publishers(self):
-        # 'initialpose'
-        self.initial_pose_pub = rospy.Publisher("/{0}/initialpose".format(self.robot_name),
-                                                geometry_msgs.msg.PoseWithCovarianceStamped)
-
-        # '/tasks/bid'
-        self.bid_pub = rospy.Publisher('/tasks/bid',
-                                       multirobot_common.msg.TaskBid)
-
-    def send_goal(self):
-        goal = move_base_msgs.msg.MoveBaseGoal()
-
-        goal.target_pose.header.frame_id = 'map'
-        goal.target_pose.header.stamp = rospy.Time.now()
-
-        goal.target_pose.pose.position.x = float(self.goal_x)
-        goal.target_pose.pose.position.y = float(self.goal_y)
-        goal.target_pose.pose.orientation.w = 1.0
-
-        print "Sending goal: {0}".format(goal)
-        self.aclient.send_goal(goal)
+        print "Sending goal: {0}".format(goal_msg)
+        self.aclient.send_goal(goal_msg)
 
         # Wait until the goal is reached
-        #self.aclient.wait_for_result()
+        self.aclient.wait_for_result()
+
+        self.fsm.goal_reached(goal_task=goal_task)
+
+    def task_success(self, e):
+        print("state: task_success")
+
+        e.goal_task.completed = True
+
+        self.fsm.resume()
+
+
+    def task_failure(self, e):
+        print("state: task_failure")
+
+        e.goal_task.completed = False
+
+        self.fsm.resume()
+    
 
     def idle(self, e):
+        print("state: idle")
 
         while not self.agenda:
 #            print("idle..")

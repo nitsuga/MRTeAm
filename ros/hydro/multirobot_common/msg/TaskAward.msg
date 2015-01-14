@@ -1,2 +1,2 @@
 string robot_id		# Unique id/name of the robot being awarded
-SensorSweepTask task	# The task to be awarded
+SensorSweepTask[] tasks	# The tasks to be awarded

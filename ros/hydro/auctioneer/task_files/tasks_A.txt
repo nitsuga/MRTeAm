@@ -1,9 +1,11 @@
-100 500
-400 500
-650 500
-100 300
-400 300
-650 300
-100 100
-400 100
-650 100
+# One task per line. Each line is an xy-coordinate pair that indicates
+# the location of a single task. Units are meters.
+1.00 5.00
+4.00 5.00
+6.50 5.00
+1.00 3.00
+4.00 3.00
+6.50 3.00
+1.00 1.00
+4.00 1.00
+6.50 1.00

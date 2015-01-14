@@ -55,6 +55,7 @@ from fysom import Fysom
 
 # ROS modules
 import actionlib
+from collections import defaultdict
 import geometry_msgs.msg
 import move_base_msgs.msg
 import nav_msgs.msg
@@ -64,6 +65,7 @@ import rosnode
 import rospy
 import unique_id
 
+import multirobot_common
 import multirobot_common.msg
 
 ## TODO:
@@ -77,6 +79,155 @@ pp = pprint.PrettyPrinter(indent=2)
 def on_sigint(signal, frame):
     print('Caught SIGINT, shutting down...')
     sys.exit(0)
+
+
+class Auction(object):
+    def __init__(self, auctioneer=None, tasks=None, auction_round=None):
+        
+        # A handle to the Auctioneer object who called us
+        self.auctioneer = auctioneer
+
+        # The tasks we are meant to announce/award in the current round
+        self.tasks = tasks
+
+        # To identify in which round bids are made for tasks
+        self.auction_round = auction_round
+
+        # Set up state machine.
+        # See multirobot/docs/auctioneer-fsm.png
+        self.fsm = Fysom( 
+            events=[
+                ('startup', 'none', 'announce'),
+                ('announced', 'announce', 'collect_bids'),
+                ('bids_collected', 'collect_bids', 'determine_winner'),
+                ('winner_determined', 'determine_winner', 'award'),
+            ],
+            callbacks={
+                # on-enter state handlers
+                'onannounce': self.announce,
+                'oncollect_bids': self.collect_bids,
+                'ondetermine_winner': self.determine_winner,
+                'onaward': self.award
+                
+                # on-event handlers
+                #'onchoose_OSI': self.choose_OSI
+            }
+        )
+
+        # Start the state machine
+        self.fsm.startup()
+
+    def _construct_task_msg(self, task):
+        """
+        Maps from our internal task representation to a ROS message type.
+        (multirobot_common.SensorSweepTask => multirobot_common.msg.SensorSweepTask)
+        """
+        # Just sensor sweep tasks for now
+        task_msg = multirobot_common.msg.SensorSweepTask()
+
+        task_msg.task.task_id = task.task_id
+        task_msg.task.depends = task.depends
+        task_msg.task.type = task.type
+        task_msg.task.num_robots_required = task.num_robots_required
+        task_msg.location.x = task.location.x
+        task_msg.location.y = task.location.y
+        task_msg.location.z = task.location.z
+
+        return task_msg
+
+    def _construct_announcement_msg(self):
+        pass
+
+    def announce(self, e):
+        pass
+
+    def collect_bids(self, e):
+        """
+        Here, we can either wait for a time limit (deadline) to pass or,
+        kowing the size of the team and the mechanism being used, we can
+        calculate how many bids we expect to receive before we consider
+        the bid collection phase finished.
+
+        Before the time limit passes, we expect to receive bid messages, which
+        will trigger Auctioneer.on_bid_received().
+        """
+        pass
+            
+    def determine_winner(self, e):
+        pass
+
+    def award(self, e):
+        pass
+
+class AuctionOSI(Auction):
+
+    mechanism_name = 'OSI'
+
+    def __init__(self, auctioneer=None, tasks=None, auction_round=None):
+        super(AuctionOSI, self).__init__(auctioneer, tasks, auction_round)
+
+    def _construct_announcement_msg(self):
+        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
+        announce_msg.mechanism = self.mechanism_name
+
+        # Only announce one task (the first in the auctioneer's list)
+        announce_msg.tasks.append(self._construct_task_msg(self.tasks[0]))
+
+        return announce_msg
+
+    def announce(self, e):
+        print("(OSI) state: announce")
+        
+        announcement_msg = self._construct_announcement_msg()
+        self.auctioneer.announce_pub.publish(announcement_msg)
+
+        print('Announcement:')
+        pp.pprint(announcement_msg)
+
+        # 
+        self.fsm.announced()
+
+    def collect_bids(self, e):
+        print("(OSI) state: collect_bids")
+
+        bids = self.auctioneer.bids[self.auction_round]
+
+        # In OSI, we wait to receive as many bids as there are team members
+        while len(bids) < len(self.auctioneer.team_members):
+            time.sleep(0.2)
+
+        self.fsm.bids_collected(task_id=self.tasks[0].task_id)
+
+    def determine_winner(self, e):
+        print("(OSI) state: determine_winner")
+        
+        # Get the id of the task to award from the event object
+        task_id = e.task_id
+
+        bids = self.auctioneer.bids[self.auction_round]
+
+        winner_id = None
+        minimum_bid = None
+        for robot_id in bids.keys():
+            if minimum_bid is None or bids[robot_id][task_id] < minimum_bid:
+                winner_id = robot_id
+
+        print("winner is robot '{0}'".format(winner_id))
+
+        self.fsm.winner_determined(task_id=task_id, winner_id=winner_id)
+
+    def award(self, e):
+        """ Construct and send award message. """
+        award_msg = multirobot_common.msg.TaskAward()
+        award_msg.robot_id = e.winner_id
+
+        task_msg = self._construct_task_msg(self.tasks[0])
+        award_msg.tasks.append(task_msg)
+
+        self.auctioneer.award_pub.publish(award_msg)
+
+        # Mark the task as awarded
+        self.tasks[0].awarded = True
 
 class Auctioneer:
 
@@ -114,45 +265,34 @@ class Auctioneer:
         # A simple list for now
         self.tasks = []
 
-        # Keep track of bids, indexed by task_id
-        self.bids = {}
+        # To identify in which round bids are made for tasks
+        self.auction_round = 0
+
+        # Keep track of bids, indexed by auction_round, task_id and robot_id
+        self.bids = defaultdict(int)
 
         # Set up state machine.
         # See multirobot/docs/auctioneer-fsm.png
         self.fsm = Fysom( 
-                          events=[
-                              ('startup', 'none', 'load_tasks'),
-                              ('tasks_loaded', 'load_tasks', 'identify_team'),
-                              ('team_identified', 'identify_team', 'idle'),
-                              ('no_tasks', '*', 'idle'),
-                              ('have_tasks', 'idle', 'choose_mechanism'),
-                              
-                              ('choose_OSI', 'choose_mechanism', 'announce'),
-                              ('choose_PSI', 'choose_mechanism', 'announce'),
-                              ('choose_SSI', 'choose_mechanism', 'announce'),
-                              ('choose_RR', 'choose_mechanism', 'determine_winner'),
-                              
-                              ('announced', 'announce', 'collect_bids'),
-                              ('bids_collected', 'collect_bids', 'determine_winner'),
-                              ('winner_determined', 'determine_winner', 'award'),
-                              ('have_tasks', 'award', 'choose_mechanism')
-                          ],
-                          callbacks={
-                              # on-enter state handlers
-                              'onload_tasks': self.load_tasks,
-                              'onidentify_team': self.identify_team,
-                              'onidle': self.idle,
-                              'onchoose_mechanism': self.choose_mechanism,
-                              'onannounce': self.announce,
-                              'oncollect_bids': self.collect_bids,
-                              'ondetermine_winner': self.determine_winner,
-                              'onaward': self.award
-
-                              # on-event handlers
-#                              'onchoose_OSI': self.choose_OSI
-
-                          }
-                      )
+            events=[
+                ('startup', 'none', 'load_tasks'),
+                ('tasks_loaded', 'load_tasks', 'identify_team'),
+                ('do_identify_team', '*', 'identify_team'),
+                ('team_identified', 'identify_team', 'idle'),
+                ('have_tasks', 'idle', 'choose_mechanism'),
+                ('no_tasks', 'idle', 'idle'),
+                ('no_tasks', 'choose_mechanism', 'end_experiment'),
+            ],
+            callbacks={
+                # on-enter state handlers
+                'onload_tasks': self.load_tasks,
+                'onidentify_team': self.identify_team,
+                'onidle': self.idle,
+                'onchoose_mechanism': self.choose_mechanism,
+                'onend_experiment': self.end_experiment,
+                # on-event handlers
+            }
+        )
 
         # Start the state machine
         self.fsm.startup()
@@ -176,7 +316,7 @@ class Auctioneer:
         self.award_pub = rospy.Publisher('/tasks/award',
                                          multirobot_common.msg.TaskAward)
 
-        time.sleep(3)
+        time.sleep(2)
 
     def load_tasks(self, data):
         print("Loading tasks from {0}...".format(self.task_file))
@@ -196,16 +336,12 @@ class Auctioneer:
                 if task_line.startswith('#'):
                     continue
 
-                task_x, task_y = task_line.split()
-                
-                self.tasks.append({ 'task_id': str(task_id),
-                                    'depends': [],
-                                    'type': 'SENSOR_SWEEP',
-                                    'num_robots_required': 1,
-                                    'location': { 'x': float(task_x) / 100.0,
-                                                  'y': float(task_y) / 100.0,
-                                                  'z': 0.0 }
-                                })
+                task_x, task_y = task_line.split()                
+                new_task = multirobot_common.SensorSweepTask(str(task_id),
+                                                             float(task_x),
+                                                             float(task_y))
+                self.tasks.append(new_task)
+
                 task_id += 1
 
         except IOError:
@@ -231,6 +367,7 @@ class Auctioneer:
         # For example, 'rc_robot_0'.
         for node_name in node_list:
             if node_name.startswith('/rc_'):
+                node_name.replace('/rc_', '')
                 self.team_members.append(node_name)
 
         print("Team members: {0}".format(self.team_members))
@@ -240,9 +377,10 @@ class Auctioneer:
     def idle(self, data):
         print "idle.."
 
-        while not self.tasks:
+        if not self.tasks:
             print "idling..."
             self.rate.sleep()
+            self.fsm.no_tasks()
 
         # Transition to the "choose_mechanism" state
         self.fsm.have_tasks()
@@ -254,141 +392,47 @@ class Auctioneer:
         # (in our constructor)
         print("  {0}".format(self.mechanism))
 
-        # if self.mechanism == 'OSI':
-        #     self.fsm.choose_OSI()
-        # elif self.mechanism == 'PSI':
-        #     self.fsm.choose_PSI()
-        # elif self.mechanism == 'SSI':
-        #     self.fsm.choose_SSI()
-        # elif self.mechanism == 'RR':
-        #     self.fsm.choose_RR()
 
-        if self.mechanism in ['RR', 'OSI', 'PSI', 'SSI']:
-            self.fsm.trigger('choose_' + self.mechanism)
+        # As long as there are unallocated tasks, choose a mechanism and
+        # allocate them.
+        while True:
+            unallocated = []
+            for task in self.tasks:
+                if not task.awarded:
+                    unallocated.append(task)
 
-    def _construct_task_msg(self, task):
-        """
-        Maps from our internal task representation to a ROS message type
-        (multirobot_common/Task)
-        """
+            if not unallocated:
+                break
 
-        # Just sensor sweep tasks for now
-        task_msg = multirobot_common.msg.SensorSweepTask()
+            self.auction_round += 1
+            self.bids[self.auction_round] = defaultdict(str)
 
-        task_msg.task.task_id = task['task_id']
-        task_msg.task.depends = task['depends']
-        task_msg.task.type = task['type']
-        task_msg.task.num_robots_required = task['num_robots_required']
-        task_msg.location.x = task['location']['x']
-        task_msg.location.y = task['location']['y']
-        task_msg.location.z = task['location']['z']
+            if self.mechanism == 'OSI':
+                auction_osi = AuctionOSI(self, unallocated, self.auction_round)
 
-        return task_msg
+                # At this point, we can (safely?) consider a task awarded
 
-    def _construct_announcement_msg(self, mechanism):
-        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
-
-        announce_msg.mechanism = self.mechanism
-
-        tasks_to_announce = None
-
-        if mechanism == 'OSI':
-            tasks_to_announce = [self.tasks[0]]
-        elif mechanism == 'PSI':
-            tasks_to_announce = self.tasks
-        elif mechanism == 'SSI':
-            tasks_to_announce = self.tasks
-
-#        print("tasks_to_announce:")
-#        pp.pprint(tasks_to_announce)
             
-        for task in tasks_to_announce:
-            announce_msg.tasks.append(self._construct_task_msg(task))
-
-        return announce_msg
-
-    # def choose_OSI(self, e):
-    #     print("choose_OSI")
-
-    #     # Announce the first task in the list
-    #     announcement = self._construct_announcement(self.tasks[0])
-
-    def announce(self, e):
-        announcement_msg = self._construct_announcement_msg(self.mechanism)
-
-        print('Announcement:')
-        pp.pprint(announcement_msg)
-
-        # Make sure we have at least one subscriber before announcing
-#        while self.announce_pub.get_num_connections < 1:
-#            self.rate.sleep()
-
-        self.announce_pub.publish(announcement_msg)
-
-        self.fsm.announced()
-
-    def collect_bids(self, e):
-        """
-        Here, we can either wait for a time limit (deadline) to pass or,
-        if we know the size of the team and the mechanism being used, we
-        can calculate how many bids we expect to receive before we consider
-        the collection phase finished.
-
-        Before the time limit passes, we expect to receive multiple bid
-        messages, which will trigger multiple calls to on_bid_received().
-
-        We'll use a time limit for now.
-        """
-
-        time.sleep(2)
-
-        self.fsm.bids_collected(task_id=1)
+        self.fsm.no_tasks()
 
     def on_bid_received(self, bid_msg):
         task_id = bid_msg.task_id
         robot_id = bid_msg.robot_id
         bid = bid_msg.bid
 
-        if task_id not in self.bids:
-            self.bids[task_id] = {}
-
-        if robot_id not in self.bids[task_id]:
-            self.bids[task_id] = {}
-
-        self.bids[task_id][robot_id] = bid
-
-    def determine_winner(self, e):
+        round_bids = self.bids[self.auction_round]
         
-        # Get the id of the task to award from the event object
-        task_id = e.task_id
+        if not round_bids[robot_id]:
+            round_bids[robot_id] = {}
 
-        while not task_id in self.bids:
-            print("Waiting for bids for task {0}".format(task_id))
-            time.sleep(5)
+        round_bids[robot_id][task_id] = float(bid)
 
-        bids_by_robot = self.bids[task_id]
-        
-        winner_id = None
-        minimum_bid = None
-        for robot_id in bids_by_robot.keys():
-            if minimum_bid is None or bids_by_robot[robot_id] < minimum_bid:
-                winner_id = robot_id
+        print("{0} bid {1} for task {2} in auction round {3}".format(
+            robot_id, bid, task_id, self.auction_round))
 
 
-        self.fsm.winner_determined(task_id=task_id, winner_id=winner_id)
-
-    def award(self, e):
-        # send award message
-        award_msg = multirobot_common.msgs.TaskAward()
-        award_msg.task_id = e.task_id
-        award_msg.robot_id = e.winner_id
-
-        self.award_pub.publish(award_msg)
-
-        if self.tasks:
-            self.fsm.have_tasks()
-        else:
-            self.fsm.no_tasks()
+    def end_experiment(self, e):
+        print("end experiment")
 
 
 if __name__ == '__main__':

@@ -6,29 +6,61 @@ digraph auctioneer {
 	node [shape=point] start;
 	node [shape=ellipse, label="load_tasks"] load_tasks;
 	node [shape=ellipse, label="identify_team"] identify_team;
-#	node [shape=ellipse, label="allocate"] allocate;
-	node [shape=ellipse, label="announce"] announce;
-	node [shape=ellipse, label="collect_bids"] collect_bids;
-	node [shape=ellipse, label="determine_winner"] determine_winner;
-	node [shape=ellipse, label="award"] award;
+
+	node [shape=ellipse, label="announce_OSI"] announce_OSI;
+	node [shape=ellipse, label="collect_bids_OSI"] collect_bids_OSI;
+	node [shape=ellipse, label="determine_winner_OSI"] determine_winner_OSI;
+	node [shape=ellipse, label="award_OSI"] award_OSI;
+
+	node [shape=ellipse, label="announce_PSI"] announce_PSI;
+	node [shape=ellipse, label="collect_bids_PSI"] collect_bids_PSI;
+	node [shape=ellipse, label="determine_winner_PSI"] determine_winner_PSI;
+	node [shape=ellipse, label="award_PSI"] award_PSI;
+
+
+	node [shape=ellipse, label="announce_SSI"] announce_SSI;
+	node [shape=ellipse, label="collect_bids_SSI"] collect_bids_SSI;
+	node [shape=ellipse, label="determine_winner_SSI"] determine_winner_SSI;
+	node [shape=ellipse, label="award_SSI"] award_SSI;
+
+
+	node [shape=ellipse, label="determine_winner_RR"] determine_winner_RR;
+	node [shape=ellipse, label="award_RR"] award_RR;
+	
 	node [shape=ellipse, label="idle"] idle;
 	node [shapr=ellipse, label="choose_mechanism"] choose_mechanism;
 	
-	start          -> load_tasks;
-	load_tasks     -> identify_team [label="tasks_loaded"];
-	identify_team  -> idle [label="team_identified"];
+	start                -> load_tasks;
+	load_tasks           -> identify_team [label="tasks_loaded"];
+	identify_team        -> idle [label="team_identified"];
 
-	idle             -> choose_mechanism [label="have_tasks"];
+	idle                 -> choose_mechanism [label="have_tasks"];
 
-	choose_mechanism -> announce [label="choose_[OSI,PSI,SSI]"];
-	choose_mechanism -> determine_winner [label="choose_RR"];
+	choose_mechanism     -> announce_OSI [label="choose_OSI"];
+	announce_OSI         -> collect_bids_OSI [label="announced"];
+	collect_bids_OSI     -> determine_winner_OSI [label="bids_collected"];
+	determine_winner_OSI -> award_OSI [label="winner_determined"];
+	award_OSI            -> choose_mechanism [label="have_tasks"];
+	award_OSI            -> idle [label="no_tasks"];
 
-	announce         -> collect_bids [label="announced"];
-	collect_bids     -> determine_winner [label="bids_collected"];
-	determine_winner -> award [label="winner_determined"];
+	choose_mechanism     -> announce_PSI [label="choose_PSI"];
+	announce_PSI         -> collect_bids_PSI [label="announced"];
+	collect_bids_PSI     -> determine_winner_PSI [label="bids_collected"];
+	determine_winner_PSI -> award_PSI [label="winner_determined"];
+	award_PSI            -> choose_mechanism [label="have_tasks"];
+	award_PSI            -> idle [label="no_tasks"];
 
-	award            -> choose_mechanism [label="have_tasks"];
-	award            -> idle [label="no_tasks"];
+	choose_mechanism     -> announce_SSI [label="choose_SSI"];
+	announce_SSI         -> collect_bids_SSI [label="announced"];
+	collect_bids_SSI     -> determine_winner_SSI [label="bids_collected"];
+	determine_winner_SSI -> award_SSI [label="winner_determined"];
+	award_SSI            -> choose_mechanism [label="have_tasks"];
+	award_SSI            -> idle [label="no_tasks"];
 	
-	idle             -> idle [label="no_tasks"];
+	choose_mechanism     -> determine_winner_RR [label="choose_RR"];
+	determine_winner_RR  -> award_RR [label="winner_determined"];
+	award_RR             -> choose_mechanism [label="have_tasks"];
+	award_RR             -> idle [label="no_tasks"];
+	
+	idle                 -> idle [label="no_tasks"];
 }
