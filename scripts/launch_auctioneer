@@ -1,15 +1,12 @@
 #!/bin/sh
 
-ROS_PORT=11313
+ROS_PORT=11311
 export ROS_HOSTNAME=`/bin/hostname`
 export ROS_MASTER_URI=http://${ROS_HOSTNAME}:${ROS_PORT}/
 
 #### move_base
-xterm -si -sb -sl 1000 -e 'roslaunch multirobot_stage robot_1_move_base.launch' &
-sleep 6
-
-#### robot_controller
-#xterm -si -sb -sl 1000 -e 'rosrun robot_controller robot_controller.py robot_1' &
+xterm -si -sb -sl 1000 -e 'roslaunch auctioneer auctioneer.launch' &
+sleep 5
 
 # Do nothing. This lets us catch and forward SIGINT to child processes
 # launched above.

@@ -13,6 +13,8 @@
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />
 
   <!-- FKIE master sync -->
-  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen" />
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+<!--    <rosparam param="ignore_topic">[/robot_0/*, /robot_1/*, /robot_2/*]</rosparam> -->
+  </node>
 
 </launch>

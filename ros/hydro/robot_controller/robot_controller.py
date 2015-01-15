@@ -71,10 +71,14 @@ class RobotController:
         print "Goal: ({0}, {1})".format(self.goal_x, self.goal_y)
 
         # Initialize our node
-        node_name = "rc_{0}".format(self.robot_name)
-        #rospy.loginfo("Starting node '{0}'...".format(node_name))
+        #node_name = "rc_{0}".format(self.robot_name)
+        #node_name = "/{0}/robot_controller".format(self.robot_name)
+        node_name = 'robot_controller'
         print("Starting node '{0}'...".format(node_name))
         rospy.init_node(node_name)
+
+        # The rate at which we'll sleep while idle
+        self.rate = rospy.Rate(RATE)
 
         # Topics we wish to subscribe to
         self.init_subscribers()
@@ -104,11 +108,11 @@ class RobotController:
         # task point, rather than from the robot's current position
         self.last_won_location = None
 
-        # The rate at which we'll sleep while idle
-        self.rate = rospy.Rate(RATE)
-
         # List of tasks that we have been awarded (multirobot_common.SensorSweepTask)
         self.agenda = []
+
+        # Unless true, we may only bid on tasks but NOT begin executing tasks
+        self.ok_to_execute = False
 
         # Set up state machine.
         # See multirobot/docs/robot-controller.fsm.png
@@ -116,16 +120,12 @@ class RobotController:
             events=[
                 ('startup', 'none', 'idle'),
 
-                # Bidding on tasks/adding goals
-                ('task_announced', 'idle', 'bid'),
-                ('bid_sent', 'bid', 'idle'),
-                ('bid_not_sent', 'bid', 'idle'),
-                ('task_won', 'idle', 'won'),
-                ('task_added', 'won', 'idle'),
-                
                 # Choosing/sending goals
                 ('have_tasks', 'idle', 'choose_task'),
+#                ('no_tasks', 'idle', 'shutdown'),
+                ('no_tasks', 'idle', 'idle'),
                 ('goal_chosen', 'choose_task', 'send_goal'),
+                ('no_tasks', 'choose_task', 'idle'),
                 ('goal_sent', 'send_goal', 'moving'),
                 
                 # Goal success/failure
@@ -150,8 +150,10 @@ class RobotController:
                 'onwon': self.won,
                 'onchoose_task': self.choose_task,
                 'onsend_goal': self.send_goal,
+                'onmoving': self.moving,
                 'ontask_success': self.task_success,
-                'ontask_failure': self.task_failure
+                'ontask_failure': self.task_failure,
+                'onshutdown': self.shutdown
             }
         )
 
@@ -160,6 +162,12 @@ class RobotController:
 
     def init_subscribers(self):
         print 'Initializing subscribers...'
+
+        # '/experiment'
+        print '- /experiment'
+        self.experiment_sub = rospy.Subscriber('/experiment',
+                                               multirobot_common.msg.ExperimentEvent,
+                                               self.on_experiment_event_received)
 
         # '/robot_<n>/amcl_pose'
         print "- /robot_{0}/amcl_pose".format(self.robot_name)
@@ -172,13 +180,15 @@ class RobotController:
         print '- /tasks/announce'
         self.announce_sub = rospy.Subscriber('/tasks/announce',
                                              multirobot_common.msg.AnnounceSensorSweep,
-                                             self.on_task_announced)
+                                             self.bid)
 
         # '/tasks/award'
         print '- /tasks/award'
         self.announce_sub = rospy.Subscriber('/tasks/award',
                                              multirobot_common.msg.TaskAward,
-                                             self.on_task_award)
+                                             self.won)
+        # For good measure...
+        time.sleep(3)
 
     def init_publishers(self):
         # 'initialpose'
@@ -188,6 +198,18 @@ class RobotController:
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
                                        multirobot_common.msg.TaskBid)
+
+        # For good measure...
+        time.sleep(3)
+
+    def _point_to_point_msg(self, point):
+        """Convert a multirobot_common.Point to a geometry_msgs.msg.Point"""
+        point_msg = geometry_msgs.msg.Point()
+        point_msg.x = point.x
+        point_msg.y = point.y
+        point_msg.z = point.z
+
+        return point_msg
 
     def _point_to_pose(self, point):
         pose_msg = geometry_msgs.msg.Pose()
@@ -311,16 +333,15 @@ class RobotController:
 
         return bid_msg
 
-    def bid(self, e):
+    def bid(self, announce_msg):
         print("state: bid")
-        announce_msg = e.msg
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
         bid_from = None
         if self.last_won_location:
             # Convert last_won_location from a Point to a Pose
-            bid_from = self._point_to_pose(self.last_won_pose)
+            bid_from = self._point_to_pose(self.last_won_location)
         else:
             bid_from = self.current_pose
 
@@ -343,34 +364,77 @@ class RobotController:
 
             self.bid_pub.publish(bid_msg)
             
-        elif announce_msg.mechanism == 'SSI':
-            pass
         elif announce_msg.mechanism == 'PSI':
+            print("mechanism == PSI")
+
+            # In PSI we always calculate bids (path costs) from our current
+            # position
+            bid_from = self.current_pose
+
+            for task_msg in announce_msg.tasks:                
+                path_cost = self.get_path_cost(bid_from,
+                                               self._point_to_pose(task_msg.location))
+
+                print("path_cost={0}".format(path_cost))
+
+                bid_msg = self._construct_bid_msg(task_msg.task.task_id,
+                                                  self.robot_name,
+                                                  path_cost)
+
+                print("bid_msg:")
+                pp.pprint(bid_msg)
+
+                self.bid_pub.publish(bid_msg)
+
+        elif announce_msg.mechanism == 'SSI':
             pass
         else:
             print("bid(): mechanism '{0}' not supported".format(self.mechanism))
             
-        self.fsm.bid_sent()
+    def won(self, award_msg):
 
-    def won(self, e):
-        award_msg = e.msg
+        # Make sure that this robot won the task
+        if award_msg.robot_id != self.robot_name:
+            return
 
         for task_msg in award_msg.tasks:
+            print("won task {0}".format(task_msg.task.task_id))
             new_task = multirobot_common.SensorSweepTask(str(task_msg.task.task_id),
                                                          float(task_msg.location.x),
                                                          float(task_msg.location.y))
             self.agenda.append(new_task)
-
-        self.fsm.task_added()
+            self.last_won_location = task_msg.location
 
     def choose_task(self, e):
         print("state: choose_task")
 
+        # We have two ways to choose the next task from our agenda:
+        # 1. ("non-greedy") Choose the first task that hasn't been completed yet
+        # 2. ("greedy")     Choose the next closest task
+
+        greedy_selection = True
+
+        # "non-greedy"
         goal_task = None
+        min_uncompleted_dist = None
         for task in self.agenda:
             if not task.completed:
-                goal_task = task
-                break
+                if greedy_selection:
+                    from_pose = self.current_pose
+                    to_pose = self._point_to_pose(self._point_to_point_msg(task.location))
+                    path_cost = self.get_path_cost(from_pose, to_pose)
+
+                    if not min_uncompleted_dist or path_cost < min_uncompleted_dist:
+                        goal_task = task
+                        min_uncompleted_dist = path_cost
+
+                else:
+                    goal_task = task
+                    break
+
+        # Sanity check
+        if not goal_task:
+            self.fsm.no_tasks()
 
         self.fsm.goal_chosen(goal_task=goal_task)
 
@@ -380,6 +444,11 @@ class RobotController:
         # geometry_msgs/Pose
         self.current_pose = amcl_pose_msg.pose.pose
 
+    def on_experiment_event_received(self, event_msg):
+        if event_msg.event == 'BEGIN_EXECUTION':
+            self.ok_to_execute = True
+        elif event_msg.event == 'END_EXPERIMENT':
+            self.shutdown()
 
     def send_goal(self, e):
         print("state: send_goal")
@@ -398,6 +467,11 @@ class RobotController:
         print "Sending goal: {0}".format(goal_msg)
         self.aclient.send_goal(goal_msg)
 
+        self.fsm.goal_sent(goal_task=goal_task)
+
+    def moving(self, e):
+        goal_task = e.goal_task
+
         # Wait until the goal is reached
         self.aclient.wait_for_result()
 
@@ -410,7 +484,6 @@ class RobotController:
 
         self.fsm.resume()
 
-
     def task_failure(self, e):
         print("state: task_failure")
 
@@ -422,12 +495,30 @@ class RobotController:
     def idle(self, e):
         print("state: idle")
 
-        while not self.agenda:
+        # We idle here unless two conditions are true:
+        # 1. We have tasks in our agenda
+        # 2. self.ok_to_execute == True
+        while not self.agenda or not self.ok_to_execute:
 #            print("idle..")
             self.rate.sleep()
 
-        # We've been awarded least one task while idling
-        self.fsm.have_tasks()
+        have_tasks = False
+        for task in self.agenda:
+            if not task.completed:
+                have_tasks = True
+                break
+
+        if have_tasks:
+            self.fsm.have_tasks()
+        else:
+            # The allocation and execution phases are finished.
+            self.fsm.no_tasks()
+
+    def shutdown(self):
+        # Do any cleanup here before shutting down
+        
+        print("Shutting down...")
+        sys.exit(0)
 
 if __name__ == '__main__':
     try:

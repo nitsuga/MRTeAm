@@ -19,16 +19,18 @@
       <param name="odom_frame_id" value="robot_1/odom" />
       <param name="base_frame_id" value="robot_1/base_link" />
     </node>
+
+    <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="robot_1" output="screen" />
+
   </group>
   <!-- END ROBOT 1 -->
-
-<!--  <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="robot_1 3.0 1.0" output="screen" /> -->
 
   <!-- FKIE master discovery -->
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />
 
   <!-- FKIE master sync -->
-  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen" />
-
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+    <rosparam param="ignore_topic">[/robot_0/*, /robot_2/*]</rosparam>
+  </node>
 
 </launch>
