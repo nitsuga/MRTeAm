@@ -19,7 +19,7 @@
 
       <rosparam file="$(find multirobot_stage)/move_base_config/base_local_planner_params.yaml" command="load" />
 
-<!--      <rosparam file="$(find multirobot_stage)/move_base_config/dwa_local_planner_params.yaml" command="load" />  -->
+<!--      <rosparam file="$(find multirobot_stage)/move_base_config/dwa_local_planner_params.yaml" command="load" /> -->
 
     </node>
 

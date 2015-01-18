@@ -47,6 +47,7 @@ import itertools
 import os
 import pprint
 import re
+from sets import Set
 import signal
 import sys
 import time
@@ -74,7 +75,7 @@ import multirobot_common.msg
 # Import Task class
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
-RATE = 10
+RATE = 100
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -183,23 +184,21 @@ class AuctionOSI(Auction):
         return announce_msg
 
     def announce(self, e):
-        print("(OSI) state: announce")
+        rospy.loginfo("(OSI) state: announce")
 
         while not self.auctioneer.team_members:
-            print("..waiting for team to be non-empty")
+            rospy.logdebug("..waiting for team to be non-empty")
             time.sleep(1)
         
         announcement_msg = self._construct_announcement_msg()
         self.auctioneer.announce_pub.publish(announcement_msg)
 
-        print('Announcement:')
-        pp.pprint(announcement_msg)
+        rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
 
-        # 
         self.fsm.announced()
 
     def collect_bids(self, e):
-        print("(OSI) state: collect_bids")
+        rospy.loginfo("(OSI) state: collect_bids")
 
         bids = self.auctioneer.bids[self.auction_round]
 
@@ -350,6 +349,107 @@ class AuctionPSI(Auction):
             # Mark the task as awarded
             won_task.awarded = True
 
+class AuctionSSI(Auction):
+    """ A Sequential Single-Item auction.
+
+    See:
+    Koenig, Sven, et al. "The power of sequential single-item auctions for agent
+    coordination." Proceedings of the National Conference on Artificial
+    Intelligence. Vol. 21. No. 2. Menlo Park, CA; Cambridge, MA; London; AAAI
+    Press; MIT Press; 1999, 2006.
+    """
+    mechanism_name = 'SSI'
+
+    def __init__(self, auctioneer=None, tasks=None, auction_round=None):
+        super(AuctionSSI, self).__init__(auctioneer, tasks, auction_round)
+
+    def _construct_announcement_msg(self):
+        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
+        announce_msg.mechanism = self.mechanism_name
+
+        # Announce all messages at once
+        for task in self.tasks:
+            announce_msg.tasks.append(self._construct_task_msg(task))
+
+        return announce_msg
+
+    def announce(self, e):
+        print("(SSI) state: announce")
+
+        while not self.auctioneer.team_members:
+            print("..waiting for team to be non-empty")
+            time.sleep(1)
+
+        announcement_msg = self._construct_announcement_msg()
+        self.auctioneer.announce_pub.publish(announcement_msg)
+
+        print('Announcement:')
+        pp.pprint(announcement_msg)
+
+        self.fsm.announced()
+
+    def collect_bids(self, e):
+        print("(SSI) state: collect_bids")
+
+        bids = self.auctioneer.bids[self.auction_round]
+
+        # In SSI, we wait to receive as many bids as there are team members
+        while len(bids) < len(self.auctioneer.team_members):
+            time.sleep(0.2)
+
+        self.fsm.bids_collected()
+
+    def determine_winner(self, e):
+        print("(SSI) state: determine_winner")
+        
+        bids = self.auctioneer.bids[self.auction_round]
+
+        print("bids:")
+        pp.pprint(bids)
+
+        winner_id = None
+        minimum_bid = None
+        minimum_bid_task_id= None
+
+        # We want to find the minimum bid on any task
+        for robot_id in bids:
+            for task_id in bids[robot_id]:
+                bid_value = bids[robot_id][task_id]
+                print("determine_winner(): robot {0} bid {1} on task {2}".format(robot_id,
+                                                                                 bid_value,
+                                                                                 task_id))
+
+                if minimum_bid is None or bid_value < minimum_bid:
+                    winner_id = robot_id
+                    minimum_bid = bid_value
+                    minimum_bid_task_id = task_id
+
+        print("winner of task {0} is {1}".format(minimum_bid_task_id, winner_id))
+
+        self.fsm.winner_determined(task_id=minimum_bid_task_id, winner_id=winner_id)
+
+    def award(self, e):
+        """ Construct and send an award message. """
+        print("(SSI) state: award")
+
+        task_id = e.task_id
+        task = self._get_task_by_id(task_id)
+        winner_id = e.winner_id
+
+        award_msg = multirobot_common.msg.TaskAward()
+        award_msg.robot_id = e.winner_id
+
+        task_msg = self._construct_task_msg(task)
+        award_msg.tasks.append(task_msg)
+
+        print("sending award message:")
+        pp.pprint(award_msg)
+
+        self.auctioneer.award_pub.publish(award_msg)
+
+        # Mark the task as awarded
+        task.awarded = True
+
 class AuctionRR(Auction):
 
     mechanism_name = 'RR'
@@ -432,6 +532,10 @@ class Auctioneer:
         # A list of (node) names of robot team members.
         self.team_members = []
 
+        # A list of (node) names team members who have completed
+        # all of their tasks.
+        self.team_members_completed = []
+
         # We will use one mechanism per run (for now)
         self.mechanism = mechanism
 
@@ -471,6 +575,15 @@ class Auctioneer:
             }
         )
 
+        # Generate a unique, random experiment id
+        self.experiment_id = str(uuid.uuid4())
+
+        # Send a message to mark the beginning of the experiment
+        begin_exp_msg = multirobot_common.msg.ExperimentEvent()
+        begin_exp_msg.experiment_id = self.experiment_id
+        begin_exp_msg.event = 'BEGIN_EXPERIMENT'
+        self.experiment_pub.publish(begin_exp_msg)
+
         # Start the state machine
         self.fsm.startup()
 
@@ -481,6 +594,10 @@ class Auctioneer:
         self.bid_sub = rospy.Subscriber('/tasks/bid',
                                         multirobot_common.msg.TaskBid,
                                         self.on_bid_received)
+
+        self.bid_sub = rospy.Subscriber('/tasks/status',
+                                        multirobot_common.msg.TaskStatus,
+                                        self.on_task_status)
 
         # For good measure...
         time.sleep(3)
@@ -506,7 +623,7 @@ class Auctioneer:
         time.sleep(3)
 
     def load_tasks(self, data):
-        print("Loading tasks from {0}...".format(self.task_file))
+        rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
 
         try:
             task_file = open(self.task_file, 'rb')
@@ -577,10 +694,16 @@ class Auctioneer:
     def choose_mechanism(self, e):
         print("Choosing mechanism...")
 
+        # Send a message to mark the beginning of the allocation phase of
+        # the experiment
+        begin_alloc_msg = multirobot_common.msg.ExperimentEvent()
+        begin_alloc_msg.experiment_id = self.experiment_id
+        begin_alloc_msg.event = 'BEGIN_ALLOCATION'
+        self.experiment_pub.publish(begin_alloc_msg)
+
         # For now, use the single mechanism given to us at startup
         # (in our constructor)
         print("  {0}".format(self.mechanism))
-
 
         # As long as there are unallocated tasks, choose a mechanism and
         # allocate them.
@@ -600,20 +723,22 @@ class Auctioneer:
                 auction_osi = AuctionOSI(self, unallocated, self.auction_round)
             elif self.mechanism == 'PSI':
                 auction_psi = AuctionPSI(self, unallocated, self.auction_round)
+            elif self.mechanism == 'SSI':
+                auction_ssi = AuctionSSI(self, unallocated, self.auction_round)
             elif self.mechanism == 'RR':
-                auction_psi = AuctionRR(self, unallocated, self.auction_round)
+                auction_rr = AuctionRR(self, unallocated, self.auction_round)
 
         # At this point, we can (safely?) consider all tasks awarded
 
         # We are finished allocating tasks. Signal the end of the allocation
         # phase and the beginning of the execution phase.
         end_alloc_msg = multirobot_common.msg.ExperimentEvent()
-        end_alloc_msg.experiment_id = ""
+        end_alloc_msg.experiment_id = self.experiment_id
         end_alloc_msg.event = 'END_ALLOCATION'
         self.experiment_pub.publish(end_alloc_msg)
 
         begin_exec_msg = multirobot_common.msg.ExperimentEvent()
-        begin_exec_msg.experiment_id = ""
+        begin_exec_msg.experiment_id = self.experiment_id
         begin_exec_msg.event = 'BEGIN_EXECUTION'
         self.experiment_pub.publish(begin_exec_msg)
 
@@ -634,8 +759,37 @@ class Auctioneer:
         print("{0} bid {1} for task {2} in auction round {3}".format(
             robot_id, bid, task_id, self.auction_round))
 
+    def on_task_status(self, status_msg):
+        robot_id = status_msg.robot_id
+        task_id = status_msg.task_id
+        status = status_msg.status
+
+        # We mainly want to keep track of robots that have
+        # completed all of their tasks
+        if status == 'ALL_TASKS_COMPLETE':
+            self.team_members_completed.append(robot_id)
+
     def end_experiment(self, e):
-        print("end experiment")
+        rospy.loginfo("state: end_experiment")
+
+        # Don't end the experiment until all of our team members
+        # have finished their tasks
+        while Set(self.team_members) != Set(self.team_members_completed):
+            time.sleep(0.2)
+        
+        # Send a message to mark the end of the execution phase
+        end_exec_msg = multirobot_common.msg.ExperimentEvent()
+        end_exec_msg.experiment_id = self.experiment_id
+        end_exec_msg.event = 'END_EXECUTION'
+        self.experiment_pub.publish(end_exec_msg)
+
+        # Send a message to mark the end of the experiment
+        end_exp_msg = multirobot_common.msg.ExperimentEvent()
+        end_exp_msg.experiment_id = self.experiment_id
+        end_exp_msg.event = 'END_EXPERIMENT'
+        self.experiment_pub.publish(end_exp_msg)
+
+        rospy.loginfo("end experiment")
 
 if __name__ == '__main__':
     # Exit on ctrl-C

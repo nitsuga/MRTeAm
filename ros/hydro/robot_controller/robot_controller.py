@@ -46,7 +46,7 @@ import multirobot_common
 import multirobot_common.msg
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
-RATE = 10
+RATE = 100
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -74,7 +74,7 @@ class RobotController:
         #node_name = "rc_{0}".format(self.robot_name)
         #node_name = "/{0}/robot_controller".format(self.robot_name)
         node_name = 'robot_controller'
-        print("Starting node '{0}'...".format(node_name))
+        rospy.loginfo("Starting node '{0}'...".format(node_name))
         rospy.init_node(node_name)
 
         # The rate at which we'll sleep while idle
@@ -88,13 +88,13 @@ class RobotController:
 
         # actionlib client; used to send goals to the navigation stack
         ac_name = "/{0}/move_base".format(self.robot_name)
-        print "Starting actionlib client '{0}'".format(ac_name)
+        rospy.loginfo("Starting actionlib client '{0}'".format(ac_name))
         self.aclient = actionlib.SimpleActionClient(ac_name,
                                                     move_base_msgs.msg.MoveBaseAction)
 
         # Wait until the action server has started up
         self.aclient.wait_for_server()
-        print "{0} connected.".format(ac_name)
+        rospy.loginfo("{0} connected.".format(ac_name))
 
         # The name of the planner service
         self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
@@ -161,43 +161,47 @@ class RobotController:
         self.fsm.startup()
 
     def init_subscribers(self):
-        print 'Initializing subscribers...'
+        rospy.loginfo('Initializing subscribers...')
 
         # '/experiment'
-        print '- /experiment'
         self.experiment_sub = rospy.Subscriber('/experiment',
                                                multirobot_common.msg.ExperimentEvent,
                                                self.on_experiment_event_received)
+        rospy.loginfo('subscribed to /experiment')
 
         # '/robot_<n>/amcl_pose'
-        print "- /robot_{0}/amcl_pose".format(self.robot_name)
         self.amcl_pose_sub = rospy.Subscriber("/{0}/amcl_pose".format(self.robot_name),
                                                  geometry_msgs.msg.PoseWithCovarianceStamped,
                                                  self.on_amcl_pose_received)
+        rospy.loginfo("subscribed to /robot_{0}/amcl_pose".format(self.robot_name))
 
         # '/tasks/announce'
         # We respond only to sensor sweep task announcements (for now)
-        print '- /tasks/announce'
         self.announce_sub = rospy.Subscriber('/tasks/announce',
                                              multirobot_common.msg.AnnounceSensorSweep,
                                              self.bid)
+        rospy.loginfo('subscribed to /tasks/announce')
 
         # '/tasks/award'
-        print '- /tasks/award'
         self.announce_sub = rospy.Subscriber('/tasks/award',
                                              multirobot_common.msg.TaskAward,
                                              self.won)
+        rospy.loginfo('subscribed to /tasks/award')
+
         # For good measure...
         time.sleep(3)
 
     def init_publishers(self):
-        # 'initialpose'
-        self.initial_pose_pub = rospy.Publisher("/{0}/initialpose".format(self.robot_name),
-                                                geometry_msgs.msg.PoseWithCovarianceStamped)
-
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
                                        multirobot_common.msg.TaskBid)
+        rospy.loginfo('publishing on /tasks/bid')
+
+        # Announce task events on '/tasks/status':
+        # 'BEGIN', 'PAUSE', 'RESUME', 'SUCCESS', 'FAILURE', 'ALL_TASKS_COMPLETE'
+        self.task_status_pub = rospy.Publisher('/tasks/status',
+                                               multirobot_common.msg.TaskStatus)
+        rospy.loginfo('publishing on /tasks/status')
 
         # For good measure...
         time.sleep(3)
@@ -229,9 +233,9 @@ class RobotController:
 
     def _make_nav_plan_client(self, start, goal):
 
-        #print("Waiting for service {0}".format(self.plan_srv_name))
+        #rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
         rospy.wait_for_service(self.plan_srv_name)
-        #print("Service ready.")
+        #rospy.logdebug("Service ready.")
 
         try:
             make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
@@ -251,13 +255,12 @@ class RobotController:
 
             resp = make_nav_plan( req )
 
-            print("Got plan:")
-            #pp.pprint(resp)
+            rospy.logdebug("Got plan:\n{0}".format(pp.pformat(resp)))
             
             return resp.plan.poses
 
         except rospy.ServiceException, e:
-            print("Service call failed: {0}".format(e))
+            rospy.logerr("Service call failed: {0}".format(e))
 
     def _normalize_angle(angle):
         res = angle
@@ -279,12 +282,12 @@ class RobotController:
         https://code.google.com/p/alufr-ros-pkg/source/browse/.
         """
 
-        print("Getting path from navfn/MakeNavPlan...")
+        rospy.logdebug('Getting path from navfn/MakeNavPlan...')
 
         # 'path' is a list of objects of type geometry_msgs.PoseStamped
         path = self._make_nav_plan_client(start, goal)
 
-        print("Got path")
+        rospy.logdebug('...got path')
 
         path_cost = 0.0
         from_pose = None
@@ -314,15 +317,67 @@ class RobotController:
 
         return path_cost
 
-    def on_task_announced(self, msg):
-#        print("task announced:")
-#        pp.pprint(msg)
+    def _cumulative_cost(self, start, tasks=[], greedy=True):
+        """
+        Get the cumulative cost of performing all tasks (visiting task points)
+        from start. If greedy==True, tasks are ordered to minimize the cost of
+        each hop (i.e., the next closest task is chosen). Otherwise, the
+        original list order is used.
+        """
+        cumulative_cost = 0.0
 
+        if greedy:
+            #rospy.logdebug("_cumulative_cost(), tasks:\n{0}".format(pp.pformat(tasks)))
+
+            tasks_copy = tasks[:]
+            reordered_tasks = []
+            
+            from_pose = start
+            while tasks_copy:
+                min_cost = None
+                min_cost_task = None
+                for task in tasks_copy:
+                    to_pose = self._point_to_pose(task.location)
+                    cost = self.get_path_cost(from_pose, to_pose)
+
+                    rospy.logdebug("cost from {0} to {1} is {2}".format(pp.pformat(from_pose),
+                                                                        pp.pformat(to_pose),
+                                                                        cost))
+
+                    if min_cost is None or cost < min_cost:
+                        min_cost = cost
+                        min_cost_task = task
+
+                reordered_tasks.append(min_cost_task)
+                tasks_copy.remove(min_cost_task)
+                from_pose = self._point_to_pose(min_cost_task.location)
+
+            tasks = reordered_tasks
+            rospy.logdebug("tasks=reordered_tasks={0}".format(pp.pformat(tasks)))
+
+        from_pose = start
+        for task in tasks:
+            to_pose = self._point_to_pose(task.location)
+            cost = self.get_path_cost(from_pose, to_pose)
+            cumulative_cost += cost
+            from_pose = to_pose
+
+        final_pose = None
+        if tasks:
+            final_pose = self._point_to_pose(tasks[-1].location)
+        else:
+            final_pose = start
+
+        return (cumulative_cost, final_pose)
+
+    def on_task_announced(self, msg):
         # Trigger the 'task_announced' fsm event, with the message as a parameter
+        rospy.logdebug("task announced:\n{0}".format(pp.pformat(msg)))
         self.fsm.task_announced(msg=msg)
 
     def on_task_award(self, msg):
         # Trigger the 'task_won' fsm event, with the message as a parameter
+        rospy.logdebug("task won:\n{0}".format(pp.pformat(msg)))
         self.fsm.task_won(msg=msg)
 
     def _construct_bid_msg(self, task_id, robot_id, bid):
@@ -334,7 +389,7 @@ class RobotController:
         return bid_msg
 
     def bid(self, announce_msg):
-        print("state: bid")
+        rospy.loginfo('state: bid')
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -347,11 +402,23 @@ class RobotController:
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
-            print("mechanism == OSI")
+            rospy.loginfo("mechanism == OSI")
 
             task_msg = announce_msg.tasks[0]
-            path_cost = self.get_path_cost(bid_from,
-                                           self._point_to_pose(task_msg.location))
+
+            # path_cost = self.get_path_cost(bid_from,
+            #                                self._point_to_pose(task_msg.location))
+
+
+            # Get the cumulative cost of all tasks in out agenda so far
+            (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                       self.agenda,
+                                                       greedy=True)
+
+            new_task_cost = self.get_path_cost(bid_from,
+                                               self._point_to_pose(task_msg.location))
+
+            path_cost = c_cost + new_task_cost
 
             print("path_cost={0}".format(path_cost))
 
@@ -359,13 +426,12 @@ class RobotController:
                                               self.robot_name,
                                               path_cost)
 
-            print("bid_msg:")
-            pp.pprint(bid_msg)
+            rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
 
             self.bid_pub.publish(bid_msg)
             
         elif announce_msg.mechanism == 'PSI':
-            print("mechanism == PSI")
+            rospy.loginfo("mechanism == PSI")
 
             # In PSI we always calculate bids (path costs) from our current
             # position
@@ -381,24 +447,58 @@ class RobotController:
                                                   self.robot_name,
                                                   path_cost)
 
-                print("bid_msg:")
-                pp.pprint(bid_msg)
-
+                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+            
                 self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'SSI':
-            pass
+            rospy.loginfo("mechanism == SSI")
+            
+            # Get the cumulative cost of all tasks in out agenda so far
+            (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                       self.agenda,
+                                                       greedy=True)
+            minimum_cost = None
+            minimum_cost_task_id = None
+
+            for task_msg in announce_msg.tasks:                
+                #path_cost = self.get_path_cost(bid_from,
+                #                               self._point_to_pose(task_msg.location))
+
+                new_task_cost = self.get_path_cost(bid_from,
+                                                   self._point_to_pose(task_msg.location))
+                
+                path_cost = c_cost + new_task_cost
+
+                rospy.logdebug("path_cost={0}".format(path_cost))
+
+                if minimum_cost is None or path_cost < minimum_cost:
+                    minimum_cost = path_cost
+                    minimum_cost_task_id = task_msg.task.task_id
+
+            rospy.logdebug("minimum_cost={0} to task {1}".format(minimum_cost,
+                                                                 minimum_cost_task_id))
+
+            bid_msg = self._construct_bid_msg(minimum_cost_task_id,
+                                              self.robot_name,
+                                              minimum_cost)            
+
+            rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+
+            self.bid_pub.publish(bid_msg)
+
         else:
-            print("bid(): mechanism '{0}' not supported".format(self.mechanism))
+            rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
             
     def won(self, award_msg):
+        rospy.loginfo("state: won")
 
         # Make sure that this robot won the task
         if award_msg.robot_id != self.robot_name:
             return
 
         for task_msg in award_msg.tasks:
-            print("won task {0}".format(task_msg.task.task_id))
+            rospy.loginfo("won task {0}".format(task_msg.task.task_id))
             new_task = multirobot_common.SensorSweepTask(str(task_msg.task.task_id),
                                                          float(task_msg.location.x),
                                                          float(task_msg.location.y))
@@ -406,7 +506,7 @@ class RobotController:
             self.last_won_location = task_msg.location
 
     def choose_task(self, e):
-        print("state: choose_task")
+        rospy.loginfo("state: choose_task")
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -451,12 +551,19 @@ class RobotController:
             self.shutdown()
 
     def send_goal(self, e):
-        print("state: send_goal")
+        rospy.loginfo("state: send_goal")
 
         goal_task = e.goal_task
-        
-        goal_msg = move_base_msgs.msg.MoveBaseGoal()
 
+        # Send a message to mark the beginning of this task's execution
+        begin_task_msg = multirobot_common.msg.TaskStatus()
+        begin_task_msg.robot_id = self.robot_name
+        begin_task_msg.task_id = goal_task.task_id
+        begin_task_msg.status = 'BEGIN'
+        self.task_status_pub.publish(begin_task_msg)
+        
+        # Construct the goal message to send to the move_base service
+        goal_msg = move_base_msgs.msg.MoveBaseGoal()
         goal_msg.target_pose.header.frame_id = 'map'
         goal_msg.target_pose.header.stamp = rospy.Time.now()
 
@@ -464,7 +571,7 @@ class RobotController:
         goal_msg.target_pose.pose.position.y = float(goal_task.location.y)
         goal_msg.target_pose.pose.orientation.w = 1.0
 
-        print "Sending goal: {0}".format(goal_msg)
+        rospy.logdebug("Sending goal: {0}".format(goal_msg))
         self.aclient.send_goal(goal_msg)
 
         self.fsm.goal_sent(goal_task=goal_task)
@@ -478,19 +585,36 @@ class RobotController:
         self.fsm.goal_reached(goal_task=goal_task)
 
     def task_success(self, e):
-        print("state: task_success")
+        rospy.loginfo("state: task_success")
 
-        e.goal_task.completed = True
+        goal_task = e.goal_task
+
+        # Send a message to mark the end of this task's execution
+        end_task_msg = multirobot_common.msg.TaskStatus()
+        end_task_msg.robot_id = self.robot_name
+        end_task_msg.task_id = goal_task.task_id
+        end_task_msg.status = 'SUCCESS'
+        self.task_status_pub.publish(end_task_msg)
+
+        goal_task.completed = True
 
         self.fsm.resume()
 
     def task_failure(self, e):
-        print("state: task_failure")
+        rospy.loginfo("state: task_failure")
 
-        e.goal_task.completed = False
+        goal_task = e.goal_task
+
+        # Send a message to mark the end of this task's execution
+        end_task_msg = multirobot_common.msg.TaskStatus()
+        end_task_msg.robot_id = self.robot_name
+        end_task_msg.task_id = goal_task.task_id
+        end_task_msg.status = 'FAILURE'
+        self.task_status_pub.publish(end_task_msg)
+
+        goal_task.completed = False
 
         self.fsm.resume()
-    
 
     def idle(self, e):
         print("state: idle")
@@ -512,6 +636,14 @@ class RobotController:
             self.fsm.have_tasks()
         else:
             # The allocation and execution phases are finished.
+
+            # Send a message to mark the completion of all tasks
+            all_complete_msg = multirobot_common.msg.TaskStatus()
+            all_complete_msg.robot_id = self.robot_name
+            all_complete_msg.task_id = '*'
+            all_complete_msg.status = 'ALL_TASKS_COMPLETE'
+            self.task_status_pub.publish(all_complete_msg)
+
             self.fsm.no_tasks()
 
     def shutdown(self):

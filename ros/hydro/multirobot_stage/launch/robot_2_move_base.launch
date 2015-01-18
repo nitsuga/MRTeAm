@@ -8,11 +8,18 @@
     <node pkg="move_base" type="move_base" respawn="false" name="move_base_node" output="screen">
       <remap from="map" to="/map" />
       <param name="controller_frequency" value="10.0" />
+
+<!--      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" /> -->
+
       <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="local_costmap" />
       <rosparam file="$(find multirobot_stage)/move_base_config/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find multirobot_stage)/move_base_config/global_costmap_params.yaml" command="load" />
+
       <rosparam file="$(find multirobot_stage)/move_base_config/base_local_planner_params.yaml" command="load" />
+
+<!--      <rosparam file="$(find multirobot_stage)/move_base_config/dwa_local_planner_params.yaml" command="load" /> -->
+
     </node>
 
     <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
