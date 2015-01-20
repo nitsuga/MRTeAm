@@ -35,6 +35,7 @@ def main(argv):
 
     if argv[2] not in exp_topics:
         print("Invalid topic type: {0}".format(argv[2]))
+        bag.close()
         sys.exit(1)
 
     for topic,msg,t in bag.read_messages(topics=exp_topics[argv[2]]):
@@ -43,6 +44,7 @@ def main(argv):
         print("topic: {0}".format(topic))
         print(msg)
 
+    bag.close()
 
 if __name__ == '__main__':
     main(sys.argv)

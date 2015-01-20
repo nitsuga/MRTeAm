@@ -36,8 +36,8 @@ record_topics = [ '/experiment', '/tasks/announce', '/tasks/bid',
                   '/tasks/award', '/tasks/status' ]
 
 # Terminate all child processes when we get a SIGINT
-def sig_handler(signal, frame):
-    if signal == signal.SIGINT:
+def sig_handler(sig, frame):
+    if sig == signal.SIGINT:
         print("Shutting down...")
         
         for proc in running_procs:
@@ -45,6 +45,8 @@ def sig_handler(signal, frame):
                 proc.terminate()
             except:
                 print("Error: {0}".format(sys.exc_info()[0]))
+
+        sys.exit(0)
 
 signal.signal(signal.SIGINT, sig_handler)          
 
