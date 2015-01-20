@@ -516,8 +516,7 @@ class Auctioneer:
         # Initialize our node
         # Do we need a special name for the auctioneer (i.e., not "auctioneer")?
         node_name = 'auctioneer'
-        #rospy.loginfo("Starting node '{0}'...".format(node_name))
-        print("Starting node '{0}'...".format(node_name))
+        rospy.loginfo("Starting node '{0}'...".format(node_name))
         rospy.init_node(node_name)
 
         # Topics we wish to subscribe to
@@ -537,11 +536,13 @@ class Auctioneer:
         self.team_members_completed = []
 
         # We will use one mechanism per run (for now)
-        self.mechanism = mechanism
+        #self.mechanism = mechanism
+        self.mechanism = rospy.get_param('~mechanism')
 
         # Tasks are loaded from a configuration file, rather than
         # loaded dynamically (for now)
-        self.task_file = task_file
+        #self.task_file = task_file
+        self.task_file = rospy.get_param('~task_file')
 
         # A simple list for now
         self.tasks = []
@@ -701,9 +702,8 @@ class Auctioneer:
         begin_alloc_msg.event = 'BEGIN_ALLOCATION'
         self.experiment_pub.publish(begin_alloc_msg)
 
-        # For now, use the single mechanism given to us at startup
-        # (in our constructor)
-        print("  {0}".format(self.mechanism))
+        # For now, use the single mechanism given to us as a parameter
+        rospy.loginfo("  {0}".format(self.mechanism))
 
         # As long as there are unallocated tasks, choose a mechanism and
         # allocate them.
@@ -797,7 +797,6 @@ if __name__ == '__main__':
 
     try:
         argv = rospy.myargv(argv=sys.argv[1:])
-#        print "arguments: {0}".format(argv)
         auc = Auctioneer(*argv)
     except rospy.ROSInterruptException:
         pass

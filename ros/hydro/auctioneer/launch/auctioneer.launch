@@ -1,7 +1,12 @@
 <launch>
-<!--  <param name="/use_sim_time" value="true"/> -->
+  <param name="/use_sim_time" value="true"/>
 
-  <node name="auctioneer" pkg="auctioneer" type="auctioneer.py" args="SSI /home/eric/GIT/multirobot/ros/hydro/auctioneer/task_files/brooklyn_tasks_A.txt" output="screen" />
+  <!--<node name="auctioneer" pkg="auctioneer" type="auctioneer.py" args="SSI /home/eric/GIT/multirobot/ros/hydro/auctioneer/task_files/brooklyn_tasks_A.txt" output="screen">-->
+
+  <node name="auctioneer" pkg="auctioneer" type="auctioneer.py" output="screen">
+    <param name="task_file" value="$(find auctioneer)/task_files/$(arg task_file)" />
+    <param name="mechanism" value="$(arg mechanism)" />
+  </node>
 
   <!-- FKIE master discovery -->
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />

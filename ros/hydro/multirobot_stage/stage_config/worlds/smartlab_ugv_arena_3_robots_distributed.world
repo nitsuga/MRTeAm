@@ -71,6 +71,6 @@ floorplan
 
 # Our robots
 
-turtlebot ( pose [ 7.5 5.5 0 0 ] color "red" )   # "upper right corner"
-turtlebot ( pose [ 0.5 5.5 0 0 ] color "green" ) # "upper left corner"
-turtlebot ( pose [ 0.5 0.5 0 0 ] color "blue" )  # "lower left corner"
+turtlebot ( pose [ 7.5 5.5 0 221.48 ] color "red" )   # "upper right corner"
+turtlebot ( pose [ 0.5 5.5 0 311.48 ] color "green" ) # "upper left corner"
+turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )  # "lower left corner"
