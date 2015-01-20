@@ -50,6 +50,11 @@ RATE = 100
 
 pp = pprint.PrettyPrinter(indent=2)
 
+def stamp(msg):
+    """ Set the timestamp of a message to the current wall-clock time."""
+    rospy.rostime.switch_to_wallclock()
+    msg.header.stamp = rospy.rostime.get_rostime()
+
 class RobotController:
 
     def __init__(self, robot_name=None, goal_x=None, goal_y=None):
@@ -428,6 +433,7 @@ class RobotController:
 
             rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
 
+            stamp(bid_msg)
             self.bid_pub.publish(bid_msg)
             
         elif announce_msg.mechanism == 'PSI':
@@ -449,6 +455,7 @@ class RobotController:
 
                 rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             
+                stamp(bid_msg)
                 self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'SSI':
@@ -485,6 +492,7 @@ class RobotController:
 
             rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
 
+            stamp(bid_msg)
             self.bid_pub.publish(bid_msg)
 
         else:
@@ -560,6 +568,7 @@ class RobotController:
         begin_task_msg.robot_id = self.robot_name
         begin_task_msg.task_id = goal_task.task_id
         begin_task_msg.status = 'BEGIN'
+        stamp(begin_task_msg)
         self.task_status_pub.publish(begin_task_msg)
         
         # Construct the goal message to send to the move_base service
@@ -594,6 +603,7 @@ class RobotController:
         end_task_msg.robot_id = self.robot_name
         end_task_msg.task_id = goal_task.task_id
         end_task_msg.status = 'SUCCESS'
+        stamp(end_task_msg)
         self.task_status_pub.publish(end_task_msg)
 
         goal_task.completed = True
@@ -610,6 +620,7 @@ class RobotController:
         end_task_msg.robot_id = self.robot_name
         end_task_msg.task_id = goal_task.task_id
         end_task_msg.status = 'FAILURE'
+        stamp(end_task_msg)
         self.task_status_pub.publish(end_task_msg)
 
         goal_task.completed = False
@@ -642,6 +653,7 @@ class RobotController:
             all_complete_msg.robot_id = self.robot_name
             all_complete_msg.task_id = '*'
             all_complete_msg.status = 'ALL_TASKS_COMPLETE'
+            stamp(all_complete_msg)
             self.task_status_pub.publish(all_complete_msg)
 
             self.fsm.no_tasks()

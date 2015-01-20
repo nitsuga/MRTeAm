@@ -66,6 +66,7 @@ import rosgraph
 import rosgraph.names
 import rosnode
 import rospy
+import rospy.rostime
 import unique_id
 
 import multirobot_common
@@ -83,6 +84,10 @@ def on_sigint(signal, frame):
     print('Caught SIGINT, shutting down...')
     sys.exit(0)
 
+def stamp(msg):
+    """ Set the timestamp of a message to the current wall-clock time."""
+    rospy.rostime.switch_to_wallclock()
+    msg.header.stamp = rospy.rostime.get_rostime()
 
 class Auction(object):
     def __init__(self, auctioneer=None, tasks=None, auction_round=None):
@@ -191,6 +196,7 @@ class AuctionOSI(Auction):
             time.sleep(1)
         
         announcement_msg = self._construct_announcement_msg()
+        stamp(announcement_msg)
         self.auctioneer.announce_pub.publish(announcement_msg)
 
         rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
@@ -209,7 +215,7 @@ class AuctionOSI(Auction):
         self.fsm.bids_collected(task_id=self.tasks[0].task_id)
 
     def determine_winner(self, e):
-        print("(OSI) state: determine_winner")
+        rospy.loginfo("(OSI) state: determine_winner")
         
         # Get the id of the task to award from the event object
         task_id = e.task_id
@@ -221,27 +227,27 @@ class AuctionOSI(Auction):
         for robot_id in bids.keys():
             bid_value = bids[robot_id][task_id]
 
-            print("determine_winner(): robot {0} bids {1} on task {2}".format(robot_id,
-                                                                              bid_value,
-                                                                              task_id))
+            rospy.logdebug("determine_winner(): robot {0} bids {1} on task {2}".format(robot_id,
+                                                                                       bid_value,
+                                                                                       task_id))
             if minimum_bid is None or bid_value < minimum_bid:
                 minimum_bid = bid_value
                 winner_id = robot_id
 
-        print("winner is robot '{0}'".format(winner_id))
+        rospy.loginfo("winner is robot '{0}'".format(winner_id))
 
         self.fsm.winner_determined(task_id=task_id, winner_id=winner_id)
 
     def award(self, e):
         """ Construct and send an award message. """
-        print("(OSI) state: award")
+        rospy.loginfo("(OSI) state: award")
 
         award_msg = multirobot_common.msg.TaskAward()
         award_msg.robot_id = e.winner_id
-
         task_msg = self._construct_task_msg(self.tasks[0])
         award_msg.tasks.append(task_msg)
 
+        stamp(award_msg)
         self.auctioneer.award_pub.publish(award_msg)
 
         # Mark the task as awarded
@@ -265,22 +271,22 @@ class AuctionPSI(Auction):
         return announce_msg
 
     def announce(self, e):
-        print("(PSI) state: announce")
+        rospy.loginfo("(PSI) state: announce")
 
         while not self.auctioneer.team_members:
-            print("..waiting for team to be non-empty")
+            rospy.logdebug("..waiting for team to be non-empty")
             time.sleep(1)
 
         announcement_msg = self._construct_announcement_msg()
+        stamp(announcement_msg)
         self.auctioneer.announce_pub.publish(announcement_msg)
 
-        print('Announcement:')
-        pp.pprint(announcement_msg)
+        rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
 
         self.fsm.announced()
 
     def collect_bids(self, e):
-        print("(PSI) state: collect_bids")
+        rospy.loginfo("(PSI) state: collect_bids")
 
         bids = self.auctioneer.bids[self.auction_round]
 
@@ -297,12 +303,11 @@ class AuctionPSI(Auction):
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        print("(PSI) state: determine_winner")
+        rospy.loginfo("(PSI) state: determine_winner")
         
         bids = self.auctioneer.bids[self.auction_round]
 
-        print("bids:")
-        pp.pprint(bids)
+        rospy.logdebug("bids:\n{0}".format(pp.pformat(bids)))
 
         # We'll determine the winner of and send an award message for each task
         task_winners = {} # task_winners[task_id] = winner_id
@@ -314,21 +319,21 @@ class AuctionPSI(Auction):
             for robot_id in bids:
                 bid_value = bids[robot_id][task.task_id]
 
-                print("determine_winner(): robot {0} bid {1} on task {2}".format(robot_id,
-                                                                                 bid_value,
-                                                                                 task.task_id))
+                rospy.logdebug("determine_winner(): robot {0} bid {1} on task {2}".format(robot_id,
+                                                                                          bid_value,
+                                                                                          task.task_id))
                 if minimum_bid is None or bid_value < minimum_bid:
                     minimum_bid = bid_value
                     winner_id = robot_id
 
-            print("winner of task {0} is {1}".format(task.task_id, winner_id))
+            rospy.loginfo("winner of task {0} is {1}".format(task.task_id, winner_id))
             task_winners[task.task_id] = winner_id
 
         self.fsm.winner_determined(task_winners=task_winners)
 
     def award(self, e):
         """ Construct and send an award message for each winner. """
-        print("(PSI) state: award")
+        rospy.loginfo("(PSI) state: award")
 
         task_winners = e.task_winners
 
@@ -343,8 +348,7 @@ class AuctionPSI(Auction):
 
             self.auctioneer.award_pub.publish(award_msg)
 
-            print("sending award message:")
-            pp.pprint(award_msg)
+            rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
 
             # Mark the task as awarded
             won_task.awarded = True
@@ -374,22 +378,22 @@ class AuctionSSI(Auction):
         return announce_msg
 
     def announce(self, e):
-        print("(SSI) state: announce")
+        rospy.loginfo("(SSI) state: announce")
 
         while not self.auctioneer.team_members:
-            print("..waiting for team to be non-empty")
+            rospy.logdebug("..waiting for team to be non-empty")
             time.sleep(1)
 
         announcement_msg = self._construct_announcement_msg()
+        stamp(announcement_msg)
         self.auctioneer.announce_pub.publish(announcement_msg)
 
-        print('Announcement:')
-        pp.pprint(announcement_msg)
+        rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
 
         self.fsm.announced()
 
     def collect_bids(self, e):
-        print("(SSI) state: collect_bids")
+        rospy.loginfo("(SSI) state: collect_bids")
 
         bids = self.auctioneer.bids[self.auction_round]
 
@@ -400,13 +404,11 @@ class AuctionSSI(Auction):
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        print("(SSI) state: determine_winner")
+        rospy.loginfo("(SSI) state: determine_winner")
         
         bids = self.auctioneer.bids[self.auction_round]
 
-        print("bids:")
-        pp.pprint(bids)
-
+        rospy.logdebug("bids:\n{0}".format(pp.pformat(bids)))
         winner_id = None
         minimum_bid = None
         minimum_bid_task_id= None
@@ -415,22 +417,22 @@ class AuctionSSI(Auction):
         for robot_id in bids:
             for task_id in bids[robot_id]:
                 bid_value = bids[robot_id][task_id]
-                print("determine_winner(): robot {0} bid {1} on task {2}".format(robot_id,
-                                                                                 bid_value,
-                                                                                 task_id))
+                rospy.logdebug("determine_winner(): robot {0} bid {1} on task {2}".format(robot_id,
+                                                                                          bid_value,
+                                                                                          task_id))
 
                 if minimum_bid is None or bid_value < minimum_bid:
                     winner_id = robot_id
                     minimum_bid = bid_value
                     minimum_bid_task_id = task_id
 
-        print("winner of task {0} is {1}".format(minimum_bid_task_id, winner_id))
+        rospy.loginfo("winner of task {0} is {1}".format(minimum_bid_task_id, winner_id))
 
         self.fsm.winner_determined(task_id=minimum_bid_task_id, winner_id=winner_id)
 
     def award(self, e):
         """ Construct and send an award message. """
-        print("(SSI) state: award")
+        rospy.loginfo("(SSI) state: award")
 
         task_id = e.task_id
         task = self._get_task_by_id(task_id)
@@ -442,9 +444,9 @@ class AuctionSSI(Auction):
         task_msg = self._construct_task_msg(task)
         award_msg.tasks.append(task_msg)
 
-        print("sending award message:")
-        pp.pprint(award_msg)
+        rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
 
+        stamp(award_msg)
         self.auctioneer.award_pub.publish(award_msg)
 
         # Mark the task as awarded
@@ -467,26 +469,26 @@ class AuctionRR(Auction):
         return announce_msg
 
     def announce(self, e):
-        print("(RR) state: announce")
-        print("..skipping!")
+        rospy.loginfo("(RR) state: announce")
+        rospy.loginfo("..skipping!")
 
         self.fsm.announced()
 
     def collect_bids(self, e):
-        print("(RR) state: collect_bids")
-        print("..skipping!")
+        rospy.loginfo("(RR) state: collect_bids")
+        rospy.loginfo("..skipping!")
 
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        print("(RR) state: determine_winner")
-        print("..skipping!")
+        rospy.loginfo("(RR) state: determine_winner")
+        rospy.loginfo("..skipping!")
 
         self.fsm.winner_determined()
 
     def award(self, e):
         """ Construct and send an award message for each task. """
-        print("(RR) state: award")
+        rospy.loginfo("(RR) state: award")
 
         # A cycling iterator of team member names
         team_cycle = itertools.cycle(self.auctioneer.team_members)
@@ -498,9 +500,9 @@ class AuctionRR(Auction):
             task_msg = self._construct_task_msg(task)
             award_msg.tasks.append(task_msg)
 
-            print("sending award message:")
-            pp.pprint(award_msg)
+            rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
 
+            stamp(award_msg)
             self.auctioneer.award_pub.publish(award_msg)
 
             # Mark the task as awarded
@@ -583,13 +585,14 @@ class Auctioneer:
         begin_exp_msg = multirobot_common.msg.ExperimentEvent()
         begin_exp_msg.experiment_id = self.experiment_id
         begin_exp_msg.event = 'BEGIN_EXPERIMENT'
+        stamp(begin_exp_msg)
         self.experiment_pub.publish(begin_exp_msg)
 
         # Start the state machine
         self.fsm.startup()
 
     def init_subscribers(self):
-        print 'Initializing subscribers...'
+        rospy.loginfo('Initializing subscribers...')
 
         # Listen for bids on '/tasks/bid'
         self.bid_sub = rospy.Subscriber('/tasks/bid',
@@ -650,17 +653,14 @@ class Auctioneer:
                 task_id += 1
 
         except IOError:
-            print("Can't open task file {0} for reading!".format(self.task_file))
+            rospy.logerr("Can't open task file {0} for reading!".format(self.task_file))
 
-        #print("Tasks: {0}".format(self.tasks))
-        print('Tasks:')
-        pp = pprint.PrettyPrinter(indent=2)
-        pp.pprint(self.tasks)
+        rospy.loginfo("Tasks:\n{0}".format(pp.pformat(self.tasks)))
 
         self.fsm.tasks_loaded()
 
     def identify_team(self, data):
-        print "Identifying team..."
+        rospy.loginfo("Identifying team...")
 
         # In the 'rosnode' utility/module, _sub_rosnode_listnodes() returns a
         # newline-separated list of the names of all nodes in the graph.
@@ -674,18 +674,18 @@ class Auctioneer:
             m = name_pat.match(node_name)
             if m:
                 teammate_name = m.group(1)
-                print("Adding {0} to team".format(teammate_name))
+                rospy.loginfo("Adding {0} to team".format(teammate_name))
                 self.team_members.append(teammate_name)
 
-        print("Team members: {0}".format(self.team_members))
+        rospy.loginfo("Team members: {0}".format(self.team_members))
 
         self.fsm.team_identified()
 
     def idle(self, data):
-        print "idle.."
+        rospy.loginfo("state: idle")
 
         if not self.tasks:
-            print "idling..."
+            rospy.loginfo("idling...")
             self.rate.sleep()
             self.fsm.no_tasks()
 
@@ -693,13 +693,14 @@ class Auctioneer:
         self.fsm.have_tasks()
 
     def choose_mechanism(self, e):
-        print("Choosing mechanism...")
+        rospy.loginfo("state: choose_mechanism")
 
         # Send a message to mark the beginning of the allocation phase of
         # the experiment
         begin_alloc_msg = multirobot_common.msg.ExperimentEvent()
         begin_alloc_msg.experiment_id = self.experiment_id
         begin_alloc_msg.event = 'BEGIN_ALLOCATION'
+        stamp(begin_alloc_msg)
         self.experiment_pub.publish(begin_alloc_msg)
 
         # For now, use the single mechanism given to us as a parameter
@@ -735,11 +736,13 @@ class Auctioneer:
         end_alloc_msg = multirobot_common.msg.ExperimentEvent()
         end_alloc_msg.experiment_id = self.experiment_id
         end_alloc_msg.event = 'END_ALLOCATION'
+        stamp(end_alloc_msg)
         self.experiment_pub.publish(end_alloc_msg)
 
         begin_exec_msg = multirobot_common.msg.ExperimentEvent()
         begin_exec_msg.experiment_id = self.experiment_id
         begin_exec_msg.event = 'BEGIN_EXECUTION'
+        stamp(begin_exec_msg)
         self.experiment_pub.publish(begin_exec_msg)
 
         self.fsm.no_tasks()
@@ -756,7 +759,7 @@ class Auctioneer:
 
         round_bids[robot_id][task_id] = float(bid)
 
-        print("{0} bid {1} for task {2} in auction round {3}".format(
+        rospy.loginfo("{0} bid {1} for task {2} in auction round {3}".format(
             robot_id, bid, task_id, self.auction_round))
 
     def on_task_status(self, status_msg):
@@ -781,12 +784,14 @@ class Auctioneer:
         end_exec_msg = multirobot_common.msg.ExperimentEvent()
         end_exec_msg.experiment_id = self.experiment_id
         end_exec_msg.event = 'END_EXECUTION'
+        stamp(end_exec_msg)
         self.experiment_pub.publish(end_exec_msg)
 
         # Send a message to mark the end of the experiment
         end_exp_msg = multirobot_common.msg.ExperimentEvent()
         end_exp_msg.experiment_id = self.experiment_id
         end_exp_msg.event = 'END_EXPERIMENT'
+        stamp(end_exp_msg)
         self.experiment_pub.publish(end_exp_msg)
 
         rospy.loginfo("end experiment")
