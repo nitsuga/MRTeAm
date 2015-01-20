@@ -113,7 +113,7 @@ def launch_experiments(arena, mechanism, task_file):
 if __name__ == '__main__':
                              
     arena = arenas['brooklyn']
-    mechanism = mechanisms[3]    # OSI
+    mechanism = mechanisms[0]
     task_file = task_files[0]    # brooklyn_tasks_A.txt
 
     launch_experiments(arena, mechanism, task_file)

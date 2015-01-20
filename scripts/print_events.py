@@ -38,9 +38,11 @@ def main(argv):
         sys.exit(1)
 
     for topic,msg,t in bag.read_messages(topics=exp_topics[argv[2]]):
-        print("{0}.{1}: ".format(t.secs,t.nsecs))
+        print('---------------------------------------------------')
+        print("time: {0}.{1}s ".format(t.secs,t.nsecs))
+        print("topic: {0}".format(topic))
         print(msg)
-        print('------------------------------------------------')
+
 
 if __name__ == '__main__':
     main(sys.argv)
