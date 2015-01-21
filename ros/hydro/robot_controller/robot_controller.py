@@ -68,7 +68,7 @@ class RobotController:
         else:
             # a random ID with dashes and underscores removed
             self.robot_name = str(uuid.uuid1()).replace('-','').replace('_','')
-        print "Robot name: {0}".format(self.robot_name)
+        rospy.loginfo("Robot name: {0}".format(self.robot_name))
 
         # Initial goal, if any
         self.goal_x = goal_x
@@ -127,8 +127,8 @@ class RobotController:
 
                 # Choosing/sending goals
                 ('have_tasks', 'idle', 'choose_task'),
-#                ('no_tasks', 'idle', 'shutdown'),
-                ('no_tasks', 'idle', 'idle'),
+                ('no_tasks', 'idle', 'shutdown'),
+                #('no_tasks', 'idle', 'idle'),
                 ('goal_chosen', 'choose_task', 'send_goal'),
                 ('no_tasks', 'choose_task', 'idle'),
                 ('goal_sent', 'send_goal', 'moving'),
@@ -398,12 +398,12 @@ class RobotController:
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
-        bid_from = None
-        if self.last_won_location:
-            # Convert last_won_location from a Point to a Pose
-            bid_from = self._point_to_pose(self.last_won_location)
-        else:
-            bid_from = self.current_pose
+        # bid_from = None
+        # if self.last_won_location:
+        #     # Convert last_won_location from a Point to a Pose
+        #     bid_from = self._point_to_pose(self.last_won_location)
+        # else:
+        #     bid_from = self.current_pose
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
@@ -425,15 +425,13 @@ class RobotController:
 
             path_cost = c_cost + new_task_cost
 
-            print("path_cost={0}".format(path_cost))
+            rospy.logdebug("path_cost={0}".format(path_cost))
 
             bid_msg = self._construct_bid_msg(task_msg.task.task_id,
                                               self.robot_name,
                                               path_cost)
-
-            rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
-
             stamp(bid_msg)
+            rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             self.bid_pub.publish(bid_msg)
             
         elif announce_msg.mechanism == 'PSI':
@@ -447,15 +445,14 @@ class RobotController:
                 path_cost = self.get_path_cost(bid_from,
                                                self._point_to_pose(task_msg.location))
 
-                print("path_cost={0}".format(path_cost))
+                rospy.logdebug("path_cost={0}".format(path_cost))
 
                 bid_msg = self._construct_bid_msg(task_msg.task.task_id,
                                                   self.robot_name,
                                                   path_cost)
 
-                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
-            
                 stamp(bid_msg)
+                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))            
                 self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'SSI':
@@ -490,9 +487,8 @@ class RobotController:
                                               self.robot_name,
                                               minimum_cost)            
 
-            rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
-
             stamp(bid_msg)
+            rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             self.bid_pub.publish(bid_msg)
 
         else:
@@ -555,8 +551,8 @@ class RobotController:
     def on_experiment_event_received(self, event_msg):
         if event_msg.event == 'BEGIN_EXECUTION':
             self.ok_to_execute = True
-        elif event_msg.event == 'END_EXPERIMENT':
-            self.shutdown()
+        #elif event_msg.event == 'END_EXPERIMENT':
+        #    self.shutdown(None)
 
     def send_goal(self, e):
         rospy.loginfo("state: send_goal")
@@ -628,7 +624,7 @@ class RobotController:
         self.fsm.resume()
 
     def idle(self, e):
-        print("state: idle")
+        rospy.loginfo("state: idle")
 
         # We idle here unless two conditions are true:
         # 1. We have tasks in our agenda
@@ -658,11 +654,15 @@ class RobotController:
 
             self.fsm.no_tasks()
 
-    def shutdown(self):
+    def shutdown(self, e):
         # Do any cleanup here before shutting down
-        
-        print("Shutting down...")
-        sys.exit(0)
+
+        rospy.loginfo("{0} shutting down...".format(self.robot_name))
+
+        # Instead of exiting, wait to be shut down from outside
+        #sys.exit(0)
+        while not rospy.is_shutdown():
+            self.rate.sleep()
 
 if __name__ == '__main__':
     try:

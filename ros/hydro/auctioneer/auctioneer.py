@@ -770,6 +770,7 @@ class Auctioneer:
         # We mainly want to keep track of robots that have
         # completed all of their tasks
         if status == 'ALL_TASKS_COMPLETE':
+            rospy.loginfo("Received ALL_TASKS_COMPLETE from {0}".format(robot_id))
             self.team_members_completed.append(robot_id)
 
     def end_experiment(self, e):
@@ -795,6 +796,10 @@ class Auctioneer:
         self.experiment_pub.publish(end_exp_msg)
 
         rospy.loginfo("end experiment")
+
+        # Instead of exiting, wait to be shut down from outside
+        while not rospy.is_shutdown():
+            self.rate.sleep()
 
 if __name__ == '__main__':
     # Exit on ctrl-C

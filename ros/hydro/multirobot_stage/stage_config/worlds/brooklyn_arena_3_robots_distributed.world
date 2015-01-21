@@ -1,51 +1,5 @@
-#define block model
-#(
-#  size [0.5 0.5 0.5]
-#  gui_nose 0
-#)
-
-define hokuyo ranger
-(
-  sensor(
-    range [0 4.0]
-    fov 270.25
-    samples 481
-  )
-  color "black"
-  size [ 0.05 0.05 0.1 ]
-  ctrl "lasernoise"
-)
-
-define turtlebot position
-(
-#  localization "odom"
-#  odom_error [0.01 0.05 0.01 0.02 0.5 1.0]
-  size [0.35 0.35 0.45]
-  origin [0 0 0 0]
-  gui_nose 1
-  drive "diff"
-  hokuyo(pose [ 0.0 0.000 0 0.000 ])
-#  bitmap "robot.png"
-  bitmap "tb-top-plate.png"
-)
-
-define floorplan model
-(
-  # sombre, sensible, artistic
-  color "gray30"
-
-  # most maps will need a bounding box
-  boundary 1
-
-  gui_nose 0
-  gui_grid 0
-  gui_outline 0
-
-  gripper_return 0
-  fiducial_return 0
-  obstacle_return 1
-  ranger_return 1
-)
+include "floorplan.inc"
+include "robots.inc"
 
 # set the resolution of the underlying raytrace model in meters
 resolution 0.02
@@ -63,14 +17,14 @@ window
 # load an environment bitmap
 floorplan
 ( 
-  name "smartlab_ugv_arena"
+  name "brooklyn_arena"
   bitmap "../maps/brooklyn_lab.png"
   size [6.02 5.38 0.75]
   pose [ 3.01 2.69 0 0 ]
 )
 
 # Our robots
-
-turtlebot ( pose [ 5.52 4.88 0 221.48 ] color "red" )   # "upper right corner"
-turtlebot ( pose [ 0.5 4.88 0 311.48 ] color "green" ) # "upper left corner"
-turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )  # "lower left corner"
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+turtlebot ( pose [ 5.52 4.88 0 221.48 ] color "red" )   # "robot_1", "upper right corner"
+turtlebot ( pose [ 0.5 4.88 0 311.48 ] color "green" ) 	# "robot_2", "upper left corner"
+turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )  	# "robot_3", "lower left corner"

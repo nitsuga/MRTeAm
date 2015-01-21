@@ -1,5 +1,5 @@
 <launch>
-  <arg name="robot_name" default="robot_0" />
+  <arg name="robot_name" default="robot_1" />
 
   <param name="/use_sim_time" value="true"/>
 
