@@ -9,9 +9,10 @@ interval_sim 100  # simulation timestep in milliseconds
 window
 ( 
   size [ 1024.000 768.000 ] 
+  center [ 4.00 3.0 ]
+  rotate [ 30 -15 ]
 
-  rotate [ 0.000 0.000 ]
-  scale 28.806 
+  scale 95.0
 )
 
 # load an environment bitmap

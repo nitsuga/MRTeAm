@@ -14,7 +14,7 @@
 
       <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
 
-      <rosparam param="clearing_rotation_allowed">false</rosparam>
+      <!--<rosparam param="clearing_rotation_allowed">false</rosparam>-->
 
       <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="local_costmap" />

@@ -77,7 +77,7 @@ def on_exp_event(exp_event_msg):
         global exp_running
         exp_running = False
 
-def launch_experiment(mechanism, map_file, world_file, task_file):
+def launch_experiment(mechanism, map_file, world_file, task_file, args):
     global exp_running
     exp_running = True
 
@@ -110,11 +110,12 @@ def launch_experiment(mechanism, map_file, world_file, task_file):
     rosbag_args = [ROSBAG, 'record']
     rosbag_args.extend([ '-j',   # compress
                          '-o',   # prepend world, mech and task to filename
-                         "{0}--{1}--{2}--".format(world_file,
+                         "{0}__{1}__{2}__{3}_".format(args.map,
+                                                  args.start_config,
                                                   mechanism,
                                                   task_file)])
     rosbag_args.extend(record_topics)
-
+                                                
     rosbag_proc = subprocess.Popen(rosbag_args)
 #    rosbag_proc = subprocess.Popen(' '.join(rosbag_args), shell=True)
     time.sleep(5)
@@ -195,5 +196,5 @@ if __name__ == '__main__':
     world_file = world_files[args.map][args.start_config]
     task_file = args.task_file
 
-    launch_experiment(mechanism, map_file, world_file, task_file)
+    launch_experiment(mechanism, map_file, world_file, task_file, args)
 
