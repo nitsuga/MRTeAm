@@ -102,9 +102,9 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                      on_exp_event)
 
     # Start rosbag
-    # Record the positions (odometry) of all robots
+    # Record the positions (amcl_pose) of all robots
     for robot in robots:
-        record_topics.append("/{0}/odom".format(robot['name']))
+        record_topics.append("/{0}/amcl_pose".format(robot['name']))
 
     print('######## Launching rosbag record ########')
     rosbag_args = [ROSBAG, 'record']
