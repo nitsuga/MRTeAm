@@ -10,6 +10,6 @@ define turtlebot position
   bitmap "tb_top_plate.png"
 
   obstacle_return 1
-  ranger_return 1
-  laser_return 1
+  ranger_return 1.0
+  laser_return 1.0
 )

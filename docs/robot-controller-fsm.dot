@@ -1,6 +1,6 @@
 digraph robot_controller {
 #	rankdir=LR;
-	size="8,12"
+	size="16,24"
 
 	# node [style=invis] START;
 	node [shape=ellipse, label="idle"] idle;
@@ -10,14 +10,15 @@ digraph robot_controller {
 	node [shape=ellipse, label="bid"] bid;
 	node [shape=ellipse, label="won"] won;
 	node [shape=ellipse, label="choose_task"] choose_task;
-	node [shape=ellipse, label="send_goal_to_nav_stack"] send_goal_to_nav_stack;
+	node [shape=ellipse, label="send_goal"] send_goal;
 	node [shape=ellipse, label="task_success"] task_success;
 	node [shape=ellipse, label="task_failure"] task_failure;
+	node [shape=ellipse, label="shutdown"] shutdown;
 	node [shape=point] start;
 	
 	start        -> idle;
 	idle         -> choose_task [label="have_tasks"];
-	idle         -> idle [label="no_tasks"];
+	idle         -> shutdown [label="no_tasks"];
 
 	# Make a bid
 	idle         -> bid [label="task_announced"];
@@ -28,11 +29,11 @@ digraph robot_controller {
 	won          -> idle [label="task_added"];
 
 	# Agenda is non-empty; choose a task and go to it.
-	choose_task  -> send_goal_to_nav_stack [label="goal_chosen"];
-	send_goal_to_nav_stack    -> moving [label="sent_to_nav_stack"];
+	choose_task  -> send_goal [label="goal_chosen"];
+	send_goal    -> moving [label="goal_sent"];
 
 	# Pause/resume
-	moving      -> paused [label="pause, collision_detected"];
+	moving      -> paused [label="pause"];
 	paused       -> moving [label="resume"];
 	
 	# Collision resolution
@@ -44,6 +45,6 @@ digraph robot_controller {
 	task_success -> idle [label="resume"];
 
 	moving      -> task_failure [label="goal_cannot_be_reached"];
-	task_failure -> idle [label="resume"];
+	task_failure -> idle;
 	
 }

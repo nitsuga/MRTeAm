@@ -778,9 +778,11 @@ class Auctioneer:
 
         # Don't end the experiment until all of our team members
         # have finished their tasks
+        rospy.loginfo("  waiting for team to finish all of their tasks...")
         while Set(self.team_members) != Set(self.team_members_completed):
             time.sleep(0.2)
         
+        rospy.loginfo("  ...experiment finished.")
         # Send a message to mark the end of the execution phase
         end_exec_msg = multirobot_common.msg.ExperimentEvent()
         end_exec_msg.experiment_id = self.experiment_id

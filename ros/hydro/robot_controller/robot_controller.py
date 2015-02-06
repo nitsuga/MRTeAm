@@ -22,6 +22,7 @@ Eric Schneider <eric.schneider@liverpool.ac.uk>
 """
 
 # Standard Python modules
+from collections import defaultdict
 import math
 import pprint
 import sys
@@ -33,6 +34,7 @@ from fysom import Fysom
 
 # ROS modules
 import actionlib
+import actionlib_msgs.msg
 import geometry_msgs.msg
 import move_base_msgs.msg
 import nav_msgs.msg
@@ -48,12 +50,75 @@ import multirobot_common.msg
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 100
 
+# If another robot is with this distance (in meters) and field of view (in
+# radians), we're in danger of colliding with it
+DANGER_ZONE_FOV = math.pi / 2
+DANGER_ZONE_DIST = 0.8
+
 pp = pprint.PrettyPrinter(indent=2)
 
 def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
+
+
+class Collision:
+    def __init__(self):
+        pass
+
+def in_danger_zone(my_pose, other_pose):
+
+    in_danger = False
+
+    if not my_pose or not other_pose:
+        return in_danger
+
+    # Angle between my_pose and the positive y-axis
+
+    # my_pose orientation quaternion
+    my_q = ( my_pose.orientation.x,
+             my_pose.orientation.y,
+             my_pose.orientation.z,
+             my_pose.orientation.w )
+    euler = tf.transformations.euler_from_quaternion(my_q)
+    my_yaw = euler[2]
+    rospy.logdebug("my_yaw == {0}".format(my_yaw))
+    d_theta = (math.pi / 2) - my_yaw
+    rospy.logdebug("d_theta == {0}".format(d_theta))
+    
+    # Translate the treasure's position, pretending the robot is at the origin
+    trans_x = other_pose.position.x - my_pose.position.x
+    trans_y = other_pose.position.y - my_pose.position.y
+    rospy.logdebug("trans_x=={0}, trans_y=={1}".format(trans_x, trans_y))
+
+
+    # Rotate the translated point by d_theta
+    rot_x = (trans_x * math.cos(d_theta)) - (trans_y * math.sin(d_theta))
+    rot_y = (trans_x * math.sin(d_theta)) + (trans_y * math.cos(d_theta))
+    rospy.logdebug("rot_x=={0}, rot_y=={1}".format(rot_x, rot_y))
+
+    other_heading = math.atan2(rot_x, rot_y)
+    rospy.logdebug("other_pos heading is {0}".format(other_heading))
+
+    other_dist = math.hypot(other_pose.position.x - my_pose.position.x,
+                            other_pose.position.y - my_pose.position.y)
+
+    in_fov = False
+    if other_heading >= -(DANGER_ZONE_FOV/2) and other_heading <= (DANGER_ZONE_FOV/2):
+        in_fov = True
+    rospy.logdebug("in_fov=={0}".format(in_fov))
+
+    in_dist = False
+    if other_dist <= DANGER_ZONE_DIST:
+        in_dist = True
+    rospy.logdebug("in_dist=={0}".format(in_dist))
+
+    if in_fov and in_dist:
+        in_danger = True
+    rospy.logdebug("in_danger=={0}".format(in_danger))
+
+    return in_danger
 
 class RobotController:
 
@@ -70,14 +135,31 @@ class RobotController:
             self.robot_name = str(uuid.uuid1()).replace('-','').replace('_','')
         rospy.loginfo("Robot name: {0}".format(self.robot_name))
 
-        # Initial goal, if any
-        self.goal_x = goal_x
-        self.goal_y = goal_y
-        print "Goal: ({0}, {1})".format(self.goal_x, self.goal_y)
+        # Our current estimated pose. This should be received the navigation
+        # stack's amcl localization package. See on_my_pose_received().
+        self.current_pose = None
+
+        # Our current task (multirobot_common.SensorSweepTask)
+        self.current_task = None
+
+        self.other_poses = defaultdict(geometry_msgs.msg.Pose)
+        self.amcl_pose_subs = {}
+
+        # Keep track of potential collisions with other robots
+        self.collisions = defaultdict(Collision)
+
+        # For some mechanisms, in order to compute a bid value (path cost)
+        # we need to compute a path from the position of the most-recently-awarded
+        # task point, rather than from the robot's current position
+        self.last_won_location = None
+
+        # List of tasks that we have been awarded (multirobot_common.SensorSweepTask)
+        self.agenda = []
+
+        # Unless true, we may only bid on tasks but NOT begin executing tasks
+        self.ok_to_execute = False
 
         # Initialize our node
-        #node_name = "rc_{0}".format(self.robot_name)
-        #node_name = "/{0}/robot_controller".format(self.robot_name)
         node_name = 'robot_controller'
         rospy.loginfo("Starting node '{0}'...".format(node_name))
         rospy.init_node(node_name)
@@ -104,21 +186,6 @@ class RobotController:
         # The name of the planner service
         self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
 
-        # Our current estimated pose. This should be received the navigation
-        # stack's amcl localization package. See on_amcl_pose_received().
-        self.current_pose = None
-
-        # For some mechanisms, in order to compute a bid value (path cost)
-        # we need to compute a path from the position of the most-recently-awarded
-        # task point, rather than from the robot's current position
-        self.last_won_location = None
-
-        # List of tasks that we have been awarded (multirobot_common.SensorSweepTask)
-        self.agenda = []
-
-        # Unless true, we may only bid on tasks but NOT begin executing tasks
-        self.ok_to_execute = False
-
         # Set up state machine.
         # See multirobot/docs/robot-controller.fsm.png
         self.fsm = Fysom(
@@ -130,13 +197,13 @@ class RobotController:
                 ('no_tasks', 'idle', 'shutdown'),
                 #('no_tasks', 'idle', 'idle'),
                 ('goal_chosen', 'choose_task', 'send_goal'),
-                ('no_tasks', 'choose_task', 'idle'),
+                #('no_tasks', 'choose_task', 'idle'),
                 ('goal_sent', 'send_goal', 'moving'),
                 
                 # Goal success/failure
-                ('goal_reached', 'moving', 'task_success'),
+                ('goal_reached', '*', 'task_success'),
                 ('resume', 'task_success', 'idle'),
-                ('goal_cannot_be_reached', 'moving', 'task_failure'),
+                ('goal_not_reached', '*', 'task_failure'),
                 ('resume', 'task_failure', 'idle'),
                 
                 # Pause/resume
@@ -144,15 +211,14 @@ class RobotController:
                 ('resume', 'paused', 'moving'),
                 
                 # Collision avoidance
-                ('collision_detected', 'moving', 'paused'),
-                ('collision_detected', 'paused', 'resolve_collision'),
+                ('collision_detected', 'moving', 'resolve_collision'),
+                #('collision_detected', 'paused', 'resolve_collision'),
                 ('collision_resolved', 'resolve_collision', 'moving'),
-                
             ],
             callbacks={
                 'onidle': self.idle,
-                'onbid': self.bid,
-                'onwon': self.won,
+                #'onbid': self.bid,
+                #'onwon': self.won,
                 'onchoose_task': self.choose_task,
                 'onsend_goal': self.send_goal,
                 'onmoving': self.moving,
@@ -175,10 +241,19 @@ class RobotController:
         rospy.loginfo('subscribed to /experiment')
 
         # '/robot_<n>/amcl_pose'
-        self.amcl_pose_sub = rospy.Subscriber("/{0}/amcl_pose".format(self.robot_name),
-                                                 geometry_msgs.msg.PoseWithCovarianceStamped,
-                                                 self.on_amcl_pose_received)
-        rospy.loginfo("subscribed to /robot_{0}/amcl_pose".format(self.robot_name))
+        for robot_num in range(1,4):
+            r_name = "robot_{0}".format(robot_num)
+            
+            callback = None
+            if r_name == self.robot_name:
+                callback = self.on_my_pose_received
+            else:
+                callback = self.on_teammate_pose_received
+
+            self.amcl_pose_subs[r_name] = rospy.Subscriber("/{0}/amcl_pose".format(r_name),
+                                                           geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                           callback, callback_args=r_name)
+            rospy.loginfo("subscribed to /{0}/amcl_pose".format(r_name))
 
         # '/tasks/announce'
         # We respond only to sensor sweep task announcements (for now)
@@ -275,6 +350,10 @@ class RobotController:
             res += 2.0*pi
         return res
 
+    def handle_collision(self, other_name, other_pose):
+        if in_danger_zone(self.current_pose, other_pose):
+            rospy.loginfo("In danger of colliding with {0}".format(other_name))
+
     def get_path_cost(self, start, goal):
         """
         Return the cost of a path from start to goal. The path is obtained
@@ -306,7 +385,7 @@ class RobotController:
                 pos_delta = math.hypot(to_pose.position.x - from_pose.position.x,
                                        to_pose.position.y - from_pose.position.y)
 
-#                print("pos_delta: {0}".format(pos_delta))
+                rospy.logdebug("pos_delta: {0}".format(pos_delta))
 
                 path_cost += pos_delta
 
@@ -394,7 +473,7 @@ class RobotController:
         return bid_msg
 
     def bid(self, announce_msg):
-        rospy.loginfo('state: bid')
+        rospy.loginfo('bid()')
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -495,7 +574,7 @@ class RobotController:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
             
     def won(self, award_msg):
-        rospy.loginfo("state: won")
+        rospy.loginfo("won()")
 
         # Make sure that this robot won the task
         if award_msg.robot_id != self.robot_name:
@@ -536,17 +615,48 @@ class RobotController:
                     goal_task = task
                     break
 
+        self.current_task = goal_task
+
         # Sanity check
-        if not goal_task:
+        if not self.current_task:
+            rospy.loginfo("event: no_tasks")
             self.fsm.no_tasks()
 
-        self.fsm.goal_chosen(goal_task=goal_task)
+        rospy.loginfo("event: goal_chosen")
+        self.fsm.goal_chosen()
 
-    def on_amcl_pose_received(self, amcl_pose_msg):
+    def on_my_pose_received(self, amcl_pose_msg, r_name):
         # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
         # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as
         # geometry_msgs/Pose
         self.current_pose = amcl_pose_msg.pose.pose
+
+    def on_teammate_pose_received(self, amcl_pose_msg, r_name):
+
+        # self.fsm might not be initialized yet
+        try:
+            if self.fsm:
+                pass
+        except AttributeError:
+            return
+
+        # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
+        # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as
+        # geometry_msgs/Pose
+        other_pose = amcl_pose_msg.pose.pose
+        self.other_poses[r_name] = other_pose
+
+        if in_danger_zone(self.current_pose, other_pose):
+            rospy.loginfo("In danger of colliding with {0}".format(r_name))
+            if self.fsm.current == 'moving':
+                self.fsm.collision_detected()
+        else:
+            if self.fsm.current == 'resolve_collision':
+                self.fsm.collision_resolved()
+
+        #self.handle_collision(r_name, other_pose)
+
+        #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
 
     def on_experiment_event_received(self, event_msg):
         if event_msg.event == 'BEGIN_EXECUTION':
@@ -554,10 +664,18 @@ class RobotController:
         #elif event_msg.event == 'END_EXPERIMENT':
         #    self.shutdown(None)
 
+    # def goal_done_cb(self, term_state, result):
+    #     rospy.loginfo("goal_done_cb(): term_state=={0}, result=={1}".format(term_state,
+    #                                                                         result))
+    #     if term_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+    #         self.fsm.goal_reached()
+    #     else:
+    #         self.fsm.goal_not_reached()
+
     def send_goal(self, e):
         rospy.loginfo("state: send_goal")
 
-        goal_task = e.goal_task
+        goal_task = self.current_task
 
         # Send a message to mark the beginning of this task's execution
         begin_task_msg = multirobot_common.msg.TaskStatus()
@@ -574,25 +692,32 @@ class RobotController:
 
         goal_msg.target_pose.pose.position.x = float(goal_task.location.x)
         goal_msg.target_pose.pose.position.y = float(goal_task.location.y)
-        goal_msg.target_pose.pose.orientation.w = 1.0
+        goal_msg.target_pose.pose.orientation.z = 1.0
+        goal_msg.target_pose.pose.orientation.w = 0.0
 
-        rospy.logdebug("Sending goal: {0}".format(goal_msg))
+        rospy.loginfo("Sending goal: {0}".format(pp.pformat(goal_msg)))
+        #self.aclient.send_goal(goal_msg, done_cb=self.goal_done_cb)
         self.aclient.send_goal(goal_msg)
 
-        self.fsm.goal_sent(goal_task=goal_task)
+        self.fsm.goal_sent()
 
     def moving(self, e):
-        goal_task = e.goal_task
+        rospy.loginfo("state: moving")
 
         # Wait until the goal is reached
         self.aclient.wait_for_result()
 
-        self.fsm.goal_reached(goal_task=goal_task)
+        # The actionlib client will send a "goal reached" message, triggering
+        # goal_done_cb() to change the current state. Wait here until then.
+        #while self.fsm.current == 'moving':
+        #    self.rate.sleep()
+
+        self.fsm.goal_reached()
 
     def task_success(self, e):
         rospy.loginfo("state: task_success")
 
-        goal_task = e.goal_task
+        goal_task = self.current_task
 
         # Send a message to mark the end of this task's execution
         end_task_msg = multirobot_common.msg.TaskStatus()
@@ -603,13 +728,14 @@ class RobotController:
         self.task_status_pub.publish(end_task_msg)
 
         goal_task.completed = True
+        self.current_task = None
 
         self.fsm.resume()
 
     def task_failure(self, e):
         rospy.loginfo("state: task_failure")
 
-        goal_task = e.goal_task
+        goal_task = self.current_task
 
         # Send a message to mark the end of this task's execution
         end_task_msg = multirobot_common.msg.TaskStatus()
@@ -620,6 +746,7 @@ class RobotController:
         self.task_status_pub.publish(end_task_msg)
 
         goal_task.completed = False
+        self.current_task = None
 
         self.fsm.resume()
 
@@ -630,7 +757,6 @@ class RobotController:
         # 1. We have tasks in our agenda
         # 2. self.ok_to_execute == True
         while not self.agenda or not self.ok_to_execute:
-#            print("idle..")
             self.rate.sleep()
 
         have_tasks = False
@@ -665,9 +791,17 @@ class RobotController:
             self.rate.sleep()
 
 if __name__ == '__main__':
+
     try:
         argv = rospy.myargv(argv=sys.argv[1:])
-        print "arguments: {0}".format(argv)
+        #print "arguments: {0}".format(argv)
         rc = RobotController(*argv)
+        #print("rc final state: {0}".format(rc.fsm.current))
+
+        while not rospy.is_shutdown():
+            rc.rate.sleep()
+
     except rospy.ROSInterruptException:
         pass
+
+    print('######## robot_controller exiting ########')
