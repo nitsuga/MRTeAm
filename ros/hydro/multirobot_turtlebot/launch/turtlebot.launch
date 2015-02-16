@@ -1,0 +1,70 @@
+<launch>
+  <arg name="robot_name" default="robot_1" />
+
+  <param name="/use_sim_time" value="$(arg simulation)"/>
+
+  <arg name="base"       default="$(optenv TURTLEBOT_BASE kobuki)"/>  <!-- create, rhoomba -->
+  <arg name="battery"    default="$(optenv TURTLEBOT_BATTERY /sys/class/power_supply/BAT0)"/>  <!-- /proc/acpi/battery/BAT0 in 2.6 or earlier kernels-->
+  <arg name="stacks"     default="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
+  <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
+  <arg name="simulation" default="$(optenv TURTLEBOT_SIMULATION false)"/>
+
+  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/>
+
+  <group ns="$(arg robot_name)">
+  
+    <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+      <arg name="base" value="$(arg base)" />
+      <arg name="stacks" value="$(arg stacks)" />
+      <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+    </include>
+    <include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
+      <arg name="base" value="$(arg base)" />
+    </include>
+    <include file="$(find turtlebot_bringup)/launch/includes/netbook.launch.xml">
+      <arg name="battery" value="$(arg battery)" />
+    </include>
+
+    <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
+      <arg name="rgb_processing" value="false" />
+      <arg name="depth_registration" value="false" />
+      <arg name="depth_processing" value="false" />
+    
+      <!-- We must specify an absolute topic name because if not it will be prefixed by "$(arg camera)".
+	   Probably is a bug in the nodelet manager: https://github.com/ros/nodelet_core/issues/7 --> 
+      <arg name="scan_topic" value="/scan" />
+    </include>
+
+  <!-- BEGIN ROBOT -->
+    <param name="tf_prefix" value="$(arg robot_name)" />
+
+    <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name)" output="screen" />
+
+    <!-- Map server -->
+    <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/>
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+    
+    <arg name="initial_pose_x" default="0.0"/> <!-- Use 17.0 for willow's map in simulation -->
+    <arg name="initial_pose_y" default="0.0"/> <!-- Use 17.0 for willow's map in simulation -->
+    <arg name="initial_pose_a" default="0.0"/>
+
+    <include file="$(find turtlebot_navigation)/launch/includes/amcl.launch.xml">
+      <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+      <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+      <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
+    </include>
+    
+    <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml"/>
+
+  </group>
+  <!-- END ROBOT -->
+
+  <!-- FKIE master discovery -->
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />
+
+  <!-- FKIE master sync -->
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+    <!--<rosparam param="ignore_topic">[/robot_1/*, /robot_2/*]</rosparam>-->
+  </node>
+
+</launch>
