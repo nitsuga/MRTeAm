@@ -122,7 +122,7 @@ def in_danger_zone(my_pose, other_pose):
 
 class RobotController:
 
-    def __init__(self, robot_name=None, goal_x=None, goal_y=None):
+    def __init__(self, robot_name=None, is_turtlebot=False):
         """
         Initialize some ROS stuff (pub/sub, actionlib client) and also
         our state machine.
@@ -133,7 +133,15 @@ class RobotController:
         else:
             # a random ID with dashes and underscores removed
             self.robot_name = str(uuid.uuid1()).replace('-','').replace('_','')
-        rospy.loginfo("Robot name: {0}".format(self.robot_name))
+        #rospy.loginfo("Robot name: {0}".format(self.robot_name))
+        print("Robot name: {0}".format(self.robot_name))
+
+        self.is_turtlebot = is_turtlebot
+        if is_turtlebot:
+            self.is_turtlebot = True
+            #rospy.loginfo("We're a real Turtlebot!")
+        #else:
+            #rospy.loginfo("We're a simulated Turtlebot!")
 
         # Our current estimated pose. This should be received the navigation
         # stack's amcl localization package. See on_my_pose_received().
@@ -167,6 +175,12 @@ class RobotController:
         # The rate at which we'll sleep while idle
         self.rate = rospy.Rate(RATE)
 
+        rospy.loginfo("Robot name: {0}".format(self.robot_name))
+        if self.is_turtlebot:
+            rospy.loginfo("We're a real Turtlebot!")
+        else:
+            rospy.loginfo("We're a simulated Turtlebot!")
+
         # Topics we wish to subscribe to
         self.init_subscribers()
 
@@ -174,7 +188,11 @@ class RobotController:
         self.init_publishers()
 
         # actionlib client; used to send goals to the navigation stack
-        ac_name = "/{0}/move_base".format(self.robot_name)
+        if self.is_turtlebot:
+            ac_name = '/move_base'
+        else:
+            ac_name = "/{0}/move_base".format(self.robot_name)
+            
         rospy.loginfo("Starting actionlib client '{0}'".format(ac_name))
         self.aclient = actionlib.SimpleActionClient(ac_name,
                                                     move_base_msgs.msg.MoveBaseAction)
@@ -184,7 +202,10 @@ class RobotController:
         rospy.loginfo("{0} connected.".format(ac_name))
 
         # The name of the planner service
-        self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
+        if self.is_turtlebot:
+            self.plan_srv_name = '/move_base/NavfnROS/make_plan'
+        else:
+            self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
 
         # Set up state machine.
         # See multirobot/docs/robot-controller.fsm.png
@@ -240,6 +261,13 @@ class RobotController:
                                                self.on_experiment_event_received)
         rospy.loginfo('subscribed to /experiment')
 
+        # If we're a Turtlebot, subscribe to '/amcl_pose' and republish
+        # on '/{self.robot_name}/amcl_pose'
+        if self.is_turtlebot:
+            self.self_amcl_pose_sub  = rospy.Subscriber('/amcl_pose',
+                                                        geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                        self.on_tb_pose_received)
+
         # '/robot_<n>/amcl_pose'
         for robot_num in range(1,4):
             r_name = "robot_{0}".format(robot_num)
@@ -272,6 +300,13 @@ class RobotController:
         time.sleep(3)
 
     def init_publishers(self):
+        # If we're a Turtlebot, echo /amcl_pose to /{self.robot_name/amcl_pose
+        if self.is_turtlebot:
+            self.amcl_echo_pub = rospy.Publisher("/{0}/amcl_pose".format(self.robot_name),
+                                                 geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                 latch=True)
+            rospy.loginfo("echoing /amcl_pose on /{0}/amcl_pose".format(self.robot_name))
+
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
                                        multirobot_common.msg.TaskBid)
@@ -313,9 +348,9 @@ class RobotController:
 
     def _make_nav_plan_client(self, start, goal):
 
-        #rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
+        rospy.loginfo("Waiting for service {0}".format(self.plan_srv_name))
         rospy.wait_for_service(self.plan_srv_name)
-        #rospy.logdebug("Service ready.")
+        rospy.loginfo("Service ready.")
 
         try:
             make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
@@ -366,12 +401,12 @@ class RobotController:
         https://code.google.com/p/alufr-ros-pkg/source/browse/.
         """
 
-        rospy.logdebug('Getting path from navfn/MakeNavPlan...')
+        rospy.loginfo("Getting path from {0}...".format(self.plan_srv_name))
 
         # 'path' is a list of objects of type geometry_msgs.PoseStamped
         path = self._make_nav_plan_client(start, goal)
 
-        rospy.logdebug('...got path')
+        rospy.loginfo('...got path')
 
         path_cost = 0.0
         from_pose = None
@@ -504,7 +539,7 @@ class RobotController:
 
             path_cost = c_cost + new_task_cost
 
-            rospy.logdebug("path_cost={0}".format(path_cost))
+            rospy.loginfo("path_cost={0}".format(path_cost))
 
             bid_msg = self._construct_bid_msg(task_msg.task.task_id,
                                               self.robot_name,
@@ -625,6 +660,15 @@ class RobotController:
         rospy.loginfo("event: goal_chosen")
         self.fsm.goal_chosen()
 
+    def on_tb_pose_received(self, amcl_pose_msg):
+        """ Echo poses published on /amcl_pose to /{self.robot_name}/amcl_pose"""
+        rospy.loginfo("on_tb_pose_received(): /amcl_pose received")
+        try:
+            if self.amcl_echo_pub:
+                self.amcl_echo_pub.publish(amcl_pose_msg)
+        except AttributeError:
+            return
+                
     def on_my_pose_received(self, amcl_pose_msg, r_name):
         # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
         # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as

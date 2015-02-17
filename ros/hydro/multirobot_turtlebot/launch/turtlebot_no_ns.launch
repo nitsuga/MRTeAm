@@ -16,16 +16,10 @@
     <param name="frame_id" value="/map" />
   </node>
 
-  <group ns="$(arg robot_name)">
-
-    <param name="tf_prefix" value="$(arg robot_name)" />
     <remap from="map" to="/map" />
   
     <!-- turtlebot_bringup minimal.launch -->
     <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
-
-    <param name="mobile_base/base_frame" value="$(arg robot_name)/base_footprint" />
-    <param name="mobile_base/odom_frame" value="$(arg robot_name)/odom" />
 
     <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
       <arg name="rgb_processing" value="false" />
@@ -41,25 +35,32 @@
     <arg name="initial_pose_y" default="0.0"/>
     <arg name="initial_pose_a" default="0.0"/>
 
-    <include file="$(find multirobot_turtlebot)/launch/includes/amcl.launch.xml">
+    <include file="$(find multirobot_turtlebot)/launch/includes/amcl_no_ns.launch.xml">
       <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
       <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
       <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
     </include>
     
-    <include file="$(find multirobot_turtlebot)/launch/includes/move_base.launch.xml"/>
+    <include file="$(find multirobot_turtlebot)/launch/includes/move_base_no_ns.launch.xml"/>
 
-    <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name)" output="screen" />
+    <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name) True" output="screen" />
 
-  </group>
   <!-- END ROBOT -->
 
   <!-- FKIE master discovery -->
-  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />
-
+  <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
+  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" />
+  
   <!-- FKIE master sync -->
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
-    <!--<rosparam param="ignore_topic">[/robot_1/*, /robot_2/*]</rosparam>-->
+    <!--<rosparam param="ignore_topics">['/map', '/camera/*']</rosparam>-->
+    <rosparam param="sync_topics">
+      [
+      '/*/amcl_pose',
+      '/experiment',
+      '/tasks/*'
+      ]
+    </rosparam>
   </node>
 
 </launch>
