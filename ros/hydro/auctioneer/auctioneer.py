@@ -199,7 +199,7 @@ class AuctionOSI(Auction):
         stamp(announcement_msg)
         self.auctioneer.announce_pub.publish(announcement_msg)
 
-        rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
+        rospy.loginfo("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
 
         self.fsm.announced()
 
@@ -624,7 +624,7 @@ class Auctioneer:
                                          multirobot_common.msg.TaskAward)
 
         # For good measure...
-        time.sleep(3)
+        time.sleep(5)
 
     def load_tasks(self, data):
         rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
@@ -677,6 +677,9 @@ class Auctioneer:
                 rospy.loginfo("Adding {0} to team".format(teammate_name))
                 self.team_members.append(teammate_name)
 
+        # TEMP HACK!
+        self.team_members = ['robot_1']
+        
         rospy.loginfo("Team members: {0}".format(self.team_members))
 
         self.fsm.team_identified()

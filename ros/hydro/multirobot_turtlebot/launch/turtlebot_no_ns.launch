@@ -1,0 +1,85 @@
+<launch>
+  <arg name="robot_name" default="robot_1" />
+
+  <param name="/use_sim_time" value="$(arg simulation)"/>
+
+  <arg name="base"       default="$(optenv TURTLEBOT_BASE kobuki)"/>  <!-- create, rhoomba -->
+  <arg name="battery"    default="$(optenv TURTLEBOT_BATTERY /sys/class/power_supply/BAT0)"/>  <!-- /proc/acpi/battery/BAT0 in 2.6 or earlier kernels-->
+  <arg name="stacks"     default="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
+  <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
+  <arg name="simulation" default="$(optenv TURTLEBOT_SIMULATION false)"/>
+
+  <arg name="map_file" default="$(find multirobot_stage)/stage_config/maps/smartlab_ugv_arena.yaml"/>
+
+  <!-- Map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
+    <param name="frame_id" value="/map" />
+  </node>
+
+    <remap from="map" to="/map" />
+  
+    <!-- turtlebot_bringup minimal.launch -->
+    <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
+
+    <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
+      <arg name="rgb_processing" value="false" />
+      <arg name="depth_registration" value="false" />
+      <arg name="depth_processing" value="false" />
+    
+      <!-- We must specify an absolute topic name because if not it will be prefixed by "$(arg camera)".
+	   Probably is a bug in the nodelet manager: https://github.com/ros/nodelet_core/issues/7 --> 
+      <arg name="scan_topic" value="/scan" />
+    </include>
+
+    <arg name="initial_pose_x" default="0.0"/>
+    <arg name="initial_pose_y" default="0.0"/>
+    <arg name="initial_pose_a" default="0.0"/>
+
+    <include file="$(find multirobot_turtlebot)/launch/includes/amcl_no_ns.launch.xml">
+      <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+      <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+      <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
+    </include>
+    
+    <include file="$(find multirobot_turtlebot)/launch/includes/move_base_no_ns.launch.xml"/>
+
+    <node name="robot_controller_r3" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name) True" output="screen" />
+
+  <!-- END ROBOT -->
+
+  <!-- FKIE master discovery -->
+  <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
+  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" />
+  
+  <!-- FKIE master sync -->
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+    <!--<rosparam param="ignore_topics">['/map', '/camera/*']</rosparam>-->
+    <rosparam param="ignore_nodes">
+[
+'/*amcl*',
+'/*bumper2pointcloud*',
+'/*camera/*',
+'/*cmd_vel_mux*',
+'/*depthimage_to_laserscan*',
+'/*diagnostic_aggregator*',
+'/*kobuki_safety_controller*',
+'/*map_server*',
+'/*mobile_base*',
+'/*mobile_base_nodelet_manager*',
+'/*move_base*',
+'/*navigation_velocity_smoother*',
+'/*navigation_safety_controller*',
+'/*robot_state_publisher*',
+'/*turtlebot_laptop_battery*
+']
+    </rosparam>
+    <rosparam param="sync_topics">
+      [
+      '/*/amcl_pose',
+      '/experiment',
+      '/tasks/*'
+      ]
+    </rosparam>
+  </node>
+
+</launch>
