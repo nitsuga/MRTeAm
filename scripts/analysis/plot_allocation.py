@@ -15,16 +15,20 @@ from scipy import stats
 # Some global constants
 mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
 
-#start_configs = ['CLUSTERED', 'DISTRIBUTED']
-start_configs = ['distributed']
+start_configs = ['clustered', 'distributed']
+#start_configs = ['distributed']
 
 #point_configs = ['A','B','C','D','E']
-task_files = ['brooklyn_tasks_A.txt']
+task_files = ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'brooklyn_tasks_E.txt']
 
-stroke_colors = { 'robot_1': [0.369, 0.380, 0.773],
-                  'robot_2': [0.043, 0.063, 0.424],
-                  'robot_3': [0.176, 0.659, 0.000]
-}
+# stroke_colors = { 'robot_1': [0.369, 0.380, 0.773],
+#                   'robot_2': [0.043, 0.063, 0.424],
+#                   'robot_3': [0.176, 0.659, 0.000]
+# }
+
+stroke_colors = { 'robot_1': [0.0, 0.0, 1.0],
+                  'robot_2': [0.0, 1.0, 0.0],
+                  'robot_3': [1.0, 0.0, 0.0] }
 
 robot_names = [ 'robot_1',
                 'robot_2',
@@ -86,15 +90,15 @@ def main(argv):
         # Set plot title
         plt.title("Task Allocation, Task File '{0}' (Simulation)".format(task_file))
 
-        plt.tick_params(axis='y', which='major', labelsize=10)
-        plt.tick_params(axis='x', which='major', labelsize=8)
+        #plt.tick_params(axis='y', which='major', labelsize=10)
+        #plt.tick_params(axis='x', which='major', labelsize=8)
 
         # Position of the current allocation 'bar'
         x_pos = 0
 
         #grid = np.random.rand(8, len(experiments), 3)
-        #grid = np.random.rand(8, 80, 3)
-        grid = np.random.rand(8, 20, 3)
+        grid = np.random.rand(8, 80, 3)
+        #grid = np.random.rand(8, 20, 3)
 
         for start_config in start_configs:
             for mechanism in mechanisms:
@@ -126,12 +130,12 @@ def main(argv):
                     x_pos += 1
 
 
-        plt.imshow(grid[::-1], interpolation='none', extent=[0,20,0,8])
+        plt.imshow(grid[::-1], interpolation='none', extent=[0,80,0,8])
         plt.axes().set_aspect(8)
 
         # Set x, y limits (range)
         plt.ylim(0,8)
-        plt.xlim(0,20)
+        plt.xlim(0,80)
         
         # Tick locations, labels, and sizes    
         yticks = plt.getp(plt.gca(), 'yticklines')
@@ -141,14 +145,15 @@ def main(argv):
 
         xticks = plt.getp(plt.gca(), 'xticklines')
         plt.setp(xticks, 'linewidth', 0)
-        plt.xticks([x + 2.5 for x in range(0,20,5)],
-                   ['RR-D', 'OSI-D', 'SSI-D', 'PSI-D'])
+        plt.xticks([x + 5 for x in range(0,80,10)],
+                   [ 'RR-C', 'OSI-C', 'SSI-C', 'PSI-C',
+                     'RR-D', 'OSI-D', 'SSI-D', 'PSI-D'])
 
         # Grid lines (manually drawn)
-        for i in range(0,20):
+        for i in range(0,80):
             plt.axvline(x=i, color='k', linewidth=0.1, solid_capstyle='butt')
 
-        for i in range(0,20,5):
+        for i in range(0,80,10):
             plt.axvline(x=i, color='k', linewidth=0.5, solid_capstyle='butt')
 
         for i in range(8):
@@ -171,5 +176,4 @@ def main(argv):
     
 if __name__ == '__main__':
     main(sys.argv[1:])
-
 

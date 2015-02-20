@@ -2,7 +2,8 @@
 
 """robot_controller.py
 
-This script (and class) controls the task-bidding and goal-seeking behavior of a robot.
+This script (and class) controls the task-bidding and goal-seeking behavior of a
+robot.
 
 Usage: robot_controller.py [robot_name] [goal-x-pos] [goal-y-pos]
 
@@ -10,13 +11,13 @@ Usage: robot_controller.py [robot_name] [goal-x-pos] [goal-y-pos]
   random name is chosen.
 
  goal-x-pos:
- goal-y-pos: coordinates of an initial goal that the robot will towards. These arguments
-  are used for testing. Normally, goals will be awarded (via ROS messages) to the robot
-  by an auctioneer agent.
+ goal-y-pos: coordinates of an initial goal that the robot will towards. These
+  arguments are used for testing. Normally, goals will be awarded (via ROS
+  messages) to the robot by an auctioneer agent.
 
 
-The RobotController class uses a state machine to implement bidding and goal-seeking
-behavior.
+The RobotController class uses a state machine to implement bidding and goal-
+seeking behavior.
 
 Eric Schneider <eric.schneider@liverpool.ac.uk>
 """
@@ -34,6 +35,7 @@ from fysom import Fysom
 
 # ROS modules
 import actionlib
+from actionlib import SimpleActionClient
 import actionlib_msgs.msg
 import geometry_msgs.msg
 import move_base_msgs.msg
@@ -63,7 +65,7 @@ def stamp(msg):
     msg.header.stamp = rospy.rostime.get_rostime()
 
 
-class Collision:
+class Collision(object):
     def __init__(self):
         pass
 
@@ -77,16 +79,16 @@ def in_danger_zone(my_pose, other_pose):
     # Angle between my_pose and the positive y-axis
 
     # my_pose orientation quaternion
-    my_q = ( my_pose.orientation.x,
-             my_pose.orientation.y,
-             my_pose.orientation.z,
-             my_pose.orientation.w )
+    my_q = (my_pose.orientation.x,
+            my_pose.orientation.y,
+            my_pose.orientation.z,
+            my_pose.orientation.w)
     euler = tf.transformations.euler_from_quaternion(my_q)
     my_yaw = euler[2]
     rospy.logdebug("my_yaw == {0}".format(my_yaw))
     d_theta = (math.pi / 2) - my_yaw
     rospy.logdebug("d_theta == {0}".format(d_theta))
-    
+
     # Translate the treasure's position, pretending the robot is at the origin
     trans_x = other_pose.position.x - my_pose.position.x
     trans_y = other_pose.position.y - my_pose.position.y
@@ -105,8 +107,10 @@ def in_danger_zone(my_pose, other_pose):
                             other_pose.position.y - my_pose.position.y)
 
     in_fov = False
-    if other_heading >= -(DANGER_ZONE_FOV/2) and other_heading <= (DANGER_ZONE_FOV/2):
+    if (other_heading >= -(DANGER_ZONE_FOV/2) and
+        other_heading <= (DANGER_ZONE_FOV/2)):
         in_fov = True
+
     rospy.logdebug("in_fov=={0}".format(in_fov))
 
     in_dist = False
@@ -121,8 +125,8 @@ def in_danger_zone(my_pose, other_pose):
     return in_danger
 
 class RobotController:
-
-    def __init__(self, robot_name=None, goal_x=None, goal_y=None):
+    """ Controls robot behavior. """
+    def __init__(self, robot_name=None):
         """
         Initialize some ROS stuff (pub/sub, actionlib client) and also
         our state machine.
@@ -132,7 +136,8 @@ class RobotController:
             self.robot_name = robot_name
         else:
             # a random ID with dashes and underscores removed
-            self.robot_name = str(uuid.uuid1()).replace('-','').replace('_','')
+            self.robot_name = str(uuid.uuid1())
+            self.robot_name = self.robot_name.replace('-', '').replace('_', '')
         rospy.loginfo("Robot name: {0}".format(self.robot_name))
 
         # Our current estimated pose. This should be received the navigation
@@ -149,11 +154,11 @@ class RobotController:
         self.collisions = defaultdict(Collision)
 
         # For some mechanisms, in order to compute a bid value (path cost)
-        # we need to compute a path from the position of the most-recently-awarded
-        # task point, rather than from the robot's current position
+        # we need to compute a path from the position of the most-recently-
+        # awarded task point, rather than from the robot's current position.
         self.last_won_location = None
 
-        # List of tasks that we have been awarded (multirobot_common.SensorSweepTask)
+        # List of tasks that we have been awarded (SensorSweepTask)
         self.agenda = []
 
         # Unless true, we may only bid on tasks but NOT begin executing tasks
@@ -176,15 +181,16 @@ class RobotController:
         # actionlib client; used to send goals to the navigation stack
         ac_name = "/{0}/move_base".format(self.robot_name)
         rospy.loginfo("Starting actionlib client '{0}'".format(ac_name))
-        self.aclient = actionlib.SimpleActionClient(ac_name,
-                                                    move_base_msgs.msg.MoveBaseAction)
+        self.aclient = SimpleActionClient(ac_name,
+                                          move_base_msgs.msg.MoveBaseAction)
 
         # Wait until the action server has started up
         self.aclient.wait_for_server()
         rospy.loginfo("{0} connected.".format(ac_name))
 
         # The name of the planner service
-        self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
+        self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(
+            self.robot_name)
 
         # Set up state machine.
         # See multirobot/docs/robot-controller.fsm.png
@@ -199,17 +205,17 @@ class RobotController:
                 ('goal_chosen', 'choose_task', 'send_goal'),
                 #('no_tasks', 'choose_task', 'idle'),
                 ('goal_sent', 'send_goal', 'moving'),
-                
+
                 # Goal success/failure
                 ('goal_reached', '*', 'task_success'),
                 ('resume', 'task_success', 'idle'),
                 ('goal_not_reached', '*', 'task_failure'),
                 ('resume', 'task_failure', 'idle'),
-                
+
                 # Pause/resume
                 ('pause', 'moving', 'paused'),
                 ('resume', 'paused', 'moving'),
-                
+
                 # Collision avoidance
                 ('collision_detected', 'moving', 'resolve_collision'),
                 #('collision_detected', 'paused', 'resolve_collision'),
@@ -235,24 +241,26 @@ class RobotController:
         rospy.loginfo('Initializing subscribers...')
 
         # '/experiment'
-        self.experiment_sub = rospy.Subscriber('/experiment',
-                                               multirobot_common.msg.ExperimentEvent,
-                                               self.on_experiment_event_received)
+        self.experiment_sub = rospy.Subscriber(
+            '/experiment',
+            multirobot_common.msg.ExperimentEvent,
+            self.on_experiment_event_received)
         rospy.loginfo('subscribed to /experiment')
 
         # '/robot_<n>/amcl_pose'
-        for robot_num in range(1,4):
+        for robot_num in range(1, 4):
             r_name = "robot_{0}".format(robot_num)
-            
+
             callback = None
             if r_name == self.robot_name:
                 callback = self.on_my_pose_received
             else:
                 callback = self.on_teammate_pose_received
 
-            self.amcl_pose_subs[r_name] = rospy.Subscriber("/{0}/amcl_pose".format(r_name),
-                                                           geometry_msgs.msg.PoseWithCovarianceStamped,
-                                                           callback, callback_args=r_name)
+            self.amcl_pose_subs[r_name] = rospy.Subscriber(
+                "/{0}/amcl_pose".format(r_name),
+                geometry_msgs.msg.PoseWithCovarianceStamped,
+                callback, callback_args=r_name)
             rospy.loginfo("subscribed to /{0}/amcl_pose".format(r_name))
 
         # '/tasks/announce'
@@ -299,7 +307,7 @@ class RobotController:
         pose_msg = geometry_msgs.msg.Pose()
         pose_msg.position = point
         pose_msg.orientation.w = 1.0
-        
+
         return pose_msg
 
     def _pose_to_posestamped(self, pose, frame_id='map'):
@@ -323,7 +331,7 @@ class RobotController:
 
             # We need to convert start and goal from type geometry_msgs.Pose
             # to type geometry_msgs.PoseStamped. tolerance (from the docs):
-            # "If the goal is obstructed, how many meters the planner can 
+            # "If the goal is obstructed, how many meters the planner can
             # relax the constraint in x and y before failing."
             start_stamped = self._pose_to_posestamped(start)
             goal_stamped = self._pose_to_posestamped(goal)
@@ -333,21 +341,21 @@ class RobotController:
             req.goal = goal_stamped
             req.tolerance = 0.1
 
-            resp = make_nav_plan( req )
+            resp = make_nav_plan(req)
 
             rospy.logdebug("Got plan:\n{0}".format(pp.pformat(resp)))
-            
+
             return resp.plan.poses
 
         except rospy.ServiceException, e:
             rospy.logerr("Service call failed: {0}".format(e))
 
-    def _normalize_angle(angle):
+    def _normalize_angle(self, angle):
         res = angle
-        while res > pi:
-            res -= 2.0*pi
+        while res > math.pi:
+            res -= 2.0 * math.pi
         while res < -pi:
-            res += 2.0*pi
+            res += 2.0 * math.pi
         return res
 
     def handle_collision(self, other_name, other_pose):
@@ -381,9 +389,10 @@ class RobotController:
                 continue
             else:
                 to_pose = pose_stamped.pose
-                
-                pos_delta = math.hypot(to_pose.position.x - from_pose.position.x,
-                                       to_pose.position.y - from_pose.position.y)
+
+                pos_delta = math.hypot(
+                    to_pose.position.x - from_pose.position.x,
+                    to_pose.position.y - from_pose.position.y)
 
                 rospy.logdebug("pos_delta: {0}".format(pos_delta))
 
@@ -401,7 +410,7 @@ class RobotController:
 
         return path_cost
 
-    def _cumulative_cost(self, start, tasks=[], greedy=True):
+    def _cumulative_cost(self, start, tasks=None, greedy=True):
         """
         Get the cumulative cost of performing all tasks (visiting task points)
         from start. If greedy==True, tasks are ordered to minimize the cost of
@@ -415,7 +424,7 @@ class RobotController:
 
             tasks_copy = tasks[:]
             reordered_tasks = []
-            
+
             from_pose = start
             while tasks_copy:
                 min_cost = None
@@ -499,12 +508,18 @@ class RobotController:
                                                        self.agenda,
                                                        greedy=True)
 
+            rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
+                                                              c_cost))
+
             new_task_cost = self.get_path_cost(bid_from,
                                                self._point_to_pose(task_msg.location))
 
             path_cost = c_cost + new_task_cost
 
-            rospy.logdebug("path_cost={0}".format(path_cost))
+            rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
+                self.robot_name,
+                task_msg.task.task_id,
+                path_cost))
 
             bid_msg = self._construct_bid_msg(task_msg.task.task_id,
                                               self.robot_name,
@@ -512,7 +527,7 @@ class RobotController:
             stamp(bid_msg)
             rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             self.bid_pub.publish(bid_msg)
-            
+
         elif announce_msg.mechanism == 'PSI':
             rospy.loginfo("mechanism == PSI")
 
@@ -520,51 +535,63 @@ class RobotController:
             # position
             bid_from = self.current_pose
 
-            for task_msg in announce_msg.tasks:                
+            for task_msg in announce_msg.tasks:
                 path_cost = self.get_path_cost(bid_from,
                                                self._point_to_pose(task_msg.location))
 
-                rospy.logdebug("path_cost={0}".format(path_cost))
+                rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
+                    self.robot_name,
+                    task_msg.task.task_id,
+                    path_cost))
 
                 bid_msg = self._construct_bid_msg(task_msg.task.task_id,
                                                   self.robot_name,
                                                   path_cost)
 
                 stamp(bid_msg)
-                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))            
+                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
                 self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'SSI':
             rospy.loginfo("mechanism == SSI")
-            
+
             # Get the cumulative cost of all tasks in out agenda so far
             (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
                                                        self.agenda,
                                                        greedy=True)
+
+            rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
+                                                              c_cost))
             minimum_cost = None
             minimum_cost_task_id = None
 
-            for task_msg in announce_msg.tasks:                
+            for task_msg in announce_msg.tasks:
                 #path_cost = self.get_path_cost(bid_from,
                 #                               self._point_to_pose(task_msg.location))
 
-                new_task_cost = self.get_path_cost(bid_from,
-                                                   self._point_to_pose(task_msg.location))
-                
+                new_task_cost = self.get_path_cost(
+                    bid_from,
+                    self._point_to_pose(task_msg.location))
+
                 path_cost = c_cost + new_task_cost
 
-                rospy.logdebug("path_cost={0}".format(path_cost))
+                rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
+                    self.robot_name,
+                    task_msg.task.task_id,
+                    path_cost))
 
                 if minimum_cost is None or path_cost < minimum_cost:
                     minimum_cost = path_cost
                     minimum_cost_task_id = task_msg.task.task_id
 
-            rospy.logdebug("minimum_cost={0} to task {1}".format(minimum_cost,
-                                                                 minimum_cost_task_id))
+            rospy.loginfo("({0}) minimum_cost={1} to task {2}".format(
+                self.robot_name,
+                minimum_cost,
+                minimum_cost_task_id))
 
             bid_msg = self._construct_bid_msg(minimum_cost_task_id,
                                               self.robot_name,
-                                              minimum_cost)            
+                                              minimum_cost)
 
             stamp(bid_msg)
             rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
@@ -572,7 +599,7 @@ class RobotController:
 
         else:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
-            
+
     def won(self, award_msg):
         rospy.loginfo("won()")
 
@@ -684,7 +711,7 @@ class RobotController:
         begin_task_msg.status = 'BEGIN'
         stamp(begin_task_msg)
         self.task_status_pub.publish(begin_task_msg)
-        
+
         # Construct the goal message to send to the move_base service
         goal_msg = move_base_msgs.msg.MoveBaseGoal()
         goal_msg.target_pose.header.frame_id = 'map'
