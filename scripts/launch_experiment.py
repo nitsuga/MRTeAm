@@ -32,9 +32,11 @@ maps = { 'brooklyn': 'brooklyn_lab.png',
          'smartlab': 'smartlab_ugv_arena_10px_buffers.png' }
 
 world_files = { 'brooklyn': { 'clustered': 'brooklyn_arena_3_robots_clustered.world',
-                              'distributed': 'brooklyn_arena_3_robots_distributed.world' },
+                              'distributed': 'brooklyn_arena_3_robots_distributed.world',
+                              'distributed_A': ''},
                 'smartlab': { 'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
-                              'distributed': 'smartlab_ugv_arena_3_robots_distributed.world' } }
+                              'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
+                              'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'} }
 
 
 mechanisms = [ 'OSI', 'PSI', 'SSI', 'RR' ]
@@ -184,7 +186,7 @@ if __name__ == '__main__':
                         choices=['brooklyn','smartlab'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
-                        choices=['clustered','distributed'],
+                        choices=['clustered','distributed','distributed_A'],
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')

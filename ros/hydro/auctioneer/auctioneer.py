@@ -678,7 +678,7 @@ class Auctioneer:
                 self.team_members.append(teammate_name)
 
         # TEMP HACK!
-        self.team_members = ['robot_1']
+        self.team_members = ['robot_1', 'robot_2', 'robot_3']
         
         rospy.loginfo("Team members: {0}".format(self.team_members))
 
