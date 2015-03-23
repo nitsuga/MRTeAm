@@ -11,8 +11,9 @@ import sys
 import time
 
 # Some constants. TODO: make these configurable.
-PLAN_SRV_NAME = '/robot_1/move_base_node/NavfnROS/make_plan'
+#PLAN_SRV_NAME = '/robot_1/move_base_node/NavfnROS/make_plan'
 #PLAN_SRV_NAME = '/robot_1/move_base_node/GlobalPlanner/make_plan'
+PLAN_SRV_NAME = '/robot_1/move_base_node/HRTeamPlanner/make_plan'
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -128,11 +129,11 @@ if __name__ == '__main__':
 
     init_node()
 
-    n = 1
+    n = 100
 
     for i in range(1,n+1):
         plan = call_planner(*sys.argv[1:])
-        pp.pprint(plan)
+        #pp.pprint(plan)
         cost = get_path_cost(plan)
 
         print("[call {0:02d}] cost from (0.5, 0.5) to (5.015, 4.485) is: {1}".format(i, cost))

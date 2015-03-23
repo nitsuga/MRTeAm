@@ -549,6 +549,9 @@ class Auctioneer:
         # A simple list for now
         self.tasks = []
 
+        # We also want to be able to get tasks by id
+        self.tasks_by_id = {}
+
         # To identify in which round bids are made for tasks
         self.auction_round = 0
 
@@ -565,7 +568,8 @@ class Auctioneer:
                 ('team_identified', 'identify_team', 'idle'),
                 ('have_tasks', 'idle', 'choose_mechanism'),
                 ('no_tasks', 'idle', 'idle'),
-                ('no_tasks', 'choose_mechanism', 'end_experiment'),
+                ('no_tasks', 'choose_mechanism', 'monitor_execution'),
+                ('all_tasks_complete', 'monitor_execution', 'end_experiment')
             ],
             callbacks={
                 # on-enter state handlers
@@ -573,6 +577,7 @@ class Auctioneer:
                 'onidentify_team': self.identify_team,
                 'onidle': self.idle,
                 'onchoose_mechanism': self.choose_mechanism,
+                'onmonitor_execution': self.monitor_execution,
                 'onend_experiment': self.end_experiment,
                 # on-event handlers
             }
@@ -645,10 +650,15 @@ class Auctioneer:
                     continue
 
                 task_x, task_y = task_line.split()                
+
+                # task_id is string-ified here because an id may one day be
+                # an MD5 hashe or some other non-integer value. They just happen
+                # to be integers here.
                 new_task = multirobot_common.SensorSweepTask(str(task_id),
                                                              float(task_x),
                                                              float(task_y))
                 self.tasks.append(new_task)
+                self.tasks_by_id[str(task_id)] = new_task
 
                 task_id += 1
 
@@ -776,16 +786,33 @@ class Auctioneer:
             rospy.loginfo("Received ALL_TASKS_COMPLETE from {0}".format(robot_id))
             self.team_members_completed.append(robot_id)
 
+        if status == 'SUCCESS':
+            rospy.loginfo("robot {0} has completed task {1}".format(robot_id, task_id))
+            self.tasks_by_id[task_id].completed = True
+
+    def monitor_execution(self, e):
+        rospy.loginfo('state: monitor_execution')
+
+        # Wait until all of our team members have finished their tasks
+        #while Set(self.team_members) != Set(self.team_members_completed):
+
+        incomplete = True
+        while incomplete:
+
+            incomplete = False
+            for task in self.tasks:
+                if not task.completed:
+                    incomplete = True
+                    break
+
+            time.sleep(0.2)
+
+        # All tasks have been completed. Time to end the experiment.
+        self.fsm.all_tasks_complete()
+
     def end_experiment(self, e):
         rospy.loginfo("state: end_experiment")
 
-        # Don't end the experiment until all of our team members
-        # have finished their tasks
-        rospy.loginfo("  waiting for team to finish all of their tasks...")
-        while Set(self.team_members) != Set(self.team_members_completed):
-            time.sleep(0.2)
-        
-        rospy.loginfo("  ...experiment finished.")
         # Send a message to mark the end of the execution phase
         end_exec_msg = multirobot_common.msg.ExperimentEvent()
         end_exec_msg.experiment_id = self.experiment_id

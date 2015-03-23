@@ -1,0 +1,7 @@
+<library path="lib/libhrteam_planner">
+  <class name="hrteam_planner/HRTeamPlanner" type="hrteam_planner::HRTeamPlanner" base_class_type="nav_core::BaseGlobalPlanner">
+    <description>
+      A implementation of a grid based planner using A*, ported from HRTeam.
+    </description>
+  </class>
+</library>

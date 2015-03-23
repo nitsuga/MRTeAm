@@ -75,6 +75,7 @@ def on_exp_event(exp_event_msg):
     print("######## on_exp_event() ########")
     print(pp.pformat(exp_event_msg))
     if exp_event_msg.event == 'END_EXPERIMENT':
+    #if exp_event_msg.event == 'END_ALLOCATION':
         print("######## END_EXPERIMENT ########")
         global exp_running
         exp_running = False

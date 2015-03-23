@@ -7,5 +7,5 @@ define hokuyo ranger
   )
   color "black"
   size [ 0.05 0.05 0.1 ]
-  ctrl "lasernoise"
+#  ctrl "lasernoise"
 )

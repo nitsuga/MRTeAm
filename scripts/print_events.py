@@ -9,6 +9,9 @@ exp_topics = { 'experiment': [ '/experiment' ],
                           '/tasks/award',
                           '/tasks/bid',
                           '/tasks/status' ],
+               'announcements': ['/tasks/announce'],
+               'bids': ['/tasks/bid'],
+               'awards': ['/tasks/award'],
                'position': [ '/robot_0/odom',
                              '/robot_1/odom',
                              '/robot_2/odom' ] }
@@ -18,7 +21,7 @@ exp_topics = { 'experiment': [ '/experiment' ],
 preferred_width = 80
 
 def usage(script):
-    print("Usage: {0} <bag_file> <'experiment'|'tasks'|'position'>".format(script))
+    print("Usage: {0} <bag_file> <'experiment'|'tasks'|'bids'|'awards'|'position'>".format(script))
 
 def main(argv):
 

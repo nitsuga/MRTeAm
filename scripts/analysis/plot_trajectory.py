@@ -9,7 +9,8 @@ import re
 import rosbag
 import sys
 
-IMG_WIDTH, IMG_HEIGHT = 602, 538
+#IMG_WIDTH, IMG_HEIGHT = 602, 538
+IMG_WIDTH, IMG_HEIGHT = 800, 600
 
 stroke_colors = { 'robot_1': (0, 0, 1.0),   # Blue
                   'robot_2': (0, 1.0, 0),   # Green
@@ -19,9 +20,13 @@ stroke_colors = { 'robot_1': (0, 0, 1.0),   # Blue
 start_locations = { 'clustered': ( (100.0, 100.0),
                                    (25.0, 100.0),
                                    (25.0, 25.0) ),
-                    'distributed': ( (552.0, 488.0),
-                                     (50.0, 488.0),
-                                     (50.0, 50.0) ) }
+                    # 'distributed': ( (552.0, 488.0),
+                    #                  (50.0, 488.0),
+                    #                  (50.0, 50.0) )
+                    'distributed': ( (750.0, 550.0),
+                                     (50.0, 550.0),
+                                     (50.0, 50.0) )
+}
 
 etc_dir = '../etc'
 task_file_dir = '/home/eric/GIT/multirobot/ros/hydro/auctioneer/task_files'
@@ -33,7 +38,8 @@ robot_names = [ 'robot_1',
 
 def read_point_configs():
     #for point_config in ['A', 'B', 'C', 'D', 'E']:
-    for task_file in ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'tasks_A.txt']:
+    #for task_file in ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'tasks_A.txt']:
+    for task_file in ['tasks_A.txt']:
         points = []
         config_file = open("{0}/{1}".format(task_file_dir, task_file), "rb")        
         for line in config_file:
@@ -49,6 +55,78 @@ def read_point_configs():
 
 def usage():
     print 'Usage: ' + sys.argv[0] + ': <paths_to_bag_file(s)>'
+
+def draw_arena(ctx):
+    """ Given a Cairo graphics context (ctx), draw the walls of the arena """
+    # Arena line properties
+    ctx.set_line_width( ( 3. / IMG_WIDTH ) )
+    ctx.set_source_rgb(0, 0, 0)
+
+    # Draw the outside of the arena
+    ctx.rectangle(0, 0, 1, 1)
+    ctx.stroke()
+
+    ctx.set_source_rgb(0, 0, 0)
+
+    # Set line end caps to square while drawing the walls
+    default_line_cap = ctx.get_line_cap()
+    ctx.set_line_cap(cairo.LINE_CAP_SQUARE)
+
+    # Draw the walls
+    ctx.move_to( 200. / IMG_WIDTH, 500. / IMG_HEIGHT ) # w5
+    ctx.line_to( 200. / IMG_WIDTH, 400. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 300. / IMG_WIDTH, 500. / IMG_HEIGHT ) # w6
+    ctx.line_to( 300. / IMG_WIDTH, 400. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 500. / IMG_WIDTH, 600. / IMG_HEIGHT ) # w7
+    ctx.line_to( 500. / IMG_WIDTH, 200. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 0, 400. / IMG_HEIGHT )                # w8
+    ctx.line_to( 200. / IMG_WIDTH, 400. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 300. / IMG_WIDTH, 400. / IMG_HEIGHT ) # w9
+    ctx.line_to( 500. / IMG_WIDTH, 400. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 600. / IMG_WIDTH, 400. / IMG_HEIGHT ) # w10
+    ctx.line_to( 800. / IMG_WIDTH, 400. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 200. / IMG_WIDTH, 300. / IMG_HEIGHT ) # w11
+    ctx.line_to( 200. / IMG_WIDTH, 200. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 300. / IMG_WIDTH, 300. / IMG_HEIGHT ) # w12
+    ctx.line_to( 300. / IMG_WIDTH, 200. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 0, 200. / IMG_HEIGHT )                # w13
+    ctx.line_to( 200. / IMG_WIDTH, 200. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 300. / IMG_WIDTH, 200. / IMG_HEIGHT ) # w14
+    ctx.line_to( 600. / IMG_WIDTH, 200. / IMG_HEIGHT )
+    ctx.stroke()
+
+    ctx.move_to( 200. / IMG_WIDTH, 100. / IMG_HEIGHT ) # w15
+    ctx.line_to( 200. / IMG_WIDTH, 0 )
+    ctx.stroke()
+
+    ctx.move_to( 500. / IMG_WIDTH, 100. / IMG_HEIGHT ) # w16
+    ctx.line_to( 500. / IMG_WIDTH, 0 )
+    ctx.stroke()
+
+    ctx.move_to( 700. / IMG_WIDTH, 200. / IMG_HEIGHT ) # w11
+    ctx.line_to( 800. / IMG_WIDTH, 200. / IMG_HEIGHT )
+    ctx.stroke()
+
+    # Restore the default line cap style
+    ctx.set_line_cap(default_line_cap)
 
 def main(argv):
 
@@ -92,56 +170,9 @@ def main(argv):
         ctx.set_source_rgb( 1.0, 1.0, 1.0 )
         ctx.rectangle( 0, 0, 1.0, 1.0 )
         ctx.fill()
-        
-        # Arena line properties
-        ctx.set_line_width( ( 3. / IMG_WIDTH ) )
-        ctx.set_source_rgb(0, 0, 0)
-        
-        # Draw the outside of the arena
-        ctx.rectangle(0, 0, 1, 1)
-        ctx.stroke()
-        
-        ctx.set_source_rgb(0, 0, 0)
-        
-        # Set line end caps to square while drawing the walls
-        default_line_cap = ctx.get_line_cap()
-        ctx.set_line_cap(cairo.LINE_CAP_SQUARE)
 
-        # Draw the walls
-        ctx.move_to( 205. / IMG_WIDTH, 0 )                 # w5
-        ctx.line_to( 205. / IMG_WIDTH, 206. / IMG_HEIGHT )
-        ctx.stroke()
-        ctx.move_to( 105. / IMG_WIDTH, 206. / IMG_HEIGHT ) # w6
-        ctx.line_to( 205. / IMG_WIDTH, 206. / IMG_HEIGHT )
-        ctx.stroke()
+        draw_arena(ctx)
 
-        ctx.move_to( 102. / IMG_WIDTH, 336. / IMG_HEIGHT ) # w7
-        ctx.line_to( 205. / IMG_WIDTH, 336. / IMG_HEIGHT )
-        ctx.stroke()
-        
-        ctx.move_to( 205. / IMG_WIDTH, 336. / IMG_HEIGHT ) # w8
-        ctx.line_to( 205. / IMG_WIDTH, 538. / IMG_HEIGHT )
-        ctx.stroke()
-        
-        ctx.move_to( 422. / IMG_WIDTH, 336. / IMG_HEIGHT ) # w9
-        ctx.line_to( 422. / IMG_WIDTH, 538. / IMG_HEIGHT )
-        ctx.stroke()
-        
-        ctx.move_to( 315. / IMG_WIDTH, 336. / IMG_HEIGHT ) # w10
-        ctx.line_to( 520. / IMG_WIDTH, 336. / IMG_HEIGHT )
-        ctx.stroke()
-
-        ctx.move_to( 315. / IMG_WIDTH, 206. / IMG_HEIGHT ) # w11
-        ctx.line_to( 422. / IMG_WIDTH, 206. / IMG_HEIGHT )
-        ctx.stroke()
-        
-        ctx.move_to( 422. / IMG_WIDTH, 0 )                 # w12
-        ctx.line_to( 422. / IMG_WIDTH, 206. / IMG_HEIGHT )
-        ctx.stroke()
-
-        # Restore the default line cap style
-        ctx.set_line_cap(default_line_cap)
-        
         # Draw start locations
         for i, start_loc in enumerate(start_locations[start_config]):
             start_loc_x = start_loc[0]

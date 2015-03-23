@@ -43,6 +43,9 @@ import nav_msgs.msg
 import nav_msgs.srv
 import navfn.srv
 import rospy
+import smach
+import smach_ros
+from smach_ros import SimpleActionState
 import tf.transformations
 #from std_msgs.msg import String
 
@@ -59,15 +62,123 @@ DANGER_ZONE_DIST = 0.8
 
 pp = pprint.PrettyPrinter(indent=2)
 
+
+######## smach state classes ########
+
+# state: IDLE
+class Idle(smach.State):
+    def __init__(self):
+        smach.State.__init__(self,
+                             outcomes=['have_tasks', 'all_tasks_complete'],
+                             input_keys=['robot_controller'],
+                             output_keys=['robot_controller'])
+
+    def execute(self, userdata):
+        rc = userdata.robot_controller
+
+        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
+
+        # We idle here unless two conditions are true:
+        # 1. We have tasks in our agenda
+        # 2. self.ok_to_execute == True
+        while not rc.agenda or not rc.ok_to_execute:
+            rc.rate.sleep()
+
+        have_tasks = False
+        for task in rc.agenda:
+            if not task.completed:
+                have_tasks = True
+                break
+
+        if have_tasks:
+            return 'have_tasks'
+        else:
+            return 'no_tasks'
+
+# state: CHOOSE_TASK
+class ChooseTask(smach.State):
+    def __init__(self):
+        smach.State.__init__(self,
+                             outcomes=['goal_chosen','no_tasks'],
+                             input_keys=['robot_controller'],
+                             output_keys=['robot_controller'])
+
+    def execute(self, userdata):
+        rc = userdata.robot_controller
+
+        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
+
+        # We have two ways to choose the next task from our agenda:
+        # 1. ("non-greedy") Choose the first task that hasn't been completed yet
+        # 2. ("greedy")     Choose the next closest task
+
+        greedy_selection = True
+
+        # "non-greedy"
+        goal_task = None
+        min_uncompleted_dist = None
+        for task in rc.agenda:
+            if not task.completed:
+                if greedy_selection:
+                    from_pose = rc.current_pose
+                    to_pose = rc._point_to_pose(rc._point_to_point_msg(task.location))
+                    path_cost = rc.get_path_cost(from_pose, to_pose)
+
+                    if not min_uncompleted_dist or path_cost < min_uncompleted_dist:
+                        goal_task = task
+                        min_uncompleted_dist = path_cost
+
+                else:
+                    goal_task = task
+                    break
+
+        rc.current_task = goal_task
+
+        # Sanity check
+        if not rc.current_task:
+            rospy.loginfo("outcome: no_tasks")
+            return 'no_tasks'
+
+        rospy.loginfo("outcome: goal_chosen")
+        return 'goal_chosen'
+
+# state: SEND_GOAL
+class SendGoal(smach.State):
+    def __init__(self):
+        smach.State.__init__(self,
+                             outcomes=['have_tasks', 'all_tasks_complete'],
+                             input_keys=['robot_controller'],
+                             output_keys=['robot_controller'])
+
+    def execute(self, userdata):
+        rc = userdata.robot_controller
+
+        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
+
+        # We idle here unless two conditions are true:
+        # 1. We have tasks in our agenda
+        # 2. self.ok_to_execute == True
+        while not rc.agenda or not rc.ok_to_execute:
+            rc.rate.sleep()
+
+        have_tasks = False
+        for task in rc.agenda:
+            if not task.completed:
+                have_tasks = True
+                break
+
+        if have_tasks:
+            return 'have_tasks'
+        else:
+            return 'no_tasks'
+
+
+#### Utility functions
+
 def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
-
-
-class Collision(object):
-    def __init__(self):
-        pass
 
 def in_danger_zone(my_pose, other_pose):
 
@@ -123,6 +234,11 @@ def in_danger_zone(my_pose, other_pose):
     rospy.logdebug("in_danger=={0}".format(in_danger))
 
     return in_danger
+
+
+class Collision(object):
+    def __init__(self):
+        pass
 
 class RobotController:
     """ Controls robot behavior. """
@@ -209,7 +325,9 @@ class RobotController:
         if self.is_turtlebot:
             self.plan_srv_name = '/move_base/NavfnROS/make_plan'
         else:
-            self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
+            #self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
+            self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)
+            #self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
 
         # Set up state machine.
         # See multirobot/docs/robot-controller.fsm.png
@@ -255,6 +373,30 @@ class RobotController:
 
         # Start the state machine
         self.fsm.startup()
+
+        # Set up smach state machine
+        # sm = smach.StateMachine(outcomes=['shutdown'])
+
+        # with sm:
+        #     # IDLE
+        #     smach.StateMachine.add('IDLE', Idle(),
+        #                            transitions={'have_tasks': 'CHOOSE_TASK',
+        #                                         'no_tasks': 'IDLE'})
+
+        #     # CHOOSE_TASK
+        #     smach.StateMachine.add('CHOOSE_TASK', ChooseTask(),
+        #                            transitions={'goal_chosen': 'SEND_GOAL',
+        #                                         'no_tasks': 'IDLE'})
+
+        # # smach introspection server
+        # sis = smach_ros.IntrospectionServer("{0}_sis".format(self.robot_name), sm,
+        #                                     "/{0}/SM_ROOT".format(self.robot_name))
+        # sis.start()
+
+
+        # # Run the smach state machine
+        # outcome = sm.execute()
+
 
     def init_subscribers(self):
         rospy.loginfo('Initializing subscribers...')
@@ -392,7 +534,7 @@ class RobotController:
         return res
 
     def handle_collision(self, other_name, other_pose):
-        if in_danger_zone(self.current_pose, other_pose):
+        if self.fsm.current == 'moving' and in_danger_zone(self.current_pose, other_pose):
             rospy.loginfo("In danger of colliding with {0}".format(other_name))
 
     def get_path_cost(self, start, goal):
@@ -515,7 +657,7 @@ class RobotController:
         return bid_msg
 
     def bid(self, announce_msg):
-        rospy.loginfo('bid()')
+        rospy.loginfo("({0}) state: bid()".format(self.robot_name))
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -649,7 +791,7 @@ class RobotController:
             self.last_won_location = task_msg.location
 
     def choose_task(self, e):
-        rospy.loginfo("state: choose_task")
+        rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -723,7 +865,7 @@ class RobotController:
             if self.fsm.current == 'resolve_collision':
                 self.fsm.collision_resolved()
 
-        #self.handle_collision(r_name, other_pose)
+        self.handle_collision(r_name, other_pose)
 
         #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
 
@@ -742,7 +884,7 @@ class RobotController:
     #         self.fsm.goal_not_reached()
 
     def send_goal(self, e):
-        rospy.loginfo("state: send_goal")
+        rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
 
         goal_task = self.current_task
 
@@ -771,7 +913,7 @@ class RobotController:
         self.fsm.goal_sent()
 
     def moving(self, e):
-        rospy.loginfo("state: moving")
+        rospy.loginfo("({0}) state: moving".format(self.robot_name))
 
         # Wait until the goal is reached
         self.aclient.wait_for_result()
@@ -784,7 +926,7 @@ class RobotController:
         self.fsm.goal_reached()
 
     def task_success(self, e):
-        rospy.loginfo("state: task_success")
+        rospy.loginfo("({0}) state: task_success".format(self.robot_name))
 
         goal_task = self.current_task
 
@@ -802,7 +944,7 @@ class RobotController:
         self.fsm.resume()
 
     def task_failure(self, e):
-        rospy.loginfo("state: task_failure")
+        rospy.loginfo("({0}) state: task_failure".format(self.robot_name))
 
         goal_task = self.current_task
 
@@ -820,7 +962,7 @@ class RobotController:
         self.fsm.resume()
 
     def idle(self, e):
-        rospy.loginfo("state: idle")
+        rospy.loginfo("({0}) state: idle".format(self.robot_name))
 
         # We idle here unless two conditions are true:
         # 1. We have tasks in our agenda

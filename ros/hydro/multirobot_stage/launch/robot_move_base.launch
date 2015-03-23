@@ -14,7 +14,13 @@
 
       <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
 
-      <!--<rosparam param="clearing_rotation_allowed">false</rosparam>-->
+      <!--
+      <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
+      <param name="base_global_planner" value="hrteam_planner/HRTeamPlanner" />
+      -->
+      <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+
+      <rosparam param="clearing_rotation_allowed">false</rosparam>
 
       <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="local_costmap" />
@@ -24,6 +30,8 @@
       <rosparam file="$(find multirobot_stage)/move_base_config/base_local_planner_params.yaml" command="load" />
 
       <rosparam file="$(find multirobot_stage)/move_base_config/dwa_local_planner_params.yaml" command="load" />
+
+      <rosparam file="$(find multirobot_stage)/move_base_config/global_planner_params.yaml" command="load" />
 
     </node>
 

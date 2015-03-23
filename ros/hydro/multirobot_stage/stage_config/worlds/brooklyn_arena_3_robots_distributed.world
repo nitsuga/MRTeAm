@@ -26,6 +26,9 @@ floorplan
 
 # Our robots
 dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
-turtlebot ( pose [ 5.52 4.88 0 221.48 ] color "red" )   # "robot_1", "upper right corner"
-turtlebot ( pose [ 0.5 4.88 0 311.48 ] color "green" ) 	# "robot_2", "upper left corner"
-turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )  	# "robot_3", "lower left corner"
+#turtlebot ( pose [ 5.52 4.88 0 221.48 ] color "red" )   # "robot_1", "upper right corner"
+#turtlebot ( pose [ 0.5 4.88 0 311.48 ] color "green" )  # "robot_2", "upper left corner"
+#turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )  	 # "robot_3", "lower left corner"
+turtlebot ( pose [ 5.77 5.13 0 221.48 ] color "red" )   # "robot_1", "upper right corner"
+turtlebot ( pose [ 0.25 5.13 0 311.48 ] color "green" ) # "robot_2", "upper left corner"
+turtlebot ( pose [ 0.25 0.25 0 41.48 ] color "blue" )  	# "robot_3", "lower left corner"
