@@ -1,0 +1,34 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+resolution 0.02
+
+interval_sim 100  # simulation timestep in milliseconds
+
+window
+( 
+  size [ 1024.000 768.000 ] 
+  center [ 3.01 2.69 ]
+  rotate [ 30 -15 ]
+
+  scale 110.0
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "brooklyn_arena"
+  bitmap "../maps/brooklyn_lab.png"
+  size [6.02 5.38 0.75]
+  pose [ 3.01 2.69 0 0 ]
+)
+
+# Our robots
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+#turtlebot ( pose [ 5.52 4.88 0 221.48 ] color "red" )   # "robot_1", "upper right corner"
+#turtlebot ( pose [ 0.5 4.88 0 311.48 ] color "green" )  # "robot_2", "upper left corner"
+#turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )  	 # "robot_3", "lower left corner"
+turtlebot ( pose [ 5.77 5.13 0 221.48 ] color "red" )   # "robot_1", "upper right corner"
+turtlebot ( pose [ 0.25 5.13 0 311.48 ] color "green" ) # "robot_2", "upper left corner"
+turtlebot ( pose [ 0.25 0.25 0 41.48 ] color "blue" )  	# "robot_3", "lower left corner"

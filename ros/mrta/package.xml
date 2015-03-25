@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<package>
+  <name>mrta</name>
+  <version>0.0.1</version>
+  <description>The main MRTA package, responsible for (1) launching other ROS packages (Stage+move_base or turtlebot_bringup+navigation) and (2) containing definitions for (e.g. Python) classes and messages used by mrta_robot_controller and mrta_auctioneer.</description>
+
+  <maintainer email="eric.schneider@liverpool.ac.uk">Eric Schneider</maintainer>
+  <author email="eric.schneider@liverpool.ac.uk">Eric Schneider</author>
+  <license>MIT</license>
+  <url type="website">https://github.com/nitsuga/mrta</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>amcl</build_depend>
+  <build_depend>fake_localization</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>gmapping</build_depend>
+  <build_depend>map_server</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>move_base</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>stage_ros</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>turtlebot_bringup</build_depend>
+  <build_depend>turtlebot_navigation</build_depend>
+
+  <run_depend>actionlib_msgs</run_depend>
+  <run_depend>amcl</run_depend>
+  <run_depend>fake_localization</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>gmapping</run_depend>
+  <run_depend>map_server</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>move_base</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>stage_ros</run_depend>
+  <run_depend>turtlebot_bringup</run_depend>
+  <run_depend>turtlebot_navigation</run_depend>
+
+  <export>
+  </export>
+</package>
+
+

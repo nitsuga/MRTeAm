@@ -1,4 +1,4 @@
-multirobot
-==========
+mrta
+====
 
-Platform to support experiments that evaluate the performance of different multi-robot task allocation mechanisms.
+Platform to support experiments involving multi-robot task allocation mechanisms.
