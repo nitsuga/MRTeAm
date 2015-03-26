@@ -43,8 +43,8 @@ from smach_ros import SimpleActionState
 import tf.transformations
 #from std_msgs.msg import String
 
-import multirobot_common
-import multirobot_common.msg
+import mrta
+import mrta.msg
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 100
@@ -261,7 +261,7 @@ class RobotController:
         # stack's amcl localization package. See on_my_pose_received().
         self.current_pose = None
 
-        # Our current task (multirobot_common.SensorSweepTask)
+        # Our current task (mrta.SensorSweepTask)
         self.current_task = None
 
         self.other_poses = defaultdict(geometry_msgs.msg.Pose)
@@ -282,7 +282,7 @@ class RobotController:
         self.ok_to_execute = False
 
         # Initialize our node
-        node_name = 'robot_controller'
+        node_name = 'mrta_robot_controller'
         rospy.loginfo("Starting node '{0}'...".format(node_name))
         rospy.init_node(node_name)
 
@@ -324,7 +324,7 @@ class RobotController:
             #self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
 
         # Set up state machine.
-        # See multirobot/docs/robot-controller.fsm.png
+        # See mrta/docs/robot-controller.fsm.png
         self.fsm = Fysom(
             events=[
                 ('startup', 'none', 'idle'),
@@ -398,7 +398,7 @@ class RobotController:
         # '/experiment'
         self.experiment_sub = rospy.Subscriber(
             '/experiment',
-            multirobot_common.msg.ExperimentEvent,
+            mrta.msg.ExperimentEvent,
             self.on_experiment_event_received)
         rospy.loginfo('subscribed to /experiment')
 
@@ -428,13 +428,13 @@ class RobotController:
         # '/tasks/announce'
         # We respond only to sensor sweep task announcements (for now)
         self.announce_sub = rospy.Subscriber('/tasks/announce',
-                                             multirobot_common.msg.AnnounceSensorSweep,
+                                             mrta.msg.AnnounceSensorSweep,
                                              self.bid)
         rospy.loginfo('subscribed to /tasks/announce')
 
         # '/tasks/award'
         self.announce_sub = rospy.Subscriber('/tasks/award',
-                                             multirobot_common.msg.TaskAward,
+                                             mrta.msg.TaskAward,
                                              self.won)
         rospy.loginfo('subscribed to /tasks/award')
 
@@ -451,20 +451,20 @@ class RobotController:
 
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
-                                       multirobot_common.msg.TaskBid)
+                                       mrta.msg.TaskBid)
         rospy.loginfo('publishing on /tasks/bid')
 
         # Announce task events on '/tasks/status':
         # 'BEGIN', 'PAUSE', 'RESUME', 'SUCCESS', 'FAILURE', 'ALL_TASKS_COMPLETE'
         self.task_status_pub = rospy.Publisher('/tasks/status',
-                                               multirobot_common.msg.TaskStatus)
+                                               mrta.msg.TaskStatus)
         rospy.loginfo('publishing on /tasks/status')
 
         # For good measure...
         time.sleep(3)
 
     def _point_to_point_msg(self, point):
-        """Convert a multirobot_common.Point to a geometry_msgs.msg.Point"""
+        """Convert a mrta.Point to a geometry_msgs.msg.Point"""
         point_msg = geometry_msgs.msg.Point()
         point_msg.x = point.x
         point_msg.y = point.y
@@ -643,7 +643,7 @@ class RobotController:
         self.fsm.task_won(msg=msg)
 
     def _construct_bid_msg(self, task_id, robot_id, bid):
-        bid_msg = multirobot_common.msg.TaskBid()
+        bid_msg = mrta.msg.TaskBid()
         bid_msg.task_id = task_id
         bid_msg.robot_id = robot_id
         bid_msg.bid = bid
@@ -778,7 +778,7 @@ class RobotController:
 
         for task_msg in award_msg.tasks:
             rospy.loginfo("won task {0}".format(task_msg.task.task_id))
-            new_task = multirobot_common.SensorSweepTask(str(task_msg.task.task_id),
+            new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
                                                          float(task_msg.location.x),
                                                          float(task_msg.location.y))
             self.agenda.append(new_task)
@@ -883,7 +883,7 @@ class RobotController:
         goal_task = self.current_task
 
         # Send a message to mark the beginning of this task's execution
-        begin_task_msg = multirobot_common.msg.TaskStatus()
+        begin_task_msg = mrta.msg.TaskStatus()
         begin_task_msg.robot_id = self.robot_name
         begin_task_msg.task_id = goal_task.task_id
         begin_task_msg.status = 'BEGIN'
@@ -925,7 +925,7 @@ class RobotController:
         goal_task = self.current_task
 
         # Send a message to mark the end of this task's execution
-        end_task_msg = multirobot_common.msg.TaskStatus()
+        end_task_msg = mrta.msg.TaskStatus()
         end_task_msg.robot_id = self.robot_name
         end_task_msg.task_id = goal_task.task_id
         end_task_msg.status = 'SUCCESS'
@@ -943,7 +943,7 @@ class RobotController:
         goal_task = self.current_task
 
         # Send a message to mark the end of this task's execution
-        end_task_msg = multirobot_common.msg.TaskStatus()
+        end_task_msg = mrta.msg.TaskStatus()
         end_task_msg.robot_id = self.robot_name
         end_task_msg.task_id = goal_task.task_id
         end_task_msg.status = 'FAILURE'
@@ -976,7 +976,7 @@ class RobotController:
             # The allocation and execution phases are finished.
 
             # Send a message to mark the completion of all tasks
-            all_complete_msg = multirobot_common.msg.TaskStatus()
+            all_complete_msg = mrta.msg.TaskStatus()
             all_complete_msg.robot_id = self.robot_name
             all_complete_msg.task_id = '*'
             all_complete_msg.status = 'ALL_TASKS_COMPLETE'

@@ -22,16 +22,16 @@
 
       <rosparam param="clearing_rotation_allowed">false</rosparam>
 
-      <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="global_costmap" />
-      <rosparam file="$(find multirobot_stage)/move_base_config/costmap_common_params.yaml" command="load" ns="local_costmap" />
-      <rosparam file="$(find multirobot_stage)/move_base_config/local_costmap_params.yaml" command="load" />
-      <rosparam file="$(find multirobot_stage)/move_base_config/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
 
-      <rosparam file="$(find multirobot_stage)/move_base_config/base_local_planner_params.yaml" command="load" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />
 
-      <rosparam file="$(find multirobot_stage)/move_base_config/dwa_local_planner_params.yaml" command="load" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
 
-      <rosparam file="$(find multirobot_stage)/move_base_config/global_planner_params.yaml" command="load" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
 
     </node>
 
@@ -40,7 +40,7 @@
       <param name="base_frame_id" value="$(arg robot_name)/base_link" />
     </node>
 
-    <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name)" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name)" output="screen" />
 
   </group>
   <!-- END ROBOT -->

@@ -69,8 +69,8 @@ import rospy
 import rospy.rostime
 import unique_id
 
-import multirobot_common
-import multirobot_common.msg
+import mrta
+import mrta.msg
 
 ## TODO:
 # Import Task class

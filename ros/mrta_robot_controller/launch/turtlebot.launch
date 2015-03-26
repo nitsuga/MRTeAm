@@ -49,7 +49,7 @@
     
     <include file="$(find multirobot_turtlebot)/launch/includes/move_base.launch.xml"/>
 
-    <node name="robot_controller" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name)" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name)" output="screen" />
 
   </group>
   <!-- END ROBOT -->
