@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>auctioneer</name>
+  <name>mrta_auctioneer</name>
   <version>0.0.0</version>
-  <description>The auctioneer package</description>
+  <description>Agent responsible for running task allocation auctions.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->

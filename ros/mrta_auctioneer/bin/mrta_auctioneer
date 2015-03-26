@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""auctioneer.py
+"""mrta_auctioneer
 
 This program serves as the task-allocating agent in a multirobot system. It is
 responsible for:

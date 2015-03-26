@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(robot_controller)
+project(mrta_robot_controller)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -8,6 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   move_base
   rospy
+
+#  turtlebot_bringup
+#  turtlebot_navigation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -123,10 +126,10 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(PROGRAMS
+  bin/mrta_robot_controller
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS robot_controller robot_controller_node

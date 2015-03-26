@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mrta
+project(mrta)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -18,8 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   stage_ros
-  turtlebot_bringup
-  turtlebot_navigation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -66,8 +64,6 @@ add_message_files(
   Task.msg
   TaskAward.msg
   TaskBid.msg
-#  TaskComplete.msg
-#  TaskFailed.msg
   TaskStatus.msg
 )
 
@@ -185,3 +181,4 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+

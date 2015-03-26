@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""robot_controller.py
+"""mrta_robot_controller
 
 This script (and class) controls the task-bidding and goal-seeking behavior of a
 robot.
@@ -9,12 +9,6 @@ Usage: robot_controller.py [robot_name] [goal-x-pos] [goal-y-pos]
 
  robot_name: the desired ROS node name of the robot. If none is given, then a
   random name is chosen.
-
- goal-x-pos:
- goal-y-pos: coordinates of an initial goal that the robot will towards. These
-  arguments are used for testing. Normally, goals will be awarded (via ROS
-  messages) to the robot by an auctioneer agent.
-
 
 The RobotController class uses a state machine to implement bidding and goal-
 seeking behavior.
