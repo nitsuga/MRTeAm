@@ -1,7 +1,7 @@
 <launch>
   <param name="/use_sim_time" value="true"/>
 
-  <node name="auctioneer" pkg="auctioneer" type="auctioneer.py" output="screen">
+  <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" output="screen">
     <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
   </node>

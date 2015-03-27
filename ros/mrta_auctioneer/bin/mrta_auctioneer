@@ -128,10 +128,10 @@ class Auction(object):
     def _construct_task_msg(self, task):
         """
         Maps from our internal task representation to a ROS message type.
-        (multirobot_common.SensorSweepTask => multirobot_common.msg.SensorSweepTask)
+        (mrta.SensorSweepTask => mrta.msg.SensorSweepTask)
         """
         # Just sensor sweep tasks for now
-        task_msg = multirobot_common.msg.SensorSweepTask()
+        task_msg = mrta.msg.SensorSweepTask()
 
         task_msg.task.task_id = task.task_id
         task_msg.task.depends = task.depends
@@ -180,7 +180,7 @@ class AuctionOSI(Auction):
         super(AuctionOSI, self).__init__(auctioneer, tasks, auction_round)
 
     def _construct_announcement_msg(self):
-        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
+        announce_msg = mrta.msg.AnnounceSensorSweep()
         announce_msg.mechanism = self.mechanism_name
 
         # Only announce one task (the first in the auctioneer's list)
@@ -242,7 +242,7 @@ class AuctionOSI(Auction):
         """ Construct and send an award message. """
         rospy.loginfo("(OSI) state: award")
 
-        award_msg = multirobot_common.msg.TaskAward()
+        award_msg = mrta.msg.TaskAward()
         award_msg.robot_id = e.winner_id
         task_msg = self._construct_task_msg(self.tasks[0])
         award_msg.tasks.append(task_msg)
@@ -261,7 +261,7 @@ class AuctionPSI(Auction):
         super(AuctionPSI, self).__init__(auctioneer, tasks, auction_round)
 
     def _construct_announcement_msg(self):
-        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
+        announce_msg = mrta.msg.AnnounceSensorSweep()
         announce_msg.mechanism = self.mechanism_name
 
         # Announce all messages at once
@@ -340,7 +340,7 @@ class AuctionPSI(Auction):
         for task_id in task_winners:
             won_task = self._get_task_by_id(task_id)
             
-            award_msg = multirobot_common.msg.TaskAward()
+            award_msg = mrta.msg.TaskAward()
             award_msg.robot_id = task_winners[task_id]
 
             task_msg = self._construct_task_msg(won_task)
@@ -368,7 +368,7 @@ class AuctionSSI(Auction):
         super(AuctionSSI, self).__init__(auctioneer, tasks, auction_round)
 
     def _construct_announcement_msg(self):
-        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
+        announce_msg = mrta.msg.AnnounceSensorSweep()
         announce_msg.mechanism = self.mechanism_name
 
         # Announce all messages at once
@@ -438,7 +438,7 @@ class AuctionSSI(Auction):
         task = self._get_task_by_id(task_id)
         winner_id = e.winner_id
 
-        award_msg = multirobot_common.msg.TaskAward()
+        award_msg = mrta.msg.TaskAward()
         award_msg.robot_id = e.winner_id
 
         task_msg = self._construct_task_msg(task)
@@ -460,7 +460,7 @@ class AuctionRR(Auction):
         super(AuctionRR, self).__init__(auctioneer, tasks, auction_round)
 
     def _construct_announcement_msg(self):
-        announce_msg = multirobot_common.msg.AnnounceSensorSweep()
+        announce_msg = mrta.msg.AnnounceSensorSweep()
         announce_msg.mechanism = self.mechanism_name
 
         # Only announce one task (the first in the auctioneer's list)
@@ -494,7 +494,7 @@ class AuctionRR(Auction):
         team_cycle = itertools.cycle(self.auctioneer.team_members)
 
         for task in self.tasks:
-            award_msg = multirobot_common.msg.TaskAward()
+            award_msg = mrta.msg.TaskAward()
             award_msg.robot_id = team_cycle.next()
 
             task_msg = self._construct_task_msg(task)
@@ -559,7 +559,7 @@ class Auctioneer:
         self.bids = defaultdict(int)
 
         # Set up state machine.
-        # See multirobot/docs/auctioneer-fsm.png
+        # See mrta/docs/auctioneer-fsm.png
         self.fsm = Fysom( 
             events=[
                 ('startup', 'none', 'load_tasks'),
@@ -587,7 +587,7 @@ class Auctioneer:
         self.experiment_id = str(uuid.uuid4())
 
         # Send a message to mark the beginning of the experiment
-        begin_exp_msg = multirobot_common.msg.ExperimentEvent()
+        begin_exp_msg = mrta.msg.ExperimentEvent()
         begin_exp_msg.experiment_id = self.experiment_id
         begin_exp_msg.event = 'BEGIN_EXPERIMENT'
         stamp(begin_exp_msg)
@@ -601,11 +601,11 @@ class Auctioneer:
 
         # Listen for bids on '/tasks/bid'
         self.bid_sub = rospy.Subscriber('/tasks/bid',
-                                        multirobot_common.msg.TaskBid,
+                                        mrta.msg.TaskBid,
                                         self.on_bid_received)
 
         self.bid_sub = rospy.Subscriber('/tasks/status',
-                                        multirobot_common.msg.TaskStatus,
+                                        mrta.msg.TaskStatus,
                                         self.on_task_status)
 
         # For good measure...
@@ -617,16 +617,16 @@ class Auctioneer:
         # Importantly, 'BEGIN_ALLOCATION', 'END_ALLOCATION', and
         # 'BEGIN_EXECUTION'.
         self.experiment_pub = rospy.Publisher('/experiment',
-                                              multirobot_common.msg.ExperimentEvent)
+                                              mrta.msg.ExperimentEvent)
 
         # Announce tasks on '/tasks/announce'. For the moment we will only
         # announce sensor sweep tasks.
         self.announce_pub = rospy.Publisher('/tasks/announce',
-                                            multirobot_common.msg.AnnounceSensorSweep)
+                                            mrta.msg.AnnounceSensorSweep)
 
         # Award tasks on '/tasks/award'
         self.award_pub = rospy.Publisher('/tasks/award',
-                                         multirobot_common.msg.TaskAward)
+                                         mrta.msg.TaskAward)
 
         # For good measure...
         time.sleep(5)
@@ -654,9 +654,9 @@ class Auctioneer:
                 # task_id is string-ified here because an id may one day be
                 # an MD5 hashe or some other non-integer value. They just happen
                 # to be integers here.
-                new_task = multirobot_common.SensorSweepTask(str(task_id),
-                                                             float(task_x),
-                                                             float(task_y))
+                new_task = mrta.SensorSweepTask(str(task_id),
+                                                float(task_x),
+                                                float(task_y))
                 self.tasks.append(new_task)
                 self.tasks_by_id[str(task_id)] = new_task
 
@@ -679,7 +679,7 @@ class Auctioneer:
 
         # We're finding namespaces that look like the following pattern
         # (in parens):
-        name_pat = re.compile('/(.*)/robot_controller')
+        name_pat = re.compile('/(.*)/mrta_robot_controller')
         for node_name in node_list:
             m = name_pat.match(node_name)
             if m:
@@ -688,7 +688,7 @@ class Auctioneer:
                 self.team_members.append(teammate_name)
 
         # TEMP HACK!
-        self.team_members = ['robot_1', 'robot_2', 'robot_3']
+        #self.team_members = ['robot_1', 'robot_2', 'robot_3']
         
         rospy.loginfo("Team members: {0}".format(self.team_members))
 
@@ -710,7 +710,7 @@ class Auctioneer:
 
         # Send a message to mark the beginning of the allocation phase of
         # the experiment
-        begin_alloc_msg = multirobot_common.msg.ExperimentEvent()
+        begin_alloc_msg = mrta.msg.ExperimentEvent()
         begin_alloc_msg.experiment_id = self.experiment_id
         begin_alloc_msg.event = 'BEGIN_ALLOCATION'
         stamp(begin_alloc_msg)
@@ -746,13 +746,13 @@ class Auctioneer:
 
         # We are finished allocating tasks. Signal the end of the allocation
         # phase and the beginning of the execution phase.
-        end_alloc_msg = multirobot_common.msg.ExperimentEvent()
+        end_alloc_msg = mrta.msg.ExperimentEvent()
         end_alloc_msg.experiment_id = self.experiment_id
         end_alloc_msg.event = 'END_ALLOCATION'
         stamp(end_alloc_msg)
         self.experiment_pub.publish(end_alloc_msg)
 
-        begin_exec_msg = multirobot_common.msg.ExperimentEvent()
+        begin_exec_msg = mrta.msg.ExperimentEvent()
         begin_exec_msg.experiment_id = self.experiment_id
         begin_exec_msg.event = 'BEGIN_EXECUTION'
         stamp(begin_exec_msg)
@@ -814,14 +814,14 @@ class Auctioneer:
         rospy.loginfo("state: end_experiment")
 
         # Send a message to mark the end of the execution phase
-        end_exec_msg = multirobot_common.msg.ExperimentEvent()
+        end_exec_msg = mrta.msg.ExperimentEvent()
         end_exec_msg.experiment_id = self.experiment_id
         end_exec_msg.event = 'END_EXECUTION'
         stamp(end_exec_msg)
         self.experiment_pub.publish(end_exec_msg)
 
         # Send a message to mark the end of the experiment
-        end_exp_msg = multirobot_common.msg.ExperimentEvent()
+        end_exp_msg = mrta.msg.ExperimentEvent()
         end_exp_msg.experiment_id = self.experiment_id
         end_exp_msg.event = 'END_EXPERIMENT'
         stamp(end_exp_msg)
