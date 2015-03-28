@@ -2,8 +2,8 @@
 
 import argparse
 import datetime
-import multirobot_common
-import multirobot_common.msg
+import mrta
+import mrta.msg
 import pprint
 import rospy
 import signal
@@ -88,8 +88,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     # Launch the "main" roscore on port 11311 : stage_ros and map_server
     print('######## Launching Stage ########')
-    main_pkg = 'multirobot_stage'
-    main_launchfile = 'stage-3-robots.launch'
+    main_pkg = 'mrta'
+    main_launchfile = 'stage_3_robots.launch'
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
@@ -101,7 +101,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     rospy.init_node('experiment_launcher', disable_signals=True)
     rospy.Subscriber('/experiment',
-                     multirobot_common.msg.ExperimentEvent,
+                     mrta.msg.ExperimentEvent,
                      on_exp_event)
 
     # Start rosbag
@@ -124,8 +124,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     time.sleep(5)
 
     # Launch the robots
-    robot_pkg = 'multirobot_stage'
-    robot_launchfile = 'robot_move_base.launch'
+    robot_pkg = 'mrta_robot_controller'
+    robot_launchfile = 'move_base_generic.launch'
     for robot in robots:
         print("######## Launching {0} ########".format(robot['name']))
         robot_proc = subprocess.Popen([ROSLAUNCH,
@@ -138,8 +138,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     # Launch the auctioneer
     print('######## Launching auctioneer ########')
-    auc_pkg = 'auctioneer'
-    auc_launchfile = 'auctioneer.launch'
+    auc_pkg = 'mrta_auctioneer'
+    auc_launchfile = 'mrta_auctioneer.launch'
     auc_port = '11315'
     mechanism = mechanism
     task_file = task_file
