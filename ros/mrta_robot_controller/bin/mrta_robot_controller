@@ -529,7 +529,7 @@ class RobotController:
 
     def handle_collision(self, other_name, other_pose):
         if self.fsm.current == 'moving' and in_danger_zone(self.current_pose, other_pose):
-            rospy.loginfo("In danger of colliding with {0}".format(other_name))
+            rospy.loginfo("({0}) In danger of colliding with {0}".format(self.robot_name,other_name))
 
     def get_path_cost(self, start, goal):
         """
@@ -852,14 +852,14 @@ class RobotController:
         self.other_poses[r_name] = other_pose
 
         if in_danger_zone(self.current_pose, other_pose):
-            #rospy.loginfo("In danger of colliding with {0}".format(r_name))
+            rospy.loginfo("In danger of colliding with {0}".format(r_name))
             if self.fsm.current == 'moving':
                 self.fsm.collision_detected()
         else:
             if self.fsm.current == 'resolve_collision':
                 self.fsm.collision_resolved()
 
-        self.handle_collision(r_name, other_pose)
+        #self.handle_collision(r_name, other_pose)
 
         #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
 

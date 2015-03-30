@@ -67,7 +67,6 @@ import rosgraph.names
 import rosnode
 import rospy
 import rospy.rostime
-import unique_id
 
 import mrta
 import mrta.msg
@@ -787,7 +786,7 @@ class Auctioneer:
             self.team_members_completed.append(robot_id)
 
         if status == 'SUCCESS':
-            rospy.loginfo("robot {0} has completed task {1}".format(robot_id, task_id))
+            rospy.loginfo("{0} has completed task {1}".format(robot_id, task_id))
             self.tasks_by_id[task_id].completed = True
 
     def monitor_execution(self, e):
