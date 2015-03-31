@@ -1,0 +1,24 @@
+
+# maps:
+#  brooklyn_lab.png
+#  smartlab_ugv_arena_10px_buffers.png
+#
+# worlds:
+#  brooklyn_arena_3_robots_clustered.world
+#  brooklyn_arena_3_robots_distributed.world
+#  smartlab_ugv_arena_3_robots_clustered.world
+#  smartlab_ugv_arena_3_robots_distributed.world
+
+roslaunch mrta stage_3_robots.launch map_file:=brooklyn_lab.png world_file:=brooklyn_arena_3_robots_clustered.world
+
+roslaunch -p 11312 mrta_robot_controller move_base_generic.launch robot_name:=robot_1
+roslaunch -p 11313 mrta_robot_controller move_base_generic.launch robot_name:=robot_2
+roslaunch -p 11314 mrta_robot_controller move_base_generic.launch robot_name:=robot_3
+
+# task files:
+#  brooklyn_tasks_A.txt
+#  brooklyn_tasks_C.txt
+#  brooklyn_tasks_E.txt
+#  tasks_A.txt
+
+
