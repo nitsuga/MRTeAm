@@ -770,7 +770,7 @@ class RobotController:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
 
     def won(self, award_msg):
-        rospy.loginfo("won()")
+        rospy.loginfo("({0}): won()".format(self.robot_name))
 
         # Make sure that this robot won the task
         if award_msg.robot_id != self.robot_name:
@@ -917,7 +917,10 @@ class RobotController:
         #while self.fsm.current == 'moving':
         #    self.rate.sleep()
 
-        self.fsm.goal_reached()
+        if self.aclient.get_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+            self.fsm.goal_reached()
+        else:
+            self.fsm.goal_not_reached()
 
     def task_success(self, e):
         rospy.loginfo("({0}) state: task_success".format(self.robot_name))
