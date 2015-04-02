@@ -94,7 +94,6 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
                                   main_launchfile,
-                                  "map_file:={0}".format(map_file),
                                   "world_file:={0}".format(world_file)])
     running_procs.append(main_proc)
     time.sleep(6)
@@ -132,6 +131,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                        robot_pkg,
                                        robot_launchfile,
                                        '-p', robot['port'],
+                                       "map_file:={0}".format(map_file),
                                        "robot_name:={0}".format(robot['name'])])
         running_procs.append(robot_proc)
         time.sleep(10)

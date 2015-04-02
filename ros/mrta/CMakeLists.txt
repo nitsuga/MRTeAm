@@ -100,8 +100,8 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES multirobot_common
+  INCLUDE_DIRS include
+  LIBRARIES mrta_obstacle_layer
   CATKIN_DEPENDS actionlib_msgs geometry_msgs sensor_msgs std_msgs message_runtime rospy
 #  DEPENDS system_lib
 )
@@ -114,13 +114,14 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
-# add_library(multirobot_common
-#   src/${PROJECT_NAME}/multirobot_common.cpp
-# )
+add_library(mrta_obstacle_layer
+  src/mrta_obstacle_layer/mrta_obstacle_layer.cpp
+)
 
 ## Declare a cpp executable
 # add_executable(multirobot_common_node src/multirobot_common_node.cpp)
@@ -155,12 +156,21 @@ include_directories(
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
+install(TARGETS mrta_obstacle_layer
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
 #   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 #   FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
 # )
+
+install(DIRECTORY include
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  PATTERN ".gitignore" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

@@ -1,0 +1,5 @@
+<library path="lib/mrta_obstacle_layer">
+  <class type="mrta_obstacle_layer::MRTAObstacleLayer" base_class_type="costmap_2d::Layer">
+    <description>Layer that adds an obstacle to the costmap in the position, size, and shape of another robot.</description>
+  </class>
+</library>

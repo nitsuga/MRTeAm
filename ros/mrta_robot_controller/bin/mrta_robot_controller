@@ -793,7 +793,6 @@ class RobotController:
 
         greedy_selection = True
 
-        # "non-greedy"
         goal_task = None
         min_uncompleted_dist = None
         for task in self.agenda:
@@ -917,15 +916,18 @@ class RobotController:
         #while self.fsm.current == 'moving':
         #    self.rate.sleep()
 
-        if self.aclient.get_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+        if self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
             self.fsm.goal_reached()
         else:
+            rospy.loginfo("GoalStatus=={0}".format(self.aclient.get_state()))
             self.fsm.goal_not_reached()
 
     def task_success(self, e):
         rospy.loginfo("({0}) state: task_success".format(self.robot_name))
 
         goal_task = self.current_task
+
+        rospy.loginfo("({0}) publishing 'SUCCESS' to /tasks/status".format(self.robot_name))
 
         # Send a message to mark the end of this task's execution
         end_task_msg = mrta.msg.TaskStatus()
@@ -938,12 +940,16 @@ class RobotController:
         goal_task.completed = True
         self.current_task = None
 
+        time.sleep(1)
+
         self.fsm.resume()
 
     def task_failure(self, e):
         rospy.loginfo("({0}) state: task_failure".format(self.robot_name))
 
         goal_task = self.current_task
+
+        rospy.loginfo("({0}) publishing 'FAILURE' to /tasks/status".format(self.robot_name))
 
         # Send a message to mark the end of this task's execution
         end_task_msg = mrta.msg.TaskStatus()
@@ -955,6 +961,8 @@ class RobotController:
 
         goal_task.completed = False
         self.current_task = None
+
+        time.sleep(1)
 
         self.fsm.resume()
 

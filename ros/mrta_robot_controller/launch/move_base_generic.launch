@@ -3,6 +3,9 @@
 
   <param name="/use_sim_time" value="true"/>
 
+  <!-- Map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" respawn="false" />
+
   <!-- BEGIN ROBOT -->
   <group ns="$(arg robot_name)">
     <param name="tf_prefix" value="$(arg robot_name)" />
@@ -18,6 +21,7 @@
       <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
       <param name="base_global_planner" value="hrteam_planner/HRTeamPlanner" />
       -->
+
       <param name="base_global_planner" value="global_planner/GlobalPlanner" />
 
       <rosparam param="clearing_rotation_allowed">false</rosparam>
@@ -51,6 +55,13 @@
   <!-- FKIE master sync -->
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
     <!--<rosparam param="ignore_topic">[/robot_1/*, /robot_2/*]</rosparam>-->
+    <rosparam param="ignore">
+      ['/*map_server*',
+       '/*fake_localization*',
+       '/*move_base*',
+       '/*robot_controller*',
+       '/*stageros*']
+    </rosparam>
   </node>
 
 </launch>

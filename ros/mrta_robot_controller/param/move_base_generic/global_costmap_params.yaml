@@ -14,3 +14,5 @@ global_costmap:
   rolling_window: false
 
   footprint_padding: 0.02
+
+  inflation_radius: 0.3
