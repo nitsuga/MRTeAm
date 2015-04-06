@@ -4,7 +4,7 @@
   <param name="/use_sim_time" value="true"/>
 
   <!-- Map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" respawn="false" />
+  <!--<node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" respawn="false" />-->
 
   <!-- BEGIN ROBOT -->
   <group ns="$(arg robot_name)">
@@ -15,7 +15,7 @@
 
       <param name="controller_frequency" value="10.0" />
 
-      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+      <!--<param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
 
       <!--
       <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
@@ -24,7 +24,7 @@
 
       <param name="base_global_planner" value="global_planner/GlobalPlanner" />
 
-      <rosparam param="clearing_rotation_allowed">false</rosparam>
+      <!--<rosparam param="clearing_rotation_allowed">false</rosparam>-->
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
@@ -33,7 +33,7 @@
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />
 
-      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
+      <!--<rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />-->
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
 
@@ -50,17 +50,17 @@
   <!-- END ROBOT -->
 
   <!-- FKIE master discovery -->
-  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />
+  <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="log" />
 
   <!-- FKIE master sync -->
-  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+  <!--<node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">-->
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="log">
     <!--<rosparam param="ignore_topic">[/robot_1/*, /robot_2/*]</rosparam>-->
-    <rosparam param="ignore">
-      ['/*map_server*',
-       '/*fake_localization*',
+    <rosparam param="ignore_nodes">
+      ['/*fake_localization*',
        '/*move_base*',
-       '/*robot_controller*',
-       '/*stageros*']
+       '/*move_base_node*']
     </rosparam>
   </node>
 

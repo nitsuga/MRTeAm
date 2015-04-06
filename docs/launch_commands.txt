@@ -20,5 +20,4 @@ roslaunch -p 11314 mrta_robot_controller move_base_generic.launch robot_name:=ro
 #  brooklyn_tasks_C.txt
 #  brooklyn_tasks_E.txt
 #  tasks_A.txt
-
-
+roslaunch -p 11315 mrta_auctioneer mrta_auctioneer.launch mechanism:=PSI task_file:=brooklyn_tasks_A.txt
