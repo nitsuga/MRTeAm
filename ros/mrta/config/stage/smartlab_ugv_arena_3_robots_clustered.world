@@ -5,6 +5,8 @@ include "robots.inc"
 resolution 0.02
 
 interval_sim 100  # simulation timestep in milliseconds
+#interval_sim 50
+#interval_real 50
 
 window
 ( 

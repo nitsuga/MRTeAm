@@ -5,21 +5,24 @@
   <!--<node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" respawn="false" />-->
 
   <!-- Stage -->
-  <node pkg="stage_ros" type="stageros" name="stageros" args="$(find mrta)/config/stage/$(arg world_file)" respawn="false" >
+  <node pkg="stage_ros" type="stageros" name="stageros" args="$(find mrta)/config/stage/$(arg world_file)" required="true" respawn="false" >
     <param name="base_watchdog_timeout" value="0.2"/>
   </node>
 
   <!-- FKIE master discovery -->
-  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="log" />
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="log" />
 
   <!-- FKIE master sync -->
-  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="log">
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="log">
 <!--    <rosparam param="ignore_topic">[/robot_0/*, /robot_1/*, /robot_2/*]</rosparam> -->
+<!--
     <rosparam param="ignore_nodes">
       [
-       '/*mrta_robot_controller*',
-       '/*map_server']
+       '/*map_server*',
+       '/*mrta_robot_controller'
+      ]
     </rosparam>
+-->
   </node>
 
 </launch>
