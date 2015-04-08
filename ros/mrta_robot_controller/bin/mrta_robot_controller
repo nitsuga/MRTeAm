@@ -493,9 +493,9 @@ class RobotController:
 
     def _make_nav_plan_client(self, start, goal):
 
-        rospy.loginfo("Waiting for service {0}".format(self.plan_srv_name))
+        #rospy.loginfo("Waiting for service {0}".format(self.plan_srv_name))
         rospy.wait_for_service(self.plan_srv_name)
-        rospy.loginfo("Service ready.")
+        #rospy.loginfo("Service ready.")
 
         try:
             make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
@@ -546,12 +546,12 @@ class RobotController:
         https://code.google.com/p/alufr-ros-pkg/source/browse/.
         """
 
-        rospy.loginfo("Getting path from {0}...".format(self.plan_srv_name))
+        #rospy.loginfo("Getting path from {0}...".format(self.plan_srv_name))
 
         # 'path' is a list of objects of type geometry_msgs.PoseStamped
         path = self._make_nav_plan_client(start, goal)
 
-        rospy.loginfo('...got path')
+        #rospy.loginfo('...got path')
 
         path_cost = 0.0
         from_pose = None
@@ -579,6 +579,16 @@ class RobotController:
                 #path_cost += yaw_delta
 
                 from_pose = pose_stamped.pose
+
+        # If a path can't be calculated, make its cost the maximum int value
+        # This comparison should be safe in Python!
+        if path_cost == 0.0:
+            path_cost = float(sys.maxint)
+
+        rospy.loginfo("Path cost from ({0},{1}) to ({2},{3}) is {4}".format(
+            start.position.x, start.position.y,
+            goal.position.x, goal.position.y,
+            path_cost))
 
         return path_cost
 
