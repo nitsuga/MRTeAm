@@ -12,10 +12,11 @@ import sys
 import time
 
 # Paths to ROS binaries
-ROS_HOME = '/opt/ros/hydro'
+#ROS_HOME = '/opt/ros/hydro'
+ROS_HOME = '/home/esch/opt/ros/hydro'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
-ROSBAG = "/opt/ros/hydro/lib/rosbag/record"
+ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
 
 # Keep track of processes to terminate when done
 running_procs = []
@@ -91,9 +92,14 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     main_pkg = 'mrta'
     main_launchfile = 'stage_3_robots.launch'
 
+    nogui_flag = None
+    if args.nogui:
+      nogui_flag = '-g'
+
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
                                   main_launchfile,
+                                  "nogui_flag:={0}".format(nogui_flag),
                                   "world_file:={0}".format(world_file)])
     running_procs.append(main_proc)
     time.sleep(6)
@@ -191,6 +197,8 @@ if __name__ == '__main__':
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
+    parser.add_argument("--nogui", help="disable the Stage GUI")
+
 
     args = parser.parse_args()
 
