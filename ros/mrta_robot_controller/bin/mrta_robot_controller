@@ -272,6 +272,8 @@ class RobotController:
         # Keep track of potential collisions with other robots
         self.collisions = defaultdict(Collision)
 
+        self.in_collision = False
+
         # For some mechanisms, in order to compute a bid value (path cost)
         # we need to compute a path from the position of the most-recently-
         # awarded task point, rather than from the robot's current position.
@@ -866,17 +868,18 @@ class RobotController:
         self.other_poses[r_name] = other_pose
 
         if in_danger_zone(self.current_pose, other_pose):
-            rospy.loginfo("In danger of colliding with {0}".format(r_name))
-            rospy.loginfo("Current state: {0}".format(self.fsm.current))
+            rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
+            rospy.loginfo("({0}) Current state: {1}".format(self.robot_name,self.fsm.current))
 
             if self.fsm.current == 'moving':
-            #if self.fsm.current != 'resolve_collision':
-                self.fsm.collision_detected(other_robot_name=r_name)
-#        else:
-#            if self.fsm.current == 'resolve_collision':
-#                self.fsm.collision_resolved()
 
-        #self.handle_collision(r_name, other_pose)
+                self.fsm.collision_detected(other_robot_name=r_name)
+        #else:
+            #if self.fsm.current == 'resolve_collision':
+                #self.fsm.collision_resolved()
+
+        else:
+            self.in_collision = False
 
         #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
 
@@ -927,7 +930,9 @@ class RobotController:
         rospy.loginfo("({0}) state: resolve_collision".format(self.robot_name))
 
         # This might work...
-        #if self.robot_name > e.other_robot_name:
+        if self.robot_name > e.other_robot_name:
+            self.in_collision = True
+
         goal_task = self.current_task
 
         rospy.loginfo("({0}) Pausing to avoid collision...".format(self.robot_name))
@@ -941,9 +946,12 @@ class RobotController:
         stamp(pause_task_msg)
         self.task_status_pub.publish(pause_task_msg)
         
+        while self.in_collision:
+            self.rate.sleep()
+
         # Duration to pause
-        pause_duration = 1 + random.random()
-        time.sleep(pause_duration)
+        #pause_duration = 1 + random.random()
+        #time.sleep(pause_duration)
         
         # Mark a resumption of this task's execution
         resume_task_msg = mrta.msg.TaskStatus()
@@ -982,7 +990,9 @@ class RobotController:
             self.fsm.goal_reached()
         else:
             rospy.loginfo("GoalStatus=={0}".format(self.aclient.get_state()))
-            self.fsm.goal_not_reached()
+            # hax...
+            if self.fsm.current == 'moving':
+                self.fsm.goal_not_reached()
 
     def task_success(self, e):
         rospy.loginfo("({0}) state: task_success".format(self.robot_name))

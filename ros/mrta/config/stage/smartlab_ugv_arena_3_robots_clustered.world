@@ -12,7 +12,7 @@ window
 ( 
   size [ 1024.000 768.000 ] 
   center [ 4.00 3.0 ]
-  rotate [ 30 -15 ]
+#  rotate [ 30 -15 ]
 
   scale 95.0
 )
