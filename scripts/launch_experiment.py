@@ -12,8 +12,8 @@ import sys
 import time
 
 # Paths to ROS binaries
-#ROS_HOME = '/opt/ros/hydro'
-ROS_HOME = '/home/esch/opt/ros/hydro'
+ROS_HOME = '/opt/ros/hydro'
+#ROS_HOME = '/home/esch/opt/ros/hydro'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
@@ -197,7 +197,7 @@ if __name__ == '__main__':
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
-    parser.add_argument("--nogui", help="disable the Stage GUI")
+    parser.add_argument("-ng","--nogui", help="Disable the Stage GUI", action="store_true")
 
 
     args = parser.parse_args()
