@@ -159,11 +159,10 @@ namespace backup_recovery {
     */
 
     for (int i=0; i<5; i++) {
-
       // Make sure that we don't back up into an obstacle
       local_costmap_->getRobotPose(global_pose);
 
-      double x = global_pose.getOrigin().x() - 0.2;
+      double x = global_pose.getOrigin().x() - 0.1;
       double y = global_pose.getOrigin().y();
       double theta = tf::getYaw(global_pose.getRotation());
 

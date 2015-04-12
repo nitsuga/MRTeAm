@@ -930,8 +930,8 @@ class RobotController:
         rospy.loginfo("({0}) state: resolve_collision".format(self.robot_name))
 
         # This might work...
-        if self.robot_name > e.other_robot_name:
-            self.in_collision = True
+        #if self.robot_name > e.other_robot_name:
+        #    self.in_collision = True
 
         goal_task = self.current_task
 
@@ -946,13 +946,15 @@ class RobotController:
         stamp(pause_task_msg)
         self.task_status_pub.publish(pause_task_msg)
         
-        while self.in_collision:
-            self.rate.sleep()
+        #while self.in_collision:
+        #    self.rate.sleep()
 
         # Duration to pause
-        #pause_duration = 1 + random.random()
-        #time.sleep(pause_duration)
+        pause_duration = 1 + random.random()
+        time.sleep(pause_duration)
         
+        rospy.loginfo("({0}) Resuming...".format(self.robot_name))
+
         # Mark a resumption of this task's execution
         resume_task_msg = mrta.msg.TaskStatus()
         resume_task_msg.robot_id = self.robot_name
@@ -961,7 +963,6 @@ class RobotController:
         stamp(resume_task_msg)
         self.task_status_pub.publish(resume_task_msg)
         
-        rospy.loginfo("({0}) Resuming...".format(self.robot_name))
 
         self.fsm.collision_resolved()
 
