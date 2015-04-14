@@ -12,7 +12,7 @@ import sys
 CSV_FILENAME = 'stats.csv'
 
 field_names = [
-#    'BAG_FILENAME',
+    'BAG_FILENAME',
     'DATETIME',
     'MAP',
     'START_CONFIG',
@@ -56,6 +56,11 @@ class Robot(object):
         self.idle_time = 0.0
         self.delay_time = 0.0
 
+        self.collisions = 0
+
+        # Times at which this robot paused during execution of tasks. Keys are task ids
+        # and values are timestamps
+        self.pause_times = defaultdict(int)
 
 def usage():
     print 'Usage: ' + sys.argv[0] + ': <path to .bag file(s)>'
@@ -90,7 +95,7 @@ def main(argv):
         
         row_fields = []
         bag_filename = os.path.basename(bag_path)
-        #row_fields.append(bag_filename)
+        row_fields.append(bag_filename)
 
         (map, start_config, mechanism, task_file, remainder) = bag_filename.split('__')
         
@@ -110,6 +115,10 @@ def main(argv):
         exp_msgs = {}
         for msg in run_msgs['/experiment']:
             exp_msgs[msg.event] = msg
+
+        if 'END_EXPERIMENT' not in exp_msgs:
+            print("Experiment timed out! Skipping...")
+            continue
 
         # Total run time
         total_diff = (exp_msgs['END_EXPERIMENT'].header.stamp - 
@@ -135,8 +144,10 @@ def main(argv):
         total_collisions = 0
 
         robots = {}
+
         for r_name in ROBOT_NAMES:
             robot = Robot()
+            robots[r_name] = robot
 
             # Distance travelled
             robot.distance = 0.0
@@ -172,23 +183,42 @@ def main(argv):
                 if status_msg.status == 'ALL_TASKS_COMPLETE':
                     robot.travel_end_time = status_msg.header.stamp
 
+                if status_msg.status == 'PAUSE':
+                    robot.collisions += 1
+                    robot.pause_times[status_msg.task_id] = status_msg.header.stamp
+
+                if status_msg.status == 'RESUME':
+
+                    pause_time = robot.pause_times[status_msg.task_id]
+                    if not pause_time:
+                        print("'RESUME' message has no matching 'PAUSE' message! {0}, task {1}".format(
+                            r_name, status_msg.task_id))
+                        continue
+
+                    resume_time = status_msg.header.stamp
+                    delay_time = resume_time - pause_time
+                    robot.delay_time +=  (delay_time.secs + delay_time.nsecs/1000000000.)
+
+                    # Clear out the most recent pause time for this task
+                    robot.pause_times[status_msg.task_id] = None
+
+            if not robot.travel_end_time or not robot.travel_begin_time:
+                continue
+
             travel_time_diff = robot.travel_end_time - robot.travel_begin_time
             robot.travel_time = (travel_time_diff.secs + travel_time_diff.nsecs/1000000000.)
 
             idle_time_diff = exp_msgs['END_EXECUTION'].header.stamp - robot.travel_end_time
             robot.idle_time = (idle_time_diff.secs + idle_time_diff.nsecs/1000000000.)
+            
+            # Since messages may arrive out of order it's possible for the idle time
+            # of the last robot to be negative. Make the minimum time 0 here.
+            if robot.idle_time < 0:
+                robot.idle_time = 0
 
             total_idle_time += robot.idle_time
-
-            # Need to revise this!
-            robot.collisions = 0
             total_collisions += robot.collisions
-
-            # Need to revise this!
-            robot.delay_time = 0.0
             total_delay_time += robot.delay_time
-
-            robots[r_name] = robot
 
         row_fields.append(total_idle_time)  # 'TOTAL_IDLE_TIME'
         row_fields.append(total_delay_time) # 'TOTAL_DELAY_TIME'
@@ -225,8 +255,8 @@ def main(argv):
 
             row_fields.append(robot.distance)     # 'ROBOT<n>_DISTANCE'
             row_fields.append(robot.travel_time)  # 'ROBOT<n>_TRAVEL_TIME'
-            row_fields.append(robot.delay_time)   # 'ROBOT<n>_IDLE_TIME'
-            row_fields.append(robot.distance)     # 'ROBOT<n>_DELAY_TIME'
+            row_fields.append(robot.idle_time)   # 'ROBOT<n>_IDLE_TIME'
+            row_fields.append(robot.delay_time)     # 'ROBOT<n>_DELAY_TIME'
 
 
         csv_file.writerow(row_fields)

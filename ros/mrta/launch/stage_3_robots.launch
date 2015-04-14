@@ -12,17 +12,21 @@
   </node>
 
   <!-- FKIE master discovery -->
-  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="log" />
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="screen">
+    <param name="name" value="stage_master" />
+  </node>
 
   <!-- FKIE master sync -->
-  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="log">
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="screen">
 <!--    <rosparam param="ignore_topic">[/robot_0/*, /robot_1/*, /robot_2/*]</rosparam> -->
     <rosparam param="ignore_nodes">
       [
-       '/*map_server*',
-       '/*mrta_robot_controller'
+       '/*map_server',
+       '/*move_base_node',
+       '/*mrta_robot_controller',
       ]
     </rosparam>
+    <rosparam param="sync_hosts">['127.0.0.1']</rosparam>
   </node>
 
 </launch>

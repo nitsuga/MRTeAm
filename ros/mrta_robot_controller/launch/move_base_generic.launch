@@ -75,20 +75,23 @@
 
   <!-- FKIE master discovery -->
   <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
-  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="log" />
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="screen">
+    <param name="name" value="$(arg robot_name)_master" />
+  </node>
 
   <!-- FKIE master sync -->
   <!--<node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">-->
-  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="log">
-    <!--<rosparam param="ignore_topic">[/robot_1/*, /robot_2/*]</rosparam>-->
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="screen">
+    <rosparam param="sync_hosts">['stage_master', 'auctioneer_master']</rosparam>
     <rosparam param="ignore_nodes">
       [
        '/*fake_localization',
-       '/*map_server',
+       '/map_server',
        '/*move_base_node',
        '/*mrta_robot_controller'
       ]
     </rosparam>
+
   </node>
 
 </launch>
