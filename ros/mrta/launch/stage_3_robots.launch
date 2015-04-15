@@ -26,7 +26,6 @@
        '/*mrta_robot_controller',
       ]
     </rosparam>
-    <rosparam param="sync_hosts">['127.0.0.1']</rosparam>
   </node>
 
 </launch>

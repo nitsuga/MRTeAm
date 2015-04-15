@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <name>mrta_teswt</name>
+  <version>0.0.1</version>
+  <description>Test multimaster syncing.</description>
+
+  <maintainer email="eric.schneider@liverpool.ac.uk">Eric Schneider</maintainer>
+  <author email="eric.schneider@liverpool.ac.uk">Eric Schneider</author>
+  <license>MIT</license>
+  <url type="website">https://github.com/nitsuga/multirobot</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>multimaster_fkie</run_depend>
+  <run_depend>rospy</run_depend>
+
+  <export>
+  </export>
+</package>

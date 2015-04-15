@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""mrta_robot_controller
+"""mrta_test
 
 This script (and class) controls the task-bidding and goal-seeking behavior of a
 robot.
@@ -20,221 +20,70 @@ Eric Schneider <eric.schneider@liverpool.ac.uk>
 from collections import defaultdict
 import math
 import pprint
-import random
 import sys
 import time
 import uuid
 
-# Fysom state machine
-from fysom import Fysom
-
 # ROS modules
-import actionlib
-from actionlib import SimpleActionClient
-import actionlib_msgs.msg
-import geometry_msgs.msg
-import move_base_msgs.msg
-import nav_msgs.msg
-import nav_msgs.srv
-import navfn.srv
 import rospy
-import smach
-import smach_ros
-from smach_ros import SimpleActionState
-import tf.transformations
-#from std_msgs.msg import String
 
 import mrta
 import mrta.msg
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
-RATE = 10
-
-# If another robot is with this distance (in meters) and field of view (in
-# radians), we're in danger of colliding with it
-#DANGER_ZONE_FOV = math.pi / 2
-DANGER_ZONE_FOV = math.pi
-DANGER_ZONE_DIST = 0.9
+RATE = 100
 
 pp = pprint.PrettyPrinter(indent=2)
 
-
-######## smach state classes ########
-
-# state: IDLE
-class Idle(smach.State):
-    def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['have_tasks', 'all_tasks_complete'],
-                             input_keys=['robot_controller'],
-                             output_keys=['robot_controller'])
-
-    def execute(self, userdata):
-        rc = userdata.robot_controller
-
-        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
-
-        # We idle here unless two conditions are true:
-        # 1. We have tasks in our agenda
-        # 2. self.ok_to_execute == True
-        while not rc.agenda or not rc.ok_to_execute:
-            rc.rate.sleep()
-
-        have_tasks = False
-        for task in rc.agenda:
-            if not task.completed:
-                have_tasks = True
-                break
-
-        if have_tasks:
-            return 'have_tasks'
-        else:
-            return 'no_tasks'
-
-# state: CHOOSE_TASK
-class ChooseTask(smach.State):
-    def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['goal_chosen','no_tasks'],
-                             input_keys=['robot_controller'],
-                             output_keys=['robot_controller'])
-
-    def execute(self, userdata):
-        rc = userdata.robot_controller
-
-        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
-
-        # We have two ways to choose the next task from our agenda:
-        # 1. ("non-greedy") Choose the first task that hasn't been completed yet
-        # 2. ("greedy")     Choose the next closest task
-
-        greedy_selection = True
-
-        # "non-greedy"
-        goal_task = None
-        min_uncompleted_dist = None
-        for task in rc.agenda:
-            if not task.completed:
-                if greedy_selection:
-                    from_pose = rc.current_pose
-                    to_pose = rc._point_to_pose(rc._point_to_point_msg(task.location))
-                    path_cost = rc.get_path_cost(from_pose, to_pose)
-
-                    if not min_uncompleted_dist or path_cost < min_uncompleted_dist:
-                        goal_task = task
-                        min_uncompleted_dist = path_cost
-
-                else:
-                    goal_task = task
-                    break
-
-        rc.current_task = goal_task
-
-        # Sanity check
-        if not rc.current_task:
-            rospy.loginfo("outcome: no_tasks")
-            return 'no_tasks'
-
-        rospy.loginfo("outcome: goal_chosen")
-        return 'goal_chosen'
-
-# state: SEND_GOAL
-class SendGoal(smach.State):
-    def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['have_tasks', 'all_tasks_complete'],
-                             input_keys=['robot_controller'],
-                             output_keys=['robot_controller'])
-
-    def execute(self, userdata):
-        rc = userdata.robot_controller
-
-        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
-
-        # We idle here unless two conditions are true:
-        # 1. We have tasks in our agenda
-        # 2. self.ok_to_execute == True
-        while not rc.agenda or not rc.ok_to_execute:
-            rc.rate.sleep()
-
-        have_tasks = False
-        for task in rc.agenda:
-            if not task.completed:
-                have_tasks = True
-                break
-
-        if have_tasks:
-            return 'have_tasks'
-        else:
-            return 'no_tasks'
+def on_read(self, msg):
+    # Trigger the 'task_announced' fsm event, with the message as a parameter
+    rospy.logdebug("task announced:\n{0}".format(pp.pformat(msg)))
+    self.fsm.task_announced(msg=msg)
 
 
-#### Utility functions
+def init_subscribers(topics):
+    rospy.loginfo('Initializing subscribers...')
 
-def stamp(msg):
-    """ Set the timestamp of a message to the current wall-clock time."""
-    rospy.rostime.switch_to_wallclock()
-    msg.header.stamp = rospy.rostime.get_rostime()
+    subs = []
+    for topic in topics:
+        sub = rospy.Subscriber(topic, std_msgs.msg.String, on_read)
+        rospy.loginfo("subscribed to {0}".format(topic))
+    
+        subs.append(sub)
 
-def in_danger_zone(my_pose, other_pose):
+    return subs
 
-    in_danger = False
+def init_publishers(topics):
+    rospy.loginfo('Initializing publishers...')
 
-    if not my_pose or not other_pose:
-        return in_danger
+    pubs = []
+    for topic in topics:
+        pub = rospy.Publisher(topic, std_msgs.msg.String, latch=True)
+        rospy.loginfo("publishing to {0}".format(topic))
 
-    # Angle between my_pose and the positive y-axis
+        pubs.append(pub)
 
-    # my_pose orientation quaternion
-    my_q = (my_pose.orientation.x,
-            my_pose.orientation.y,
-            my_pose.orientation.z,
-            my_pose.orientation.w)
-    euler = tf.transformations.euler_from_quaternion(my_q)
-    my_yaw = euler[2]
-    rospy.logdebug("my_yaw == {0}".format(my_yaw))
-    d_theta = (math.pi / 2) - my_yaw
-    rospy.logdebug("d_theta == {0}".format(d_theta))
+    return pubs
 
-    # Translate the treasure's position, pretending the robot is at the origin
-    trans_x = other_pose.position.x - my_pose.position.x
-    trans_y = other_pose.position.y - my_pose.position.y
-    rospy.logdebug("trans_x=={0}, trans_y=={1}".format(trans_x, trans_y))
+def main(argv):
 
+    # Get our "name"
+    master_name = rospy.get_param("~name")
 
-    # Rotate the translated point by d_theta
-    rot_x = (trans_x * math.cos(d_theta)) - (trans_y * math.sin(d_theta))
-    rot_y = (trans_x * math.sin(d_theta)) + (trans_y * math.cos(d_theta))
-    rospy.logdebug("rot_x=={0}, rot_y=={1}".format(rot_x, rot_y))
+    # Start the node
+    node_name = "{0}_node".format(master_name)
+    rospy.init_node(node_name)
+    rospy.loginfo("Starting node '{0}'...".format(node_name))
 
-    other_heading = math.atan2(rot_x, rot_y)
-    rospy.logdebug("other_pos heading is {0}".format(other_heading))
+    # Get a list of topics to publish
+    pub_topics = rospy.get_param("~pub_topics")
+    pubs = init_publishers(pub_topics)
 
-    other_dist = math.hypot(other_pose.position.x - my_pose.position.x,
-                            other_pose.position.y - my_pose.position.y)
+    # Get a list of topics to subscribe to
+    sub_topics = rospy.get_param("~sub_topics")
+    subs = init_subscribers(sub_topics)
 
-    in_fov = False
-    if (other_heading >= -(DANGER_ZONE_FOV/2) and
-        other_heading <= (DANGER_ZONE_FOV/2)):
-        in_fov = True
-
-    rospy.logdebug("in_fov=={0}".format(in_fov))
-
-    in_dist = False
-    if other_dist <= DANGER_ZONE_DIST:
-        in_dist = True
-    rospy.logdebug("in_dist=={0}".format(in_dist))
-
-    if in_fov and in_dist:
-        in_danger = True
-    rospy.logdebug("in_danger=={0}".format(in_danger))
-
-    return in_danger
-
-
-class Collision(object):
-    def __init__(self):
-        pass
+    
 
 class RobotController:
     """ Controls robot behavior. """
@@ -1084,8 +933,8 @@ if __name__ == '__main__':
     try:
         argv = rospy.myargv(argv=sys.argv[1:])
         #print "arguments: {0}".format(argv)
-        rc = RobotController(*argv)
-        #print("rc final state: {0}".format(rc.fsm.current))
+
+        main(argv)
 
         while not rospy.is_shutdown():
             rc.rate.sleep()
@@ -1093,4 +942,4 @@ if __name__ == '__main__':
     except rospy.ROSInterruptException:
         pass
 
-    print('######## robot_controller exiting ########')
+    print('######## mrta_test exiting ########')
