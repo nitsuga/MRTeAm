@@ -12,8 +12,9 @@
   </node>
 
   <!-- FKIE master sync -->
+<!--
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="log">
     <rosparam param="sync_hosts">[]</rosparam>
   </node>
-
+-->
 </launch>

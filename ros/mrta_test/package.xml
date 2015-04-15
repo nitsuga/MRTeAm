@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>mrta_teswt</name>
+  <name>mrta_test</name>
   <version>0.0.1</version>
   <description>Test multimaster syncing.</description>
 

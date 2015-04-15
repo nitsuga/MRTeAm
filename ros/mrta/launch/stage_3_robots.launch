@@ -17,8 +17,9 @@
   </node>
 
   <!-- FKIE master sync -->
+<!--
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="screen">
-<!--    <rosparam param="ignore_topic">[/robot_0/*, /robot_1/*, /robot_2/*]</rosparam> -->
+    <rosparam param="ignore_topic">[/robot_0/*, /robot_1/*, /robot_2/*]</rosparam>
     <rosparam param="ignore_nodes">
       [
        '/*map_server',
@@ -27,5 +28,5 @@
       ]
     </rosparam>
   </node>
-
+-->
 </launch>

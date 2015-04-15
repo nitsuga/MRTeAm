@@ -129,9 +129,8 @@ install(PROGRAMS
 )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(FILES
-  launch/mrta_test.launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
 
 #############
