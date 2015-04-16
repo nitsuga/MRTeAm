@@ -933,36 +933,37 @@ class RobotController:
         #if self.robot_name > e.other_robot_name:
         #    self.in_collision = True
 
-        goal_task = self.current_task
+        if self.robot_name > e.other_robot_name:
 
-        rospy.loginfo("({0}) Pausing to avoid collision...".format(self.robot_name))
-        self.aclient.cancel_goal()
-        
-        # Mark a pause in this task's execution
-        pause_task_msg = mrta.msg.TaskStatus()
-        pause_task_msg.robot_id = self.robot_name
-        pause_task_msg.task_id = goal_task.task_id
-        pause_task_msg.status = 'PAUSE'
-        stamp(pause_task_msg)
-        self.task_status_pub.publish(pause_task_msg)
-        
-        #while self.in_collision:
-        #    self.rate.sleep()
+            goal_task = self.current_task
 
-        # Duration to pause
-        pause_duration = 1 + random.random()
-        time.sleep(pause_duration)
+            rospy.loginfo("({0}) Pausing to avoid collision...".format(self.robot_name))
+            self.aclient.cancel_goal()
         
-        rospy.loginfo("({0}) Resuming...".format(self.robot_name))
+            # Mark a pause in this task's execution
+            pause_task_msg = mrta.msg.TaskStatus()
+            pause_task_msg.robot_id = self.robot_name
+            pause_task_msg.task_id = goal_task.task_id
+            pause_task_msg.status = 'PAUSE'
+            stamp(pause_task_msg)
+            self.task_status_pub.publish(pause_task_msg)
 
-        # Mark a resumption of this task's execution
-        resume_task_msg = mrta.msg.TaskStatus()
-        resume_task_msg.robot_id = self.robot_name
-        resume_task_msg.task_id = goal_task.task_id
-        resume_task_msg.status = 'RESUME'
-        stamp(resume_task_msg)
-        self.task_status_pub.publish(resume_task_msg)
-        
+            #while self.in_collision:
+            #    self.rate.sleep()
+
+            # Duration to pause
+            pause_duration = 1 + random.random()
+            time.sleep(pause_duration)
+
+            rospy.loginfo("({0}) Resuming...".format(self.robot_name))
+
+            # Mark a resumption of this task's execution
+            resume_task_msg = mrta.msg.TaskStatus()
+            resume_task_msg.robot_id = self.robot_name
+            resume_task_msg.task_id = goal_task.task_id
+            resume_task_msg.status = 'RESUME'
+            stamp(resume_task_msg)
+            self.task_status_pub.publish(resume_task_msg)
 
         self.fsm.collision_resolved()
 

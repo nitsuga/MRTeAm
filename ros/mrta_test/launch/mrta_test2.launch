@@ -1,0 +1,66 @@
+<launch>
+  <!-- Master #2. To launch: roslaunch mrta_test -p 11312 mrta_test2.launch -->
+
+  <!-- mrta_test node -->
+  <node pkg="mrta_test" type="mrta_test" name="mrta_test2_node" args="master2" required="true" respawn="false" output="screen" >
+    <rosparam param="pub_topics">
+      [
+       '/master2/topic1',
+       '/master2/topic2',
+       '/master2/topic3',
+      ]
+    </rosparam>
+    <rosparam param="sub_topics">
+    [
+    '/master1/topic1',
+    '/master1/topic2',
+    '/master1/topic3',
+    '/master3/topic1',
+    '/master3/topic2',
+    '/master3/topic3'
+    ]
+    </rosparam>
+  </node>
+
+  <!-- FKIE master discovery -->
+
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="screen">
+    <param name="name" value="master2" />
+  </node>
+
+  <!-- FKIE master sync -->
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="screen">
+    <rosparam param="ignore_hosts">['master3']</rosparam>
+    <!--<rosparam param="sync_hosts">['master1']</rosparam>-->
+<!--
+    <rosparam param="sync_nodes">
+      [
+      '*mrta_test1_node*',
+      ]
+    </rosparam>
+-->
+<!--
+    <rosparam param="sync_topics">
+      [
+      '/master1/topic1',
+      '/master2/topic2'
+      ]
+    </rosparam>
+-->
+<!--
+    <rosparam param="ignore_nodes">
+      [
+      '*mrta_test3_node*',
+      ]
+    </rosparam>
+-->
+<!--
+    <rosparam param="ignore_topics">
+      [
+       '/master3/topic1',
+       '/master3/topic2'
+      ]
+    </rosparam>
+-->
+  </node>
+</launch>

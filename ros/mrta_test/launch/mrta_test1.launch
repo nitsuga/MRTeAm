@@ -1,0 +1,43 @@
+<launch>
+  <!-- Master #1. To launch: roslaunch mrta_test mrta_test.launch -->
+
+  <!-- mrta_test node -->
+  <node pkg="mrta_test" type="mrta_test" name="mrta_test1_node" args="master1" required="true" respawn="false" output="screen" >
+<!--    <param name="master_name" value="master1" />-->
+    <rosparam param="pub_topics">
+      [
+       '/master1/topic1',
+       '/master1/topic2',
+       '/master1/topic3',
+      ]
+    </rosparam>
+    <rosparam param="sub_topics">
+    [
+    '/master1/topic1',
+    '/master1/topic2',
+    '/master1/topic3',
+    '/master2/topic1',
+    '/master2/topic2',
+    '/master2/topic3',
+    '/master3/topic1',
+    '/master3/topic2',
+    '/master3/topic3'
+    ]
+    </rosparam>
+  </node>
+
+  <!-- FKIE master discovery -->
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="screen">
+    <param name="name" value="master1" />
+  </node>
+  <!-- FKIE master sync -->
+<!--
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" respawn="true" output="screen">
+    <rosparam param="ignore_topics">
+      [
+      '/master2/*'
+      ]
+    </rosparam>
+  </node>
+-->
+</launch>

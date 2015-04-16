@@ -31,12 +31,12 @@ DWAPlannerROS:
 
 # Trajectory Scoring Parameters
 #  path_distance_bias: 70.0      # 32.0   - weighting for how much it should stick to the global path plan
-  path_distance_bias: 10.0      # 32.0   - weighting for how much it should stick to the global path plan
+  path_distance_bias: 32.0      # 32.0   - weighting for how much it should stick to the global path plan
 #  goal_distance_bias: 24.0      # 24.0   - wighting for how much it should attempt to reach its goal
-  goal_distance_bias: 1.0      # 24.0   - wighting for how much it should attempt to reach its goal
+  goal_distance_bias: 0.01      # 24.0   - wighting for how much it should attempt to reach its goal
 #  occdist_scale: 1.0            # 0.01   - weighting for how much the controller should avoid obstacles
-  occdist_scale: 0.1            # 0.01   - weighting for how much the controller should avoid obstacles
-  forward_point_distance: 0.175 # 0.325  - how far along to place an additional scoring point
+  occdist_scale: 0.1           # 0.01   - weighting for how much the controller should avoid obstacles
+  forward_point_distance: 0.08 # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.5         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
   scaling_speed: 0.2           # 0.25   - absolute velocity at which to start scaling the robot's footprint
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
@@ -48,7 +48,6 @@ DWAPlannerROS:
   publish_traj_pc : true
   publish_cost_grid_pc: true
   global_frame_id: map # this odd - it's used in the trajectory cloud frame id only and for us it refs /map, not /odom
-
 
 # Differential-drive robot configuration - necessary?
   holonomic_robot: false
