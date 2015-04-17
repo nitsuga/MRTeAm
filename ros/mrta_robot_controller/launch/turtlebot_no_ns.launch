@@ -9,7 +9,7 @@
   <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
   <arg name="simulation" default="$(optenv TURTLEBOT_SIMULATION false)"/>
 
-  <arg name="map_file" default="$(find multirobot_stage)/stage_config/maps/smartlab_ugv_arena.yaml"/>
+  <arg name="map_file" default="$(find mrta)/config/maps/smartlab_ugv_arena.yaml"/>
 
   <!-- Map server -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
@@ -43,7 +43,7 @@
     
     <include file="$(find multirobot_turtlebot)/launch/includes/move_base_no_ns.launch.xml"/>
 
-    <node name="robot_controller_r3" pkg="robot_controller" type="robot_controller.py" args="$(arg robot_name) True" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) True" output="screen" />
 
   <!-- END ROBOT -->
 
