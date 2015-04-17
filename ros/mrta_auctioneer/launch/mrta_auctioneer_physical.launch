@@ -1,16 +1,19 @@
 <launch>
   <param name="/use_sim_time" value="true"/>
 
-  <node name="auctioneer" pkg="mrta_auctioneer" type="auctioneer.py" output="screen">
-    <param name="task_file" value="$(find auctioneer)/task_files/$(arg task_file)" />
+  <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" output="screen">
+    <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
   </node>
 
   <!-- FKIE master discovery -->
   <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
-  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" />
+  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen">
+    <param name="name" value="auctioneer_master" />
+  </node>
 
   <!-- FKIE master sync -->
+<!--
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
     <rosparam param="sync_topics">
       [
@@ -20,5 +23,5 @@
       ]
     </rosparam>
   </node>
-
+-->
 </launch>
