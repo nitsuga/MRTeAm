@@ -7,6 +7,7 @@ import math
 import os
 import re
 import rosbag
+import rospkg
 import sys
 
 #IMG_WIDTH, IMG_HEIGHT = 602, 538
@@ -17,9 +18,9 @@ stroke_colors = { 'robot_1': (0, 0, 1.0),   # Blue
                   'robot_3': (1.0, 0, 0)  } # Red 
 
 # Robot start locations
-start_locations = { 'clustered': ( (100.0, 100.0),
-                                   (25.0, 100.0),
-                                   (25.0, 25.0) ),
+start_locations = { 'clustered': ( (155.0, 150.0),
+                                   (50.0, 150.0),
+                                   (50.0, 50.0) ),
                     # 'distributed': ( (552.0, 488.0),
                     #                  (50.0, 488.0),
                     #                  (50.0, 50.0) )
@@ -28,8 +29,6 @@ start_locations = { 'clustered': ( (100.0, 100.0),
                                      (50.0, 50.0) )
 }
 
-etc_dir = '../etc'
-task_file_dir = '/home/eric/GIT/multirobot/ros/hydro/auctioneer/task_files'
 task_point_configs = {}
 
 robot_names = [ 'robot_1',
@@ -37,6 +36,10 @@ robot_names = [ 'robot_1',
                 'robot_3' ]
 
 def read_point_configs():
+    rospack = rospkg.RosPack()
+
+    task_file_dir = "{0}/task_files".format(rospack.get_path('mrta_auctioneer'))
+
     #for point_config in ['A', 'B', 'C', 'D', 'E']:
     #for task_file in ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'tasks_A.txt']:
     for task_file in ['tasks_A.txt']:

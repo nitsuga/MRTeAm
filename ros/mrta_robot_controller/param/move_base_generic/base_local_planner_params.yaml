@@ -6,14 +6,15 @@ TrajectoryPlannerROS:
 
   max_vel_theta:  1.0
   min_vel_theta: -1.0
-  min_in_place_vel_theta: 0.6
+  min_in_place_vel_theta: 3.5
   
   acc_lim_x: 0.5
   acc_lim_theta: 1.0
 
 # Goal Tolerance Parameters
   yaw_goal_tolerance: 0.3
-  xy_goal_tolerance: 0.15
+  xy_goal_tolerance: 0.1
+  latch_xy_goal_tolerance: true
 
 # Forward Simulation Parameters
   sim_time: 1.0
@@ -40,3 +41,4 @@ TrajectoryPlannerROS:
   min_vel_y: 0.0
   acc_lim_y: 0.0
   vy_samples: 0
+

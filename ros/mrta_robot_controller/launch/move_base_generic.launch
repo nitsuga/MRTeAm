@@ -35,7 +35,7 @@
 
       <!-- How long the controller will wait (in seconds) without receiving a valid control
            before space-clearing operations are performed. -->
-      <param name="controller_patience" value="5.0"/>
+      <param name="controller_patience" value="2.0"/>
 
       <!-- The distance away from the robot (in meters) at which obstacles will be cleated
            from the costmap when attampting to clear space in the map. -->

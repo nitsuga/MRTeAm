@@ -15,4 +15,4 @@ global_costmap:
 
   footprint_padding: 0.02
 
-  inflation_radius: 0.38
+  inflation_radius: 0.42
