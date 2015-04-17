@@ -35,13 +35,13 @@
     <arg name="initial_pose_y" default="0.0"/>
     <arg name="initial_pose_a" default="0.0"/>
 
-    <include file="$(find multirobot_turtlebot)/launch/includes/amcl_no_ns.launch.xml">
+    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/amcl_no_ns.launch.xml">
       <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
       <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
       <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
     </include>
     
-    <include file="$(find multirobot_turtlebot)/launch/includes/move_base_no_ns.launch.xml"/>
+    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/move_base_no_ns.launch.xml"/>
 
     <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) True" output="screen" />
 

@@ -9,7 +9,7 @@
   <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
   <arg name="simulation" default="$(optenv TURTLEBOT_SIMULATION false)"/>
 
-  <arg name="map_file" default="$(find multirobot_stage)/stage_config/maps/smartlab_ugv_arena.yaml"/>
+  <arg name="map_file" default="$(find mrta)/config/maps/smartlab_ugv_arena.yaml"/>
 
   <!-- Map server -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
@@ -41,13 +41,13 @@
     <arg name="initial_pose_y" default="0.0"/>
     <arg name="initial_pose_a" default="0.0"/>
 
-    <include file="$(find multirobot_turtlebot)/launch/includes/amcl.launch.xml">
+    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/amcl.launch.xml">
       <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
       <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
       <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
     </include>
     
-    <include file="$(find multirobot_turtlebot)/launch/includes/move_base.launch.xml"/>
+    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/move_base.launch.xml"/>
 
     <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name)" output="screen" />
 
