@@ -13,9 +13,9 @@ import sys
 #IMG_WIDTH, IMG_HEIGHT = 602, 538
 IMG_WIDTH, IMG_HEIGHT = 800, 600
 
-stroke_colors = { 'robot_1': (0, 0, 1.0),   # Blue
-                  'robot_2': (0, 1.0, 0),   # Green
-                  'robot_3': (1.0, 0, 0)  } # Red 
+stroke_colors = { 'robot_1': (1.0, 0.0, 0.0),   # Red
+                  'robot_2': (0.0, 1.0, 0.0),   # Green
+                  'robot_3': (0.0, 0.0, 1.0)  } # Blue 
 
 # Robot start locations
 start_locations = { 'clustered': ( (155.0, 150.0),

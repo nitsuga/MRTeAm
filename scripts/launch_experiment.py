@@ -18,6 +18,11 @@ ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
 
+# How many seconds to wait before killing all processes
+TIMEOUT_DEFAULT = 300
+# PSI can take longer than other mechanisms, with the clustered start config
+TIMEOUT_PSI = 600
+
 # Keep track of processes to terminate when done
 running_procs = []
 
@@ -158,6 +163,12 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     running_procs.append(auc_proc)
 
+    timeout_secs = 0
+    if mechanism == 'PSI' and args.start_config == 'clustered':
+        timeout_secs = TIMEOUT_PSI
+    else:
+        timeout_secs = TIMEOUT_DEFAULT
+
     # Now wait until we receive a SIGINT (Ctrl-C)
     while exp_running:
         time.sleep(1)
@@ -165,7 +176,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
         # Time out if the experiment is taking too long
         now = datetime.datetime.now()
         time_delta = now - start_time
-        if time_delta.seconds > 300: # five minutes
+        if time_delta.seconds > timeout_secs:
             exp_running = False
 
 

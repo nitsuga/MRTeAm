@@ -12,9 +12,9 @@ exp_topics = { 'experiment': [ '/experiment' ],
                'announcements': ['/tasks/announce'],
                'bids': ['/tasks/bid'],
                'awards': ['/tasks/award'],
-               'position': [ '/robot_0/odom',
-                             '/robot_1/odom',
-                             '/robot_2/odom' ] }
+               'position': [ '/robot_1/amcl_pose',
+                             '/robot_2/amcl_pose',
+                             '/robot_3/amcl_pose' ] }
                      
 
 # For textwrap
