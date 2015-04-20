@@ -98,8 +98,10 @@ namespace backup_recovery {
     ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
     tf::Stamped<tf::Pose> global_pose;
-    //local_costmap_->getRobotPose(global_pose);
-    global_costmap_->getRobotPose(global_pose);
+    tf::Stamped<tf::Pose> local_pose;
+
+    //global_costmap_->getRobotPose(global_pose);
+    //local_costmap_->getRobotPose(local_pose);
 
     /*
     double current_angle = -1.0 * M_PI;
@@ -159,21 +161,26 @@ namespace backup_recovery {
     */
 
     for (int i=0; i<5; i++) {
+      local_costmap_->getRobotPose(local_pose);
+      global_costmap_->getRobotPose(global_pose);
+
+      double local_x = local_pose.getOrigin().x() - 0.1;
+      double local_y = local_pose.getOrigin().y();
+      double local_theta = tf::getYaw(local_pose.getRotation());
+
+      double global_x = global_pose.getOrigin().x();
+      double global_y = global_pose.getOrigin().y();
+      double global_theta = tf::getYaw(global_pose.getRotation());
+
+      ROS_WARN("local_pose: (%.2f, %.2f) [%.3f]", local_x, local_y, local_theta);
+      ROS_WARN("global_pose: (%.2f, %.2f) [%.3f]", global_x, global_y, global_theta);
+
       // Make sure that we don't back up into an obstacle
-      local_costmap_->getRobotPose(global_pose);
 
-      double x = global_pose.getOrigin().x() - 0.1;
-      double y = global_pose.getOrigin().y();
-      double theta = tf::getYaw(global_pose.getRotation());
-
-      ROS_WARN("global_pose: (%.2f, %.2f) [%.3f]",
-	       x, y, theta);
-
-      double footprint_cost = world_model_->footprintCost(x, y, theta, local_costmap_->getRobotFootprint(), 0.0, 0.0);
+      double footprint_cost = world_model_->footprintCost(local_x, local_y, local_theta, local_costmap_->getRobotFootprint(), 0.0, 0.0);
 
       if ( footprint_cost < 0.0 ) {
-	  ROS_ERROR("Backup recovery can't back up because there is a potential collision. Cost: %.2f at (%.2f, %.2f)",
-		    footprint_cost, x, y);
+	  ROS_ERROR("Backup recovery can't back up because there is a potential collision. Cost: %.2f", footprint_cost);
 	  break;
       }
 

@@ -41,15 +41,6 @@
            from the costmap when attampting to clear space in the map. -->
       <param name="conservative_reset_dist" value="3.0"/>
 
-      <rosparam param="recovery_behaviors">
-        [
-        {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
-        {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
-        {name: backup_recovery, type: backup_recovery/BackupRecovery},
-        {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
-        ]
-      </rosparam>
-
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />

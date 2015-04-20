@@ -43,18 +43,20 @@
            before space-clearing operations are performed. -->
       <param name="controller_patience" value="2.0"/>
 
-      <!-- The distance away from the robot (in meters) at which obstacles will be cleated
+      <!-- The distance away from the robot (in meters) at which obstacles will be cleared
            from the costmap when attampting to clear space in the map. -->
-      <param name="conservative_reset_dist" value="10.0"/>
+      <param name="conservative_reset_dist" value="9.0"/>
 
       <rosparam param="recovery_behaviors">
         [
-        {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
+        {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
         {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
         {name: backup_recovery, type: backup_recovery/BackupRecovery},
-        {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
+        {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
         ]
       </rosparam>
+
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
@@ -113,16 +115,18 @@
 
       <!-- The distance away from the robot (in meters) at which obstacles will be cleated
            from the costmap when attampting to clear space in the map. -->
-      <param name="conservative_reset_dist" value="10.0"/>
+      <param name="conservative_reset_dist" value="9.0"/>
 
       <rosparam param="recovery_behaviors">
         [
-        {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
+        {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
         {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
         {name: backup_recovery, type: backup_recovery/BackupRecovery},
-        {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
+        {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
         ]
       </rosparam>
+
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
@@ -181,16 +185,18 @@
       
       <!-- The distance away from the robot (in meters) at which obstacles will be cleated
            from the costmap when attampting to clear space in the map. -->
-      <param name="conservative_reset_dist" value="10.0"/>
+      <param name="conservative_reset_dist" value="9.0"/>
 
       <rosparam param="recovery_behaviors">
         [
-        {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
+        {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
         {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
         {name: backup_recovery, type: backup_recovery/BackupRecovery},
-        {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
+        {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
         ]
       </rosparam>
+
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
