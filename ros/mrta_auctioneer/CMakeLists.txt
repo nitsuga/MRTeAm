@@ -122,10 +122,17 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-install(PROGRAMS
-  bin/mrta_auctioneer
+#install(PROGRAMS
+#  bin/mrta_auctioneer
+#  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
+
+catkin_install_python(PROGRAMS
+  scripts/mrta_auctioneer
+  scripts/mrta_task_generator
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS auctioneer auctioneer_node

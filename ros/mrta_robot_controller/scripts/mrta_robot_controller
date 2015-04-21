@@ -334,8 +334,8 @@ class RobotController:
                 ('startup', 'none', 'idle'),
 
                 # Choosing/sending goals
-                ('have_tasks', 'idle', 'choose_task'),
-                ('no_tasks', 'idle', 'shutdown'),
+                ('have_incomplete_tasks', 'idle', 'choose_task'),
+                ('no_incomplete_tasks', 'idle', 'idle'),
                 #('no_tasks', 'idle', 'idle'),
                 ('goal_chosen', 'choose_task', 'send_goal'),
                 ('no_reachable_tasks', 'choose_task', 'idle'),
@@ -668,7 +668,10 @@ class RobotController:
         return bid_msg
 
     def bid(self, announce_msg):
-        rospy.loginfo("({0}) state: bid()".format(self.robot_name))
+        rospy.loginfo("({0}): bid()".format(self.robot_name))
+
+        rospy.loginfo("({0}) announce_msg:\n{1}".format(self.robot_name,
+                                                        pp.pformat(announce_msg))
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -786,6 +789,9 @@ class RobotController:
         else:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
 
+        rospy.loginfo("({0}) bid(): current_state=={1}".format(self.robot_name,
+                                                               self.fsm.current))
+
     def won(self, award_msg):
         rospy.loginfo("({0}): won()".format(self.robot_name))
 
@@ -794,12 +800,16 @@ class RobotController:
             return
 
         for task_msg in award_msg.tasks:
-            rospy.loginfo("won task {0}".format(task_msg.task.task_id))
+            rospy.loginfo("({0}) I won task {1}!".format(self.robot_name,
+                                                         task_msg.task.task_id))
             new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
                                                          float(task_msg.location.x),
                                                          float(task_msg.location.y))
             self.agenda.append(new_task)
             self.last_won_location = task_msg.location
+
+        rospy.loginfo("({0}) won(): current_state=={1}".format(self.robot_name,
+                                                               self.fsm.current))
 
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
@@ -890,8 +900,17 @@ class RobotController:
         #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
 
     def on_experiment_event_received(self, event_msg):
-        if event_msg.event == 'BEGIN_EXECUTION':
+        if event_msg.event == 'BEGIN_ALLOCATION':
+            rospy.loginfo("({0}) BEGIN_ALLOCATION: ok_to_execute==False".format(self.robot_name))
+            self.ok_to_execute = False
+            self.aclient.cancel_goal()
+
+        elif event_msg.event == 'BEGIN_EXECUTION':
+            rospy.loginfo("({0}) BEGIN_EXECUTION: ok_to_execute==True".format(self.robot_name))
             self.ok_to_execute = True
+            rospy.loginfo("({0}) BEGIN_EXECUTION: current state=={1}".format(self.robot_name,
+                                                                             self.fsm.current))
+
         #elif event_msg.event == 'END_EXPERIMENT':
         #    self.shutdown(None)
 
@@ -1054,28 +1073,32 @@ class RobotController:
         # 1. We have tasks in our agenda
         # 2. self.ok_to_execute == True
         while not self.agenda or not self.ok_to_execute:
+            rospy.loginfo("agenda is empty or ok_to_execute==False")
             self.rate.sleep()
 
-        have_tasks = False
+        have_incomplete_tasks = False
         for task in self.agenda:
             if not task.completed:
-                have_tasks = True
+                have_incomplete_tasks = True
                 break
 
-        if have_tasks:
-            self.fsm.have_tasks()
+        rospy.loginfo("({0}) have_incomplete_tasks=={1}".format(self.robot_name,
+                                                                have_incomplete_tasks))
+
+        if have_incomplete_tasks:
+            self.fsm.have_incomplete_tasks()
         else:
             # The allocation and execution phases are finished.
 
             # Send a message to mark the completion of all tasks
-            all_complete_msg = mrta.msg.TaskStatus()
-            all_complete_msg.robot_id = self.robot_name
-            all_complete_msg.task_id = '*'
-            all_complete_msg.status = 'ALL_TASKS_COMPLETE'
-            stamp(all_complete_msg)
-            self.task_status_pub.publish(all_complete_msg)
+            #all_complete_msg = mrta.msg.TaskStatus()
+            #all_complete_msg.robot_id = self.robot_name
+            #all_complete_msg.task_id = '*'
+            #all_complete_msg.status = 'ALL_TASKS_COMPLETE'
+            #stamp(all_complete_msg)
+            #self.task_status_pub.publish(all_complete_msg)
 
-            self.fsm.no_tasks()
+            self.fsm.no_incomplete_tasks()
 
     def shutdown(self, e):
         # Do any cleanup here before shutting down

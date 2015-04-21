@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import geometry_msgs.msg
 import math
 import nav_msgs.msg
@@ -12,8 +13,8 @@ import time
 
 # Some constants. TODO: make these configurable.
 #PLAN_SRV_NAME = '/robot_1/move_base_node/NavfnROS/make_plan'
-#PLAN_SRV_NAME = '/robot_1/move_base_node/GlobalPlanner/make_plan'
-PLAN_SRV_NAME = '/robot_1/move_base_node/HRTeamPlanner/make_plan'
+PLAN_SRV_NAME = '/robot_3/move_base_node/GlobalPlanner/make_plan'
+#PLAN_SRV_NAME = '/robot_1/move_base_node/HRTeamPlanner/make_plan'
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -129,12 +130,28 @@ if __name__ == '__main__':
 
     init_node()
 
+    parser = argparse.ArgumentParser(description="Call the global planner ({0}).".format(PLAN_SRV_NAME))
+
+    parser.add_argument('start_x')
+    parser.add_argument('start_y')
+    parser.add_argument('goal_x')
+    parser.add_argument('goal_y')
+    
+    args = parser.parse_args()
+
+    print args.start_x
+
     n = 100
 
     for i in range(1,n+1):
-        plan = call_planner(*sys.argv[1:])
+        plan = call_planner(args.start_x, args.start_y, args.goal_x, args.goal_y)
         #pp.pprint(plan)
         cost = get_path_cost(plan)
 
-        print("[call {0:02d}] cost from (0.5, 0.5) to (5.015, 4.485) is: {1}".format(i, cost))
+        print("[call {0:02d}] cost from ({1}, {2}) to ({3}, {4}) is: {5}".format(i, 
+                                                                                 args.start_x,
+                                                                                 args.start_y,
+                                                                                 args.goal_x,
+                                                                                 args.goal_y,
+                                                                                 cost))
         #time.sleep(0.5)

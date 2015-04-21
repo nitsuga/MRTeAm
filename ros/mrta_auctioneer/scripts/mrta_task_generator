@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+
+"""
+'Generates' tasks in time with a script and notifies the Auctioneer.
+"""
+
+# Standard Python modules
+from collections import defaultdict
+import itertools
+import os
+import pprint
+import re
+import sched
+from sets import Set
+import signal
+import sys
+from threading import Timer
+import time
+import uuid
+
+# ROS modules
+import rosnode
+import rospy
+import rospy.rostime
+
+import mrta
+import mrta.msg
+
+pp = pprint.PrettyPrinter(indent=2)
+
+
+# We'll sleep 1/RATE seconds in every pass of the idle loop.
+RATE = 10
+
+def on_sigint(signal, frame):
+    print('Caught SIGINT, shutting down...')
+    sys.exit(0)
+
+class TaskGenerator:
+
+    def __init__(self, task_file=None):
+        """
+        Initialize some ROS stuff (topics to publish/subscribe) and our state machine.
+        """
+
+        # Initialize our node
+        # Do we need a special name for the auctioneer (i.e., not "auctioneer")?
+        node_name = 'mrta_task_generator'
+        rospy.init_node(node_name)
+        rospy.loginfo("Starting node '{0}'...".format(node_name))
+
+        # The rate at which we'll sleep while idle
+        self.rate = rospy.Rate(RATE)
+
+        self.task_file = None
+        try:
+            self.task_file = rospy.get_param('~task_file')
+        except KeyError:
+            rospy.logerr("Parameter 'task_file' has no value!")
+
+        self.tasks = []
+        # Keyed by task_id
+        self.tasks_by_id = {}
+
+        self.task_timers = []
+
+        # Announce new tasks on '/tasks/new'
+        self.new_task_pub = rospy.Publisher('/tasks/new',
+                                            mrta.msg.SensorSweepTask)
+
+        self.load_tasks()
+
+        # Start timers
+        for task_timer in self.task_timers:
+            task_timer.start()
+
+        while not rospy.is_shutdown():
+            self.rate.sleep()
+
+    def _construct_task_msg(self, task):
+        """
+        Maps from our internal task representation to a ROS message type.
+        (mrta.SensorSweepTask => mrta.msg.SensorSweepTask)
+        """
+        # Just sensor sweep tasks for now
+        task_msg = mrta.msg.SensorSweepTask()
+
+        task_msg.task.task_id = task.task_id
+        task_msg.task.depends = task.depends
+        task_msg.task.type = task.type
+        task_msg.task.num_robots_required = task.num_robots_required
+        task_msg.location.x = task.location.x
+        task_msg.location.y = task.location.y
+        task_msg.location.z = task.location.z
+
+        return task_msg
+
+    def publish_task(self, task_id):
+        rospy.loginfo("Publishing task {0} as a new task".format(task_id))
+
+        new_task = self.tasks_by_id[task_id]
+        new_task_msg = self._construct_task_msg(new_task)
+        self.new_task_pub.publish(new_task_msg)
+
+    def load_tasks(self):
+        rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
+
+        if not self.task_file:
+            rospy.logerr("No task file given!")
+            return
+
+        try:
+            task_file = open(self.task_file, 'rb')
+        
+            # The task file format is simple (for now): each line
+            # is a whitespace-sepatated pair of x- and y-coordinates
+            # that, together, give the location of a task point
+
+            # 'task_id' is an incrementing integer
+            task_id = 1
+
+            for task_line in task_file:
+                # Ignore comment lines
+                if task_line.startswith('#'):
+                    continue
+
+                start_secs, task_x, task_y = task_line.split()                
+
+                # task_id is string-ified here because an id may one day be
+                # an MD5 hash or some other non-integer value. They just happen
+                # to be integers here.
+                new_task = mrta.SensorSweepTask(str(task_id),
+                                                float(task_x),
+                                                float(task_y))
+                self.tasks.append(new_task)
+                self.tasks_by_id[str(task_id)] = new_task
+
+                self.task_timers.append(Timer(float(start_secs),
+                                              self.publish_task,
+                                              [str(task_id)]))
+
+                task_id += 1
+
+        except IOError:
+            rospy.logerr("Can't open task file {0} for reading!".format(self.task_file))
+
+        rospy.loginfo("Tasks:\n{0}".format(pp.pformat(self.tasks)))
+
+if __name__ == '__main__':
+    # Exit on ctrl-C
+    signal.signal(signal.SIGINT, on_sigint)
+
+    try:
+        argv = rospy.myargv(argv=sys.argv[1:])
+        auc = TaskGenerator(*argv)
+    except rospy.ROSInterruptException:
+        pass

@@ -126,8 +126,13 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-install(PROGRAMS
-  bin/mrta_robot_controller
+#install(PROGRAMS
+#  bin/mrta_robot_controller
+#  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
+
+catkin_install_python(PROGRAMS
+  scripts/mrta_robot_controller
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
