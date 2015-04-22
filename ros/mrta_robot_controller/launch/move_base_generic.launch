@@ -68,6 +68,7 @@
     <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
       <param name="odom_frame_id" value="$(arg robot_name)/odom" />
       <param name="base_frame_id" value="$(arg robot_name)/base_link" />
+      <param name="publish_frequency" value="5.0" />
     </node>
 
     <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name)" respawn="false" required="true" output="screen" />

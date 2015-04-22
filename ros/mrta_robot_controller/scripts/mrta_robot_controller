@@ -55,7 +55,7 @@ RATE = 10
 # radians), we're in danger of colliding with it
 #DANGER_ZONE_FOV = math.pi / 2
 DANGER_ZONE_FOV = math.pi
-DANGER_ZONE_DIST = 0.9
+DANGER_ZONE_DIST = 1.0
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -895,7 +895,21 @@ class RobotController:
         # geometry_msgs/Pose
         self.current_pose = amcl_pose_msg.pose.pose
 
+    def _clear_of_other_robots(self):
+
+        is_clear = True
+        for r_name in self.other_poses:
+            other_pose = self.other_poses[r_name]
+
+            if in_danger_zone(self.current_pose, other_pose):
+                rospy.logdebug("({0}) I am NOT clear of {1}!".format(self.robot_name, r_name))
+                is_clear = False
+                break
+
+        return is_clear
+
     def on_teammate_pose_received(self, amcl_pose_msg, r_name):
+        rospy.logdebug("({0}) on_teammate_pose_received".format(self.robot_name))
 
         # self.fsm might not be initialized yet
         try:
@@ -909,22 +923,42 @@ class RobotController:
         # geometry_msgs/Pose
         other_pose = amcl_pose_msg.pose.pose
         self.other_poses[r_name] = other_pose
+#        rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name,
+#                                                       r_name,
+#                                                       pp.pformat(other_pose)))
 
-        if in_danger_zone(self.current_pose, other_pose):
-            #rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
-            #rospy.loginfo("({0}) Current state: {1}".format(self.robot_name,self.fsm.current))
-
-            if self.fsm.current == 'moving':
-                if self.robot_name > r_name:
-                    self.in_collision = True
-
-                self.fsm.collision_detected(other_robot_name=r_name)
-        #else:
-            #if self.fsm.current == 'resolve_collision':
-                #self.fsm.collision_resolved()
-
-        else:
+        if self._clear_of_other_robots():
             self.in_collision = False
+        else:
+            if self.robot_name < r_name:
+                self.in_collision = False
+            else:
+                self.in_collision = True
+
+            if self.fsm.current == 'moving' and self.in_collision:
+                rospy.loginfo("({0}) on_teammate_pose_received: collision_detected".format(self.robot_name))
+                self.fsm.collision_detected(other_robot=r_name)
+
+        # if in_danger_zone(self.current_pose, other_pose):
+        #     #rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
+        #     #rospy.loginfo("({0}) Current state: {1}".format(self.robot_name,self.fsm.current))
+
+        #     if self.robot_name > r_name and self.fsm.current != 'resolve_collision':
+        #         rospy.logdebug("({0}) in_collision = True, other robot=={1}".format(self.robot_name,
+        #                                                                            r_name))
+        #         self.in_collision = True
+
+        #         if self.fsm.current == 'moving':
+
+        #             self.fsm.collision_detected(other_robot_name=r_name)
+        # #else:
+        #     #if self.fsm.current == 'resolve_collision':
+        #         #self.fsm.collision_resolved()
+
+        # else:
+        #     rospy.logdebug("({0}) in_collision = False, other robot=={1}".format(self.robot_name,
+        #                                                                        r_name))
+        #     self.in_collision = False
 
         #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
 
@@ -1003,15 +1037,15 @@ class RobotController:
         stamp(pause_task_msg)
         self.task_status_pub.publish(pause_task_msg)
 
-        while self.in_collision:
-            self.rate.sleep()
+#        while self.in_collision:
+#            self.rate.sleep()
 
         #time.sleep(1)
 
 #        if self.robot_name > e.other_robot_name:
-#            # Duration to pause
-#            pause_duration = 1 + random.random()
-#            time.sleep(pause_duration)
+            # Duration to pause
+        pause_duration = 1 + random.random()
+        time.sleep(pause_duration)
 
         rospy.loginfo("({0}) Resuming...".format(self.robot_name))
 

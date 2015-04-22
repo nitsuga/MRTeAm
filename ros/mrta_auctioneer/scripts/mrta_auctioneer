@@ -721,6 +721,8 @@ class Auctioneer:
         # Start timers
         for task_timer in self.task_timers:
             task_timer.start()
+            # Sleep a tiny bit to make sure they're loaded
+            time.sleep(0.1)
 
         self.fsm.tasks_loaded()
 

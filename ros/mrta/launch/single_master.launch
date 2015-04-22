@@ -74,6 +74,7 @@
     <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
       <param name="odom_frame_id" value="robot_1/odom" />
       <param name="base_frame_id" value="robot_1/base_link" />
+      <param name="publish_frequency" value="5.0" />
     </node>
 
     <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_1" respawn="false" required="true" output="screen" />
@@ -144,6 +145,7 @@
     <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
       <param name="odom_frame_id" value="robot_2/odom" />
       <param name="base_frame_id" value="robot_2/base_link" />
+      <param name="publish_frequency" value="5.0" />
     </node>
 
     <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_2" respawn="false" required="true" output="screen" />
@@ -214,6 +216,7 @@
     <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
       <param name="odom_frame_id" value="robot_3/odom" />
       <param name="base_frame_id" value="robot_3/base_link" />
+      <param name="publish_frequency" value="5.0" />
     </node>
 
     <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_3" respawn="false" required="true" output="screen" />
