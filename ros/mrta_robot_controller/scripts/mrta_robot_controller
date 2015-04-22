@@ -41,6 +41,7 @@ import rospy
 import smach
 import smach_ros
 from smach_ros import SimpleActionState
+import std_srvs.srv
 import tf.transformations
 #from std_msgs.msg import String
 
@@ -319,13 +320,15 @@ class RobotController:
         self.aclient.wait_for_server()
         rospy.loginfo("{0} connected.".format(ac_name))
 
-        # The name of the planner service
+        # The name of the planner and 'clear_costmaps' services
         if self.is_turtlebot:
             self.plan_srv_name = '/move_base/NavfnROS/make_plan'
+            self.cc_srv_name = '/move_base/clear_costmaps'
         else:
             #self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
             self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)
             #self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
+            self.cc_srv_name = "/{0}/move_base_node/clear_costmaps".format(self.robot_name)
 
         # Set up state machine.
         # See mrta/docs/robot-controller.fsm.png
@@ -397,7 +400,6 @@ class RobotController:
 
         # # Run the smach state machine
         # outcome = sm.execute()
-
 
     def init_subscribers(self):
         rospy.loginfo('Initializing subscribers...')
@@ -495,11 +497,29 @@ class RobotController:
 
         return pose_stamped_msg
 
+    def _clear_costmaps(self):
+
+        rospy.logdebug("Waiting for service {0}".format(self.plan_cc_name))
+        rospy.wait_for_service(self.cc_srv_name)
+        rospy.logdebug("Service ready.")
+
+        try:
+            clear_costmaps_proxy = rospy.ServiceProxy(self.cc_srv_name,
+                                                      std_srvs.srv.Empty)
+
+            clear_costmaps_proxy()
+
+            rospy.logdebug("({0}) cleared costmaps".format(self.robot_name))
+
+        except rospy.ServiceException, e:
+            rospy.logerr("Service call failed: {0}".format(e))
+
+
     def _make_nav_plan_client(self, start, goal):
 
-        #rospy.loginfo("Waiting for service {0}".format(self.plan_srv_name))
+        rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
         rospy.wait_for_service(self.plan_srv_name)
-        #rospy.loginfo("Service ready.")
+        rospy.logdebug("Service ready.")
 
         try:
             make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
@@ -605,6 +625,9 @@ class RobotController:
         """
         cumulative_cost = 0.0
 
+        # Only consider tasks that haven't been completed yet
+        tasks = [t for t in tasks if not t.completed]
+
         if greedy:
             #rospy.logdebug("_cumulative_cost(), tasks:\n{0}".format(pp.pformat(tasks)))
 
@@ -670,8 +693,8 @@ class RobotController:
     def bid(self, announce_msg):
         rospy.loginfo("({0}): bid()".format(self.robot_name))
 
-        rospy.loginfo("({0}) announce_msg:\n{1}".format(self.robot_name,
-                                                        pp.pformat(announce_msg))
+        rospy.logdebug("({0}) announce_msg:\n{1}".format(self.robot_name,
+                                                        pp.pformat(announce_msg)))
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -684,7 +707,7 @@ class RobotController:
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
-            rospy.loginfo("mechanism == OSI")
+            rospy.logdebug("({0}) mechanism == OSI".format(self.robot_name))
 
             task_msg = announce_msg.tasks[0]
 
@@ -718,6 +741,7 @@ class RobotController:
             self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'PSI':
+            rospy.logdebug("({0}) mechanism == PSI".format(self.robot_name))
             rospy.loginfo("mechanism == PSI")
 
             # In PSI we always calculate bids (path costs) from our current
@@ -742,7 +766,7 @@ class RobotController:
                 self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'SSI':
-            rospy.loginfo("mechanism == SSI")
+            rospy.logdebug("({0}) mechanism == SSI".format(self.robot_name))
 
             # Get the cumulative cost of all tasks in out agenda so far
             (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
@@ -841,16 +865,19 @@ class RobotController:
 
         # Sanity check
         if not self.current_task:
-            rospy.loginfo("event: no_tasks")
+            rospy.loginfo("({0}) event: no_tasks".format(robot_name))
             self.fsm.no_tasks()
 
         # If the minimum cost (closest task) is sys.maxint, then
         # we don't have any valid paths
         if min_uncompleted_dist > 100000:
+            rospy.loginfo("({0}) There are no reachable tasks. Clearing costmaps manually...".format(self.robot_name))
+            self. _clear_costmaps()
+            time.sleep(1)
             self.fsm.no_reachable_tasks()
             return
 
-        rospy.loginfo("event: goal_chosen")
+        rospy.loginfo("({0}) event: goal_chosen".format(self.robot_name))
         self.fsm.goal_chosen()
 
     def on_tb_pose_received(self, amcl_pose_msg):
@@ -924,6 +951,9 @@ class RobotController:
 
     def send_goal(self, e):
         rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
+
+        # Clear costmaps first, just to be safe
+        self._clear_costmaps()
 
         goal_task = self.current_task
 
@@ -1070,24 +1100,26 @@ class RobotController:
         rospy.loginfo("({0}) state: idle".format(self.robot_name))
 
         # We idle here unless two conditions are true:
-        # 1. We have tasks in our agenda
+        # 1. We have incomplete tasks in our agenda
         # 2. self.ok_to_execute == True
-        while not self.agenda or not self.ok_to_execute:
-            rospy.loginfo("agenda is empty or ok_to_execute==False")
+        have_incomplete_tasks = False
+        while not have_incomplete_tasks or not self.ok_to_execute:
+            rospy.logdebug("no incomplete tasks or ok_to_execute==False")
+
             self.rate.sleep()
 
-        have_incomplete_tasks = False
-        for task in self.agenda:
-            if not task.completed:
-                have_incomplete_tasks = True
-                break
+            for task in self.agenda:
+                if not task.completed:
+                    have_incomplete_tasks = True
+                    break
 
-        rospy.loginfo("({0}) have_incomplete_tasks=={1}".format(self.robot_name,
+
+        rospy.logdebug("({0}) have_incomplete_tasks=={1}".format(self.robot_name,
                                                                 have_incomplete_tasks))
 
         if have_incomplete_tasks:
             self.fsm.have_incomplete_tasks()
-        else:
+        #else:
             # The allocation and execution phases are finished.
 
             # Send a message to mark the completion of all tasks
@@ -1098,7 +1130,7 @@ class RobotController:
             #stamp(all_complete_msg)
             #self.task_status_pub.publish(all_complete_msg)
 
-            self.fsm.no_incomplete_tasks()
+            #self.fsm.no_incomplete_tasks()
 
     def shutdown(self, e):
         # Do any cleanup here before shutting down

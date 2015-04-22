@@ -583,11 +583,10 @@ class Auctioneer:
                 ('do_identify_team', '*', 'identify_team'),
                 ('team_identified', 'identify_team', 'idle'),
                 ('have_tasks', 'idle', 'choose_mechanism'),
-                ('no_tasks', 'idle', 'idle'),
                 ('allocation_complete', 'choose_mechanism', 'monitor_execution'),
                 ('current_tasks_complete', 'monitor_execution', 'end_execution'),
                 ('have_tasks', 'end_execution', 'idle'),
-                ('all_scripted_tasks_complete', 'end_execution', 'end_experiment'),
+                ('all_scripted_tasks_complete', '*', 'end_experiment'),
             ],
             callbacks={
                 # on-enter state handlers
@@ -672,6 +671,8 @@ class Auctioneer:
 
         self.new_task_added = True
 
+        rospy.loginfo("add_scripted_task(): current state=={0}".format(self.fsm.current))
+
     def load_tasks(self, data):
         rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
 
@@ -751,10 +752,24 @@ class Auctioneer:
     def idle(self, data):
         rospy.loginfo("state: idle")
 
-        unallocated = False
-        for task in self.tasks:
-            if not task.awarded:
-                unallocated = True
+        incomplete_scripted_tasks = True
+        while incomplete_scripted_tasks:
+
+            self.rate.sleep()
+
+            incomplete_scripted_tasks = False
+            for scripted_task in self.scripted_tasks:
+                if not scripted_task.completed:
+                    incomplete_scripted_tasks = True
+                    break
+
+            unallocated = False
+            for task in self.tasks:
+                if not task.awarded:
+                    unallocated = True
+                    break
+
+            if unallocated:
                 break
 
         if unallocated:
@@ -762,9 +777,7 @@ class Auctioneer:
             rospy.loginfo("Have unallocated tasks. Allocating...")
             self.fsm.have_tasks()
         else:
-            # Loop back to the 'idle' state
-            rospy.loginfo("No unallocated tasks...")
-            self.fsm.no_tasks()
+            self.fsm.all_scripted_tasks_complete()
 
     def choose_mechanism(self, e):
         rospy.loginfo("state: choose_mechanism")
@@ -869,7 +882,7 @@ class Auctioneer:
             #time.sleep(0.2)
             self.rate.sleep()
 
-        rospy.loginfo("Either all tasks are complete or a new task was added!")
+        rospy.loginfo("Stopping task execution. Either all tasks are complete or a new task was added!")
 
         # Either:
         # 1. All tasks (that have been allocated so far) have been completed.

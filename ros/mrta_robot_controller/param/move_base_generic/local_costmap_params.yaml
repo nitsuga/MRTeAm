@@ -23,4 +23,4 @@ local_costmap:
   origin_y: 0.0
   transform_tolerance: 0.5
 
-  inflation_radius: 0.2
+  inflation_radius: 0.15
