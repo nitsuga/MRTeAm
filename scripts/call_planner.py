@@ -8,15 +8,35 @@ import nav_msgs.srv
 import navfn.srv
 import pprint
 import rospy
+import std_srvs.srv
 import sys
 import time
 
 # Some constants. TODO: make these configurable.
 #PLAN_SRV_NAME = '/robot_1/move_base_node/NavfnROS/make_plan'
-PLAN_SRV_NAME = '/robot_3/move_base_node/GlobalPlanner/make_plan'
+PLAN_SRV_NAME = '/robot_1/move_base_node/GlobalPlanner/make_plan'
 #PLAN_SRV_NAME = '/robot_1/move_base_node/HRTeamPlanner/make_plan'
 
+CC_SRV_NAME = '/robot_1/move_base_node/clear_costmaps'
+
 pp = pprint.PrettyPrinter(indent=2)
+
+def _clear_costmaps():
+
+    rospy.logdebug("Waiting for service {0}".format(CC_SRV_NAME))
+    rospy.wait_for_service(CC_SRV_NAME)
+    rospy.logdebug("Service ready.")
+
+    try:
+        clear_costmaps_proxy = rospy.ServiceProxy(CC_SRV_NAME,
+                                                  std_srvs.srv.Empty)
+
+        clear_costmaps_proxy()
+        
+        rospy.logdebug("cleared costmaps")
+
+    except rospy.ServiceException, e:
+        rospy.logerr("Service call failed: {0}".format(e))
 
 def _point_to_pose(point):
     pose_msg = geometry_msgs.msg.Pose()
@@ -116,6 +136,10 @@ def call_planner(start_x=0.5, start_y=0.5, goal_x=5.015, goal_y=4.485):
 
         #print("req: {0}".format(pp.pformat(req)))
         
+        print("Clearing costmaps...")
+        _clear_costmaps()
+#        time.sleep(0.1)
+
         resp = make_nav_plan(req)
         
         #print("Got plan:\n{0}".format(pp.pformat(resp)))

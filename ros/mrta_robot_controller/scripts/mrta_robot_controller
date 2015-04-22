@@ -499,7 +499,7 @@ class RobotController:
 
     def _clear_costmaps(self):
 
-        rospy.logdebug("Waiting for service {0}".format(self.plan_cc_name))
+        rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
         rospy.wait_for_service(self.cc_srv_name)
         rospy.logdebug("Service ready.")
 
@@ -915,6 +915,8 @@ class RobotController:
             #rospy.loginfo("({0}) Current state: {1}".format(self.robot_name,self.fsm.current))
 
             if self.fsm.current == 'moving':
+                if self.robot_name > r_name:
+                    self.in_collision = True
 
                 self.fsm.collision_detected(other_robot_name=r_name)
         #else:
@@ -1001,15 +1003,15 @@ class RobotController:
         stamp(pause_task_msg)
         self.task_status_pub.publish(pause_task_msg)
 
-        #while self.in_collision:
-        #    self.rate.sleep()
+        while self.in_collision:
+            self.rate.sleep()
 
         #time.sleep(1)
 
-        if self.robot_name > e.other_robot_name:
-            # Duration to pause
-            pause_duration = 1 + random.random()
-            time.sleep(pause_duration)
+#        if self.robot_name > e.other_robot_name:
+#            # Duration to pause
+#            pause_duration = 1 + random.random()
+#            time.sleep(pause_duration)
 
         rospy.loginfo("({0}) Resuming...".format(self.robot_name))
 
