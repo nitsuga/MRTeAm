@@ -121,7 +121,7 @@ def call_planner(start_x=0.5, start_y=0.5, goal_x=5.015, goal_y=4.485):
     try:
         make_nav_plan = rospy.ServiceProxy(PLAN_SRV_NAME,
                                            nav_msgs.srv.GetPlan)
-        
+
         # We need to convert start and goal from type geometry_msgs.Pose
         # to type geometry_msgs.PoseStamped. tolerance (from the docs):
         # "If the goal is obstructed, how many meters the planner can
@@ -136,11 +136,23 @@ def call_planner(start_x=0.5, start_y=0.5, goal_x=5.015, goal_y=4.485):
 
         #print("req: {0}".format(pp.pformat(req)))
         
-        print("Clearing costmaps...")
-        _clear_costmaps()
-#        time.sleep(0.1)
+        #print("Clearing costmaps...")
+        #_clear_costmaps()
+        #time.sleep(0.1)
+
+#        print("Disabling obstacle layers...")
+#        rospy.set_param('/robot_1/move_base_node/global_costmap/obstacle_layer/enabled', False)
+#        rospy.set_param('/robot_1/move_base_node/local_costmap/obstacle_layer/enabled', False)
+#        time.sleep(0.5)
+        
+#        print("/robot_1/move_base_node/global_costmap/obstacle_layer/enabled=={0}".format(rospy.get_param('/robot_1/move_base_node/global_costmap/obstacle_layer/enabled')))
 
         resp = make_nav_plan(req)
+
+#        print("Enabling obstacle layers...")
+        # Turn obstacle layer(s) back on
+#        rospy.set_param('/robot_1/move_base_node/global_costmap/obstacle_layer/enabled', True)
+#        rospy.set_param('/robot_1/move_base_node/local_costmap/obstacle_layer/enabled', True)
         
         #print("Got plan:\n{0}".format(pp.pformat(resp)))
         

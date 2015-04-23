@@ -22,6 +22,7 @@ import math
 import pprint
 import random
 import sys
+from threading import Lock
 import time
 import uuid
 
@@ -32,6 +33,7 @@ from fysom import Fysom
 import actionlib
 from actionlib import SimpleActionClient
 import actionlib_msgs.msg
+import dynamic_reconfigure.client
 import geometry_msgs.msg
 import move_base_msgs.msg
 import nav_msgs.msg
@@ -53,9 +55,10 @@ RATE = 10
 
 # If another robot is with this distance (in meters) and field of view (in
 # radians), we're in danger of colliding with it
-#DANGER_ZONE_FOV = math.pi / 2
-DANGER_ZONE_FOV = math.pi
-DANGER_ZONE_DIST = 1.0
+DANGER_ZONE_FOV = math.pi / 2
+#DANGER_ZONE_FOV = math.pi
+#DANGER_ZONE_DIST = 1.0
+DANGER_ZONE_DIST = 0.6
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -260,6 +263,9 @@ class RobotController:
         #else:
             #rospy.loginfo("We're a simulated Turtlebot!")
 
+        # A lock (mutex) to deal with out of order award/announce messages
+        self.award_lock = Lock()
+
         # Our current estimated pose. This should be received the navigation
         # stack's amcl localization package. See on_my_pose_received().
         self.current_pose = None
@@ -324,11 +330,17 @@ class RobotController:
         if self.is_turtlebot:
             self.plan_srv_name = '/move_base/NavfnROS/make_plan'
             self.cc_srv_name = '/move_base/clear_costmaps'
+            self.glob_obs_layer_rv = '/move_base/global_costmap/obstacle_layer'
         else:
             #self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
             self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)
             #self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
             self.cc_srv_name = "/{0}/move_base_node/clear_costmaps".format(self.robot_name)
+            self.glob_obs_layer_srv = "/{0}/move_base_node/global_costmap/obstacle_layer".format(self.robot_name)
+
+        rospy.loginfo("Starting obstacle_layer parameter client")
+        self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv,
+                                                                        timeout=5)
 
         # Set up state machine.
         # See mrta/docs/robot-controller.fsm.png
@@ -471,6 +483,14 @@ class RobotController:
 
         # For good measure...
         time.sleep(3)
+
+    def _disable_obstacle_layer(self):
+        rospy.loginfo("({0}) Disabling obstacle layer in global costmap".format(self.robot_name))
+        self.obs_layer_param_client.update_configuration({'enabled': False})
+
+    def _enable_obstacle_layer(self):
+        rospy.loginfo("({0}) Enabling obstacle layer in global costmap".format(self.robot_name))
+        self.obs_layer_param_client.update_configuration({'enabled': True})
 
     def _point_to_point_msg(self, point):
         """Convert a mrta.Point to a geometry_msgs.msg.Point"""
@@ -696,6 +716,11 @@ class RobotController:
         rospy.logdebug("({0}) announce_msg:\n{1}".format(self.robot_name,
                                                         pp.pformat(announce_msg)))
 
+        self.award_lock.acquire()
+
+        # Disable the global costmap's obstacle layer
+        self._disable_obstacle_layer()
+
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
         # bid_from = None
@@ -713,7 +738,6 @@ class RobotController:
 
             # path_cost = self.get_path_cost(bid_from,
             #                                self._point_to_pose(task_msg.location))
-
 
             # Get the cumulative cost of all tasks in out agenda so far
             (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
@@ -813,6 +837,8 @@ class RobotController:
         else:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
 
+        self.award_lock.release()
+
         rospy.loginfo("({0}) bid(): current_state=={1}".format(self.robot_name,
                                                                self.fsm.current))
 
@@ -823,6 +849,8 @@ class RobotController:
         if award_msg.robot_id != self.robot_name:
             return
 
+        self.award_lock.acquire()
+
         for task_msg in award_msg.tasks:
             rospy.loginfo("({0}) I won task {1}!".format(self.robot_name,
                                                          task_msg.task.task_id))
@@ -832,11 +860,16 @@ class RobotController:
             self.agenda.append(new_task)
             self.last_won_location = task_msg.location
 
+        self.award_lock.release()
+
         rospy.loginfo("({0}) won(): current_state=={1}".format(self.robot_name,
                                                                self.fsm.current))
 
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
+
+        # Disable the global costmap's obstacle layer
+        self._disable_obstacle_layer()
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -872,6 +905,7 @@ class RobotController:
         # we don't have any valid paths
         if min_uncompleted_dist > 100000:
             rospy.loginfo("({0}) There are no reachable tasks. Clearing costmaps manually...".format(self.robot_name))
+            self. _clear_costmaps()
             self. _clear_costmaps()
             time.sleep(1)
             self.fsm.no_reachable_tasks()
@@ -988,7 +1022,11 @@ class RobotController:
     def send_goal(self, e):
         rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
 
+        # Enable the global costmap's obstacle layer
+        self._enable_obstacle_layer()
+
         # Clear costmaps first, just to be safe
+        self._clear_costmaps()
         self._clear_costmaps()
 
         goal_task = self.current_task

@@ -19,16 +19,17 @@ start_configs = ['clustered', 'distributed']
 #start_configs = ['distributed']
 
 #point_configs = ['A','B','C','D','E']
-task_files = ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'brooklyn_tasks_E.txt']
+#task_files = ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'brooklyn_tasks_E.txt']
+task_files = ['tasks_A.txt']
 
 # stroke_colors = { 'robot_1': [0.369, 0.380, 0.773],
 #                   'robot_2': [0.043, 0.063, 0.424],
 #                   'robot_3': [0.176, 0.659, 0.000]
 # }
 
-stroke_colors = { 'robot_1': [0.0, 0.0, 1.0],
+stroke_colors = { 'robot_1': [1.0, 0.0, 0.0],
                   'robot_2': [0.0, 1.0, 0.0],
-                  'robot_3': [1.0, 0.0, 0.0] }
+                  'robot_3': [0.0, 0.0, 1.0] }
 
 robot_names = [ 'robot_1',
                 'robot_2',
@@ -44,7 +45,7 @@ class Experiment(object):
         self.task_file = task_file
 
 def usage():
-    print("Usage: {0}: <path_to_log_file(s)>".format(sys.argv[0]))
+    print("Usage: {0}: <path_to_bag_file(s)>".format(sys.argv[0]))
 
 def main(argv):
     if len(argv) < 1:
@@ -97,7 +98,7 @@ def main(argv):
         x_pos = 0
 
         #grid = np.random.rand(8, len(experiments), 3)
-        grid = np.random.rand(8, 80, 3)
+        grid = np.random.rand(9, 80, 3)
         #grid = np.random.rand(8, 20, 3)
 
         for start_config in start_configs:
@@ -125,22 +126,30 @@ def main(argv):
                     run_msgs = defaultdict(list)
                     for topic,msg,msg_time in exp.bag.read_messages('/tasks/award'):
                         print "{0} won task {1}".format(msg.robot_id,msg.tasks[0].task.task_id)
-                        grid[int(msg.tasks[0].task.task_id)-1][x_pos] = stroke_colors[msg.robot_id]
+                        #grid[int(msg.tasks[0].task.task_id)-1][x_pos] = stroke_colors[msg.robot_id]
+
+                        stroke_color = stroke_colors[msg.robot_id]
+                        y_pos = int(msg.tasks[0].task.task_id)-1
+                        grid[y_pos][x_pos] = stroke_color
+
+                        #print "y_pos=={0}, x_pos=={1}, stroke_color=={2}".format(y_pos,
+                        #                                                         x_pos,
+                        #                                                         stroke_color)
 
                     x_pos += 1
 
 
-        plt.imshow(grid[::-1], interpolation='none', extent=[0,80,0,8])
-        plt.axes().set_aspect(8)
+        plt.imshow(grid[::-1], interpolation='none', extent=[0,80,0,9])
+        plt.axes().set_aspect(9)
 
         # Set x, y limits (range)
-        plt.ylim(0,8)
+        plt.ylim(0,9)
         plt.xlim(0,80)
         
         # Tick locations, labels, and sizes    
         yticks = plt.getp(plt.gca(), 'yticklines')
         plt.setp(yticks, 'linewidth', 0)
-        plt.yticks([y + 0.5 for y in range(0,8)],
+        plt.yticks([y + 0.5 for y in range(0,9)],
                    ['Point {0}'.format(y) for y in range(1,9)])
 
         xticks = plt.getp(plt.gca(), 'xticklines')
@@ -156,7 +165,7 @@ def main(argv):
         for i in range(0,80,10):
             plt.axvline(x=i, color='k', linewidth=0.5, solid_capstyle='butt')
 
-        for i in range(8):
+        for i in range(9):
             plt.axhline(y=i, color='k', linewidth=0.5, solid_capstyle='butt')
 
         # Legend: robot colors
