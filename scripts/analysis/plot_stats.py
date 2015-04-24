@@ -12,13 +12,13 @@ from scipy import stats
 
 # Some global constants
 mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
-start_configs = ['CLUSTERED', 'DISTRIBUTED']
-start_configs = ['distributed']
+#start_configs = ['CLUSTERED', 'DISTRIBUTED']
+start_configs = ['clustered', 'distributed']
 
 #point_configs = ['A','B','C','D','E']
 #point_configs = ['A','C','E']
 
-task_files = ['brooklyn_tasks_A.txt']
+task_files = ['tasks_A.txt']
 
 robot_names = [ 'robot_1',
                 'robot_2',
@@ -349,46 +349,46 @@ def main(argv):
                                y_label='cm',
                                out_filename=plot_filename )
 
-            # #### Near Collisions
-            # plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(point_config, start_config)
-            # plot_filename = 'collisions-{0}-{1}.pdf'.format(point_config, start_config)
-            # plot_overall_stat( experiments=exps,
-            #                    attr_name='total_collisions',
-            #                    title=plot_title,
-            #                    y_label='',
-            #                    out_filename=plot_filename )
+            #### Near Collisions
+            plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)
+            plot_filename = 'collisions-{0}-{1}.pdf'.format(task_file, start_config)
+            plot_overall_stat( af = af,
+                               attr_name='TOTAL_COLLISIONS',
+                               title=plot_title,
+                               y_label='',
+                               out_filename=plot_filename )
 
             # #### Distance travelled per robot
-            # plot_title = 'Distance per Robot: "{0}", {1} start'.format(point_config, start_config)
-            # plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(point_config, start_config)
-            # plot_per_robot_stat( experiments=exps,
-            #                      attr_name='total_travel_distance',
+            # plot_title = 'Distance per Robot: "{0}", {1} start'.format(task_file, start_config)
+            # plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            # plot_per_robot_stat( af = af,
+            #                      attr_name='TOTAL_DISTANCE',
             #                      title=plot_title,
             #                      y_label='cm',
             #                      out_filename=plot_filename )
             
             # #### Travel time per robot
-            # plot_title = 'Travel time per Robot: "{0}", {1} start'.format(point_config, start_config)
-            # plot_filename = 'travel-time-per-robot-{0}-{1}.pdf'.format(point_config, start_config)
-            # plot_per_robot_stat( experiments=exps,
+            # plot_title = 'Travel time per Robot: "{0}", {1} start'.format(task_file, start_config)
+            # plot_filename = 'travel-time-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            # plot_per_robot_stat( af = af,
             #                      attr_name='robot_travel_time',
             #                      title=plot_title,
             #                      y_label='Seconds',
             #                      out_filename=plot_filename )
             
             # #### Idle time per robot
-            # plot_title = 'Idle time per Robot: "{0}", {1} start'.format(point_config, start_config)
-            # plot_filename = 'idle-time-per-robot-{0}-{1}.pdf'.format(point_config, start_config)
-            # plot_per_robot_stat( experiments=exps,
+            # plot_title = 'Idle time per Robot: "{0}", {1} start'.format(task_file, start_config)
+            # plot_filename = 'idle-time-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            # plot_per_robot_stat( af = af,
             #                      attr_name='robot_idle_time',
             #                      title=plot_title,
             #                      y_label='Seconds',
             #                      out_filename=plot_filename )
-            
+
             # #### Delay time per robot
-            # plot_title = 'Delay time per Robot: "{0}", {1} start'.format(point_config, start_config)
-            # plot_filename = 'delay-per-robot-{0}-{1}.pdf'.format(point_config, start_config)
-            # plot_per_robot_stat( experiments=exps,
+            # plot_title = 'Delay time per Robot: "{0}", {1} start'.format(task_file, start_config)
+            # plot_filename = 'delay-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            # plot_per_robot_stat( af = af,
             #                      attr_name='total_delay_time',
             #                      title=plot_title,
             #                      y_label='Seconds',

@@ -6,7 +6,7 @@
 #$ -t 1-6
 #$ -V
 
-RUN_COUNT=5
+RUN_COUNT=30
 
 #for map in brooklyn # smartlab
 for map in smartlab

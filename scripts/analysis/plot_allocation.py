@@ -107,7 +107,8 @@ def main(argv):
                 exps = set(exp_by_start_config[start_config]).intersection(set(exp_by_mechanism[mechanism])).intersection(set(exp_by_task_file[task_file]))
 
                 #for exp in sorted(exps, key=lambda e: int(e.run_number))[0:10]:
-                for exp in exps:
+                #for exp in exps:
+                for exp in list(exps)[0:10]:
                     print "{0}, {1}, {2}".format(start_config,
                                                  mechanism,
                                                  task_file)

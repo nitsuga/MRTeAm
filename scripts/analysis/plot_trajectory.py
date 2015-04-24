@@ -51,8 +51,11 @@ def read_point_configs():
             if line.startswith('#'):
                 continue
 
-            # 'line' is in the format "x y"
-            points.append([float(coord)*100. for coord in line.split()])
+            # 'line' is in the format "s x y"
+            # where s = seconds after start that the task appears
+            # x,y = task location
+            s, x, y = line.split()
+            points.append([float(x)*100., float(y)*100.])
             
         task_point_configs[task_file] = points
 
@@ -253,7 +256,7 @@ def main(argv):
                 if start_pose is None:
                     ctx.move_to( pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT )
                     start_pose = amcl_pose
-                    print "{0} start_pose: {1}:".format(r_name, start_pose)
+                    #print "{0} start_pose: {1}:".format(r_name, start_pose)
                 else:
                     ctx.line_to( pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT)
                 

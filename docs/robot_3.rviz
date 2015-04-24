@@ -54,10 +54,10 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: arena map
       Topic: /map
-      Value: true
+      Value: false
     - Alpha: 0.7
       Class: rviz/Map
       Color Scheme: costmap
@@ -176,7 +176,7 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 189.886
+      Scale: 147.048
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
       X: 3.76037

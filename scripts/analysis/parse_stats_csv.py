@@ -180,7 +180,8 @@ def main(argv):
                 if status_msg.status == 'BEGIN' and robot.travel_begin_time is None:
                     robot.travel_begin_time = status_msg.header.stamp
 
-                if status_msg.status == 'ALL_TASKS_COMPLETE':
+                #if status_msg.status == 'ALL_TASKS_COMPLETE':
+                if status_msg.status == 'SUCCESS':
                     robot.travel_end_time = status_msg.header.stamp
 
                 if status_msg.status == 'PAUSE':
@@ -210,10 +211,12 @@ def main(argv):
 
             idle_time_diff = exp_msgs['END_EXECUTION'].header.stamp - robot.travel_end_time
             robot.idle_time = (idle_time_diff.secs + idle_time_diff.nsecs/1000000000.)
+            print "{0} idle time is {1}".format(r_name, robot.idle_time)
             
             # Since messages may arrive out of order it's possible for the idle time
             # of the last robot to be negative. Make the minimum time 0 here.
             if robot.idle_time < 0:
+                print "{0} idle time is negative... ({1})".format(r_name, robot.idle_time)
                 robot.idle_time = 0
 
             total_idle_time += robot.idle_time
