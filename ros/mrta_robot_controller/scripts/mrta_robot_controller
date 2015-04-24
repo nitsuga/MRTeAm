@@ -724,6 +724,8 @@ class RobotController:
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
+        self._clear_costmaps()
+        self._clear_costmaps()
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
