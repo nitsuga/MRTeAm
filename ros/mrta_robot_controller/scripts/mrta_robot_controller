@@ -342,6 +342,10 @@ class RobotController:
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv,
                                                                         timeout=5)
 
+        self._disable_obstacle_layer()
+        self._clear_costmaps()
+        self._clear_costmaps()
+
         # Set up state machine.
         # See mrta/docs/robot-controller.fsm.png
         self.fsm = Fysom(
@@ -1113,6 +1117,11 @@ class RobotController:
         # Sometimes wait_for_result() returns, but the goal is still active. Why?
         while self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
             time.sleep(0.5)
+
+        # Disable the obstacle layer and clear costmaps again
+        self._disable_obstacle_layer()
+        self._clear_costmaps()
+        self._clear_costmaps()
 
         # If resolving collisions, just return here
         if self.fsm.current == 'resolve_collision':
