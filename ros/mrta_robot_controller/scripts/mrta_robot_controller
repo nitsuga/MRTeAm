@@ -330,7 +330,7 @@ class RobotController:
         if self.is_turtlebot:
             self.plan_srv_name = '/move_base/NavfnROS/make_plan'
             self.cc_srv_name = '/move_base/clear_costmaps'
-            self.glob_obs_layer_rv = '/move_base/global_costmap/obstacle_layer'
+            self.glob_obs_layer_srv = '/move_base/global_costmap/obstacle_layer'
         else:
             #self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
             self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)
@@ -341,6 +341,10 @@ class RobotController:
         rospy.loginfo("Starting obstacle_layer parameter client")
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv,
                                                                         timeout=5)
+
+        self._disable_obstacle_layer()
+        self._clear_costmaps()
+        self._clear_costmaps()
 
         # Set up state machine.
         # See mrta/docs/robot-controller.fsm.png
@@ -720,6 +724,8 @@ class RobotController:
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
+        self._clear_costmaps()
+        self._clear_costmaps()
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -1113,6 +1119,11 @@ class RobotController:
         # Sometimes wait_for_result() returns, but the goal is still active. Why?
         while self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
             time.sleep(0.5)
+
+        # Disable the obstacle layer and clear costmaps again
+        self._disable_obstacle_layer()
+        self._clear_costmaps()
+        self._clear_costmaps()
 
         # If resolving collisions, just return here
         if self.fsm.current == 'resolve_collision':
