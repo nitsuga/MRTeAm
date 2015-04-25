@@ -330,7 +330,7 @@ class RobotController:
         if self.is_turtlebot:
             self.plan_srv_name = '/move_base/NavfnROS/make_plan'
             self.cc_srv_name = '/move_base/clear_costmaps'
-            self.glob_obs_layer_rv = '/move_base/global_costmap/obstacle_layer'
+            self.glob_obs_layer_srv = '/move_base/global_costmap/obstacle_layer'
         else:
             #self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
             self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)

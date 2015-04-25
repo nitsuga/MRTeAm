@@ -43,7 +43,7 @@
     
     <include file="$(find mrta_robot_controller)/launch/include/turtlebot/move_base_no_ns.launch.xml"/>
 
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) True" output="screen" />
+    <node name="mrta_robot_controller_$(arg robot_name)" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) True" output="screen" />
 
   <!-- END ROBOT -->
 
