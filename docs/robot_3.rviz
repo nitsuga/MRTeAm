@@ -54,10 +54,10 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: arena map
       Topic: /map
-      Value: true
+      Value: false
     - Alpha: 0.7
       Class: rviz/Map
       Color Scheme: costmap
@@ -198,5 +198,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1680
-  X: 1680
+  X: 1911
   Y: 0
