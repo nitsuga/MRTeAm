@@ -18,8 +18,8 @@ start_configs = ['clustered', 'distributed']
 #point_configs = ['A','B','C','D','E']
 #point_configs = ['A','C','E']
 
-task_files = ['tasks_A.txt']
-#task_files = ['TASC_scenario_5.txt']
+#task_files = ['tasks_A.txt']
+task_files = ['TASC_scenario_5.txt']
 #task_files = ['TASC_scenario_6.txt']
 
 robot_names = [ 'robot_1',
@@ -32,6 +32,38 @@ class Experiment(object):
         self.mechanism = mechanism
         self.start_config = start_config
         self.task_file = task_file
+
+# def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None):
+#     print "Plotting {0}".format(out_filename)
+
+#     plt.title(title)
+#     plt.ylabel(y_label)
+    
+#     data = []
+
+#     # A dict of <mechanism_name> => <list of values>
+#     stat_by_mechanism = defaultdict(list)
+   
+#     for i,mechanism in enumerate(mechanisms):
+#         #data.append( af[af.MECHANISM == mechanism][attr_name].values )
+#         stat_by_mechanism[mechanism].append()
+
+#     # x-coordinates of the bars
+#     x_pos = [1, 2, 3, 4, 5, 6, 7, 8]
+
+#     plt.boxplot(data, sym='.')
+
+#     # Plot bars with std errors
+#     #plt.bar(x_pos, stat_means, yerr=stat_errors,
+#     #        color=[0.75,0.75,0.75], width=0.6, align='center')
+
+#     # Bar labels
+#     plt.xticks(x_pos, mechanisms_env)    
+#     ymin, ymax = plt.ylim()
+#     plt.ylim(0, ymax)
+
+#     plt.savefig(out_filename)
+#     plt.close()
 
 def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False):
     print "Plotting {0}".format(out_filename)
@@ -53,7 +85,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
-
+    
     for i,mechanism in enumerate(mechanisms):
         sample = af[af.MECHANISM==mechanism][attr_name]
         stat_means.append(np.mean(sample))
@@ -62,7 +94,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
         if plot_samples:
             # Plot sample values as red dots
             plt.plot([(i+.15) for x in sample], sample, 'r.')
-
+        
     # x-coordinates of the bars
     x_pos = np.arange(len(mechanisms))
     # Plot bars with std errors
@@ -71,11 +103,12 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
 
     # Bar labels
     plt.tick_params(axis='x', which='major', labelsize=18)
-    plt.xticks(x_pos, mechanisms)    
-    ymin, ymax = plt.ylim()
+    plt.xticks(x_pos, mechanisms)
 
+    ymin, ymax = plt.ylim()
+    
     if y_limit:
-        plt.ylim(0, y_limit)
+        plt.ylim(0,y_limit)
     else:
         plt.ylim(0, ymax)
 
@@ -83,6 +116,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
 
     plt.savefig(out_filename)
     plt.close()
+
 
 def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False):
     print "Plotting {0}".format(out_filename)
@@ -106,7 +140,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     stat2_means = []
     stat1_errors = []
     stat2_errors = []
-
+    
     for i,mechanism in enumerate(mechanisms):
         sample1 = af[af.MECHANISM==mechanism][attr1_name]
         stat1_means.append(np.mean(sample1))
@@ -120,7 +154,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
             # Plot sample values as red dots
             plt.plot([(i+.15) for x in sample1], sample1, 'r.')
             plt.plot([(i+.15) for x in sample2], sample2, 'r.')
-
+        
     # x-coordinates of the bars
     x_pos = np.arange(len(mechanisms))
     # Plot bars with std errors
@@ -136,7 +170,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     plt.xticks(x_pos, mechanisms)
 
     ymin, ymax = plt.ylim()
-
+    
     if y_limit:
         plt.ylim(0,y_limit)
     else:
@@ -146,6 +180,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
 
     plt.savefig(out_filename)
     plt.close()
+
 
 def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None, out_filename=None):
     print "Plotting {0}".format(out_filename)
@@ -207,6 +242,10 @@ def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None
 #            plt.plot([x + (bar_width*i) for x in x_pos],
 #                     stat_by_role[role_name][mechanism], 'r.')
 
+    for i,mechanism in enumerate(mechanisms):
+        for j,role_name in enumerate(all_role_names):
+            print "".format()
+
     bars = []
     # Plot bars with std errors
     for i,role_name in enumerate(all_role_names):
@@ -221,6 +260,8 @@ def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None
     plt.ylim(0, ymax+(ymax*0.2))
     plt.xlim(0, x_pos[-1] + 1)
     plt.legend( [bar[0] for bar in bars], all_role_names )
+
+    plt.tight_layout()
 
     plt.savefig(out_filename)
     plt.close()
@@ -327,8 +368,6 @@ def main(argv):
 
             af = aframe[aframe.START_CONFIG==start_config][aframe.TASK_FILE==task_file]
 
-            task_file = task_file.replace('.txt','')
-
             # Total run time stacked: deliberation time + execution time
             #### Total run time
             plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
@@ -339,7 +378,8 @@ def main(argv):
                                 title=plot_title,
                                 y_label='Seconds',
                                 out_filename=plot_filename,
-                                y_limit=450)
+                                y_limit=200)
+            
 
             #### Total run time
             plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
@@ -349,7 +389,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=450)
+                               y_limit=200)
 
             #### Deliberation time
             plot_title = 'Deliberation Time, "{0}", {1} start'.format(task_file, start_config)
@@ -369,7 +409,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=450)
+                               y_limit=160)
 
             #### Idle time
             plot_title = 'Idle Time, "{0}", {1} start'.format(task_file, start_config)
@@ -379,7 +419,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=400)
+                               y_limit=90)
 
             # #### Delay time
             # plot_title = 'Overall Delay Time, "{0}", {1} start'.format(point_config, start_config)

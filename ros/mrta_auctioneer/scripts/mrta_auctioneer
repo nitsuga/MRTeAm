@@ -493,11 +493,13 @@ class AuctionRR(Auction):
         rospy.loginfo("(RR) state: award")
 
         # A cycling iterator of team member names
-        team_cycle = itertools.cycle(self.auctioneer.team_members)
+        #team_cycle = itertools.cycle(self.auctioneer.team_members)
 
         for task in self.tasks:
             award_msg = mrta.msg.TaskAward()
-            award_msg.robot_id = team_cycle.next()
+
+            #award_msg.robot_id = team_cycle.next()
+            award_msg.robot_id = self.auctioneer._team_cycle.next()
 
             task_msg = self._construct_task_msg(task)
             award_msg.tasks.append(task_msg)
@@ -670,6 +672,7 @@ class Auctioneer:
         self.tasks_by_id[scripted_task.task_id] = scripted_task
 
         self.new_task_added = True
+        rospy.loginfo("self.new_task_added=={0}".format(self.new_task_added))
 
         rospy.loginfo("add_scripted_task(): current state=={0}".format(self.fsm.current))
 
@@ -746,6 +749,8 @@ class Auctioneer:
 
         # TEMP HACK!
         self.team_members = ['robot_1', 'robot_2', 'robot_3']
+
+        self._team_cycle = itertools.cycle(self.team_members)
         
         rospy.loginfo("Team members: {0}".format(self.team_members))
 
@@ -784,7 +789,7 @@ class Auctioneer:
     def choose_mechanism(self, e):
         rospy.loginfo("state: choose_mechanism")
 
-        self.new_task_added = False
+        time.sleep(0.2)
 
         # Send a message to mark the beginning of the allocation phase of
         # the experiment
@@ -821,6 +826,9 @@ class Auctioneer:
                 auction_rr = AuctionRR(self, unallocated, self.auction_round)
 
         # At this point, we can (safely?) consider all tasks awarded
+
+        self.new_task_added = False
+        rospy.loginfo("self.new_task_added == {0}".format(self.new_task_added))
 
         # We are finished allocating tasks. Signal the end of the allocation
         # phase and the beginning of the execution phase.
@@ -884,7 +892,9 @@ class Auctioneer:
             #time.sleep(0.2)
             self.rate.sleep()
 
-        rospy.loginfo("Stopping task execution. Either all tasks are complete or a new task was added!")
+        rospy.loginfo("Stopping task execution.")
+        rospy.loginfo("incomplete=={0}".format(incomplete))
+        rospy.loginfo("self.new_task_added=={0}".format(self.new_task_added))
 
         # Either:
         # 1. All tasks (that have been allocated so far) have been completed.

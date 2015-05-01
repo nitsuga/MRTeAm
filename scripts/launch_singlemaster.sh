@@ -6,7 +6,11 @@
 #$ -t 1-6
 #$ -V
 
-RUN_COUNT=30
+source /home/esch/.bashrc
+
+export ROS_OS_OVERRIDE=rhel
+
+RUN_COUNT=5
 
 #for map in brooklyn # smartlab
 for map in smartlab

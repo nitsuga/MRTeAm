@@ -6,7 +6,7 @@
 #$ -t 1-6
 #$ -V
 
-RUN_COUNT=30
+RUN_COUNT=5
 
 #for map in brooklyn # smartlab
 for map in brooklyn
@@ -16,7 +16,7 @@ do
     do
 	for mechanism in OSI SSI PSI RR
 	do
-	    for start_config in clustered distributed
+	    for start_config in clustered #distributed
 	    do
 		for run in `seq 1 ${RUN_COUNT}`
 		do

@@ -58,7 +58,7 @@ RATE = 10
 DANGER_ZONE_FOV = math.pi / 2
 #DANGER_ZONE_FOV = math.pi
 #DANGER_ZONE_DIST = 1.0
-DANGER_ZONE_DIST = 0.6
+DANGER_ZONE_DIST = 0.3
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -342,6 +342,11 @@ class RobotController:
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv,
                                                                         timeout=5)
 
+        rospy.loginfo("Starting 'make_plan' service client")
+        self._nav_plan_client = rospy.ServiceProxy(self.plan_srv_name,
+                                                   nav_msgs.srv.GetPlan)
+
+
         self._disable_obstacle_layer()
         self._clear_costmaps()
         self._clear_costmaps()
@@ -538,30 +543,25 @@ class RobotController:
         except rospy.ServiceException, e:
             rospy.logerr("Service call failed: {0}".format(e))
 
+    def _make_nav_plan(self, start, goal):
 
-    def _make_nav_plan_client(self, start, goal):
+        # We need to convert start and goal from type geometry_msgs.Pose
+        # to type geometry_msgs.PoseStamped. tolerance (from the docs):
+        # "If the goal is obstructed, how many meters the planner can
+        # relax the constraint in x and y before failing."
+        start_stamped = self._pose_to_posestamped(start)
+        goal_stamped = self._pose_to_posestamped(goal)
 
-        rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
-        rospy.wait_for_service(self.plan_srv_name)
-        rospy.logdebug("Service ready.")
+        req = nav_msgs.srv.GetPlanRequest()
+        req.start = start_stamped
+        req.goal = goal_stamped
+        req.tolerance = 0.1
 
         try:
-            make_nav_plan = rospy.ServiceProxy(self.plan_srv_name,
-                                               nav_msgs.srv.GetPlan)
-
-            # We need to convert start and goal from type geometry_msgs.Pose
-            # to type geometry_msgs.PoseStamped. tolerance (from the docs):
-            # "If the goal is obstructed, how many meters the planner can
-            # relax the constraint in x and y before failing."
-            start_stamped = self._pose_to_posestamped(start)
-            goal_stamped = self._pose_to_posestamped(goal)
-
-            req = nav_msgs.srv.GetPlanRequest()
-            req.start = start_stamped
-            req.goal = goal_stamped
-            req.tolerance = 0.1
-
-            resp = make_nav_plan(req)
+            rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
+            rospy.wait_for_service(self.plan_srv_name)
+            rospy.logdebug("Service ready.")
+            resp = self._nav_plan_client(req)
 
             rospy.logdebug("Got plan:\n{0}".format(pp.pformat(resp)))
 
@@ -569,6 +569,7 @@ class RobotController:
 
         except rospy.ServiceException, e:
             rospy.logerr("Service call failed: {0}".format(e))
+
 
     def _normalize_angle(self, angle):
         res = angle
@@ -597,7 +598,7 @@ class RobotController:
         #rospy.loginfo("Getting path from {0}...".format(self.plan_srv_name))
 
         # 'path' is a list of objects of type geometry_msgs.PoseStamped
-        path = self._make_nav_plan_client(start, goal)
+        path = self._make_nav_plan(start, goal)
 
         #rospy.loginfo('...got path')
 
@@ -726,6 +727,8 @@ class RobotController:
         self._disable_obstacle_layer()
         self._clear_costmaps()
         self._clear_costmaps()
+
+        time.sleep(0.1)
 
         # Our bid-from point is the location of our most recently won task,
         # if any. If we haven't won any tasks, bid from our current position.
@@ -1034,6 +1037,8 @@ class RobotController:
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
         self._clear_costmaps()
+
+        time.sleep(0.2)
 
         goal_task = self.current_task
 
