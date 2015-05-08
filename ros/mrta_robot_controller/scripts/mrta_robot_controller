@@ -205,7 +205,6 @@ def in_danger_zone(my_pose, other_pose):
     trans_y = other_pose.position.y - my_pose.position.y
     rospy.logdebug("trans_x=={0}, trans_y=={1}".format(trans_x, trans_y))
 
-
     # Rotate the translated point by d_theta
     rot_x = (trans_x * math.cos(d_theta)) - (trans_y * math.sin(d_theta))
     rot_y = (trans_x * math.sin(d_theta)) + (trans_y * math.cos(d_theta))
@@ -218,8 +217,7 @@ def in_danger_zone(my_pose, other_pose):
                             other_pose.position.y - my_pose.position.y)
 
     in_fov = False
-    if (other_heading >= -(DANGER_ZONE_FOV / 2) and
-                other_heading <= (DANGER_ZONE_FOV / 2)):
+    if -(DANGER_ZONE_FOV / 2) <= other_heading <= (DANGER_ZONE_FOV / 2):
         in_fov = True
 
     rospy.logdebug("in_fov=={0}".format(in_fov))
@@ -406,7 +404,7 @@ class RobotController:
         # with sm:
         # # IDLE
         # smach.StateMachine.add('IDLE', Idle(),
-        #                            transitions={'have_tasks': 'CHOOSE_TASK',
+        # transitions={'have_tasks': 'CHOOSE_TASK',
         #                                         'no_tasks': 'IDLE'})
 
         #     # CHOOSE_TASK
@@ -418,7 +416,6 @@ class RobotController:
         # sis = smach_ros.IntrospectionServer("{0}_sis".format(self.robot_name), sm,
         #                                     "/{0}/SM_ROOT".format(self.robot_name))
         # sis.start()
-
 
         # # Run the smach state machine
         # outcome = sm.execute()
@@ -502,7 +499,8 @@ class RobotController:
         rospy.loginfo("({0}) Enabling obstacle layer in global costmap".format(self.robot_name))
         self.obs_layer_param_client.update_configuration({'enabled': True})
 
-    def _point_to_point_msg(self, point):
+    @staticmethod
+    def _point_to_point_msg(point):
         """Convert a mrta.Point to a geometry_msgs.msg.Point"""
         point_msg = geometry_msgs.msg.Point()
         point_msg.x = point.x
@@ -511,14 +509,16 @@ class RobotController:
 
         return point_msg
 
-    def _point_to_pose(self, point):
+    @staticmethod
+    def _point_to_pose(point):
         pose_msg = geometry_msgs.msg.Pose()
         pose_msg.position = point
         pose_msg.orientation.w = 1.0
 
         return pose_msg
 
-    def _pose_to_posestamped(self, pose, frame_id='map'):
+    @staticmethod
+    def _pose_to_posestamped(pose, frame_id='map'):
         pose_stamped_msg = geometry_msgs.msg.PoseStamped()
 
         pose_stamped_msg.header.stamp = rospy.get_rostime()
@@ -571,12 +571,12 @@ class RobotController:
         except rospy.ServiceException, e:
             rospy.logerr("Service call failed: {0}".format(e))
 
-
-    def _normalize_angle(self, angle):
+    @staticmethod
+    def _normalize_angle(angle):
         res = angle
         while res > math.pi:
             res -= 2.0 * math.pi
-        while res < -pi:
+        while res < -math.pi:
             res += 2.0 * math.pi
         return res
 
@@ -623,7 +623,7 @@ class RobotController:
                 ## Adding rotational distance to the path cost sounds cool, but
                 ## the path returned by make_plan doesn't seem to specify
                 ## orientations in its poses.
-                #yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
+                # yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
                 #yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
                 #yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
                 #path_cost += yaw_delta
@@ -708,7 +708,8 @@ class RobotController:
         rospy.logdebug("task won:\n{0}".format(pp.pformat(msg)))
         self.fsm.task_won(msg=msg)
 
-    def _construct_bid_msg(self, task_id, robot_id, bid):
+    @staticmethod
+    def _construct_bid_msg(task_id, robot_id, bid):
         bid_msg = mrta.msg.TaskBid()
         bid_msg.task_id = task_id
         bid_msg.robot_id = robot_id
@@ -738,7 +739,7 @@ class RobotController:
         # # Convert last_won_location from a Point to a Pose
         # bid_from = self._point_to_pose(self.last_won_location)
         # else:
-        #     bid_from = self.current_pose
+        # bid_from = self.current_pose
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
@@ -908,7 +909,7 @@ class RobotController:
 
         # Sanity check
         if not self.current_task:
-            rospy.loginfo("({0}) event: no_tasks".format(robot_name))
+            rospy.loginfo("({0}) event: no_tasks".format(self.robot_name))
             self.fsm.no_tasks()
 
         # If the minimum cost (closest task) is sys.maxint, then
@@ -969,7 +970,7 @@ class RobotController:
         self.other_poses[r_name] = other_pose
         # rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name,
         # r_name,
-        #                                                       pp.pformat(other_pose)))
+        # pp.pformat(other_pose)))
 
         if self._clear_of_other_robots():
             self.in_collision = False
@@ -1024,7 +1025,7 @@ class RobotController:
     # def goal_done_cb(self, term_state, result):
     # rospy.loginfo("goal_done_cb(): term_state=={0}, result=={1}".format(term_state,
     # result))
-    #     if term_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+    # if term_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
     #         self.fsm.goal_reached()
     #     else:
     #         self.fsm.goal_not_reached()
