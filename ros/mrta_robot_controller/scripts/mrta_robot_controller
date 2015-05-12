@@ -14,6 +14,11 @@ The RobotController class uses a state machine to implement bidding and goal-
 seeking behavior.
 
 Eric Schneider <eric.schneider@liverpool.ac.uk>
+
+References:
+
+[2] Kulich, Miroslav, Jan Faigl, and Libor Preucil. "On distance utility in the exploration task."
+    Robotics and Automation (ICRA), 2011 IEEE International Conference on. IEEE, 2011.
 """
 
 # Standard Python modules
@@ -108,8 +113,9 @@ class ChooseTask(smach.State):
         rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
 
         # We have two ways to choose the next task from our agenda:
-        # 1. ("non-greedy") Choose the first task that hasn't been completed yet
-        # 2. ("greedy")     Choose the next closest task
+        # 1. "non-greedy" Choose the first task that hasn't been completed yet
+        # 2. "greedy"     Choose the next closest task
+        # 3. "tsp"        An approximate TSP solution using heuristics. See [2].
 
         greedy_selection = True
 
