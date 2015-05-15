@@ -19,7 +19,7 @@ start_configs = ['clustered', 'distributed']
 #point_configs = ['A','C','E']
 
 #task_files = ['tasks_A.txt']
-task_files = ['TASC_scenario_5.txt']
+task_files = ['TASC_scenario_5_static.txt']
 #task_files = ['TASC_scenario_6.txt']
 
 robot_names = [ 'robot_1',
@@ -81,7 +81,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    #plt.title(title)
+    plt.title(title)
     plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
@@ -378,7 +378,7 @@ def main(argv):
                                 title=plot_title,
                                 y_label='Seconds',
                                 out_filename=plot_filename,
-                                y_limit=200)
+                                y_limit=180)
             
 
             #### Total run time
@@ -389,7 +389,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=200)
+                               y_limit=180)
 
             #### Deliberation time
             plot_title = 'Deliberation Time, "{0}", {1} start'.format(task_file, start_config)
@@ -399,7 +399,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=9)
+                               y_limit=12)
 
             #### Execution time
             plot_title = 'Execution Time, "{0}", {1} start'.format(task_file, start_config)
@@ -409,7 +409,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=160)
+                               y_limit=180)
 
             #### Idle time
             plot_title = 'Idle Time, "{0}", {1} start'.format(task_file, start_config)
@@ -419,7 +419,7 @@ def main(argv):
                                title=plot_title,
                                y_label='Seconds',
                                out_filename=plot_filename,
-                               y_limit=90)
+                               y_limit=160)
 
             # #### Delay time
             # plot_title = 'Overall Delay Time, "{0}", {1} start'.format(point_config, start_config)
@@ -447,7 +447,7 @@ def main(argv):
                                title=plot_title,
                                y_label='meters',
                                out_filename=plot_filename,
-                               y_limit=50)
+                               y_limit=35)
 
             #### Near Collisions
             plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)

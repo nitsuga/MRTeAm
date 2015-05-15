@@ -21,7 +21,7 @@ start_configs = ['clustered', 'distributed']
 #point_configs = ['A','B','C','D','E']
 #task_files = ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'brooklyn_tasks_E.txt']
 #task_files = ['tasks_A.txt']
-task_files = ['TASC_scenario_5.txt']
+task_files = ['TASC_scenario_5_static.txt']
 
 # stroke_colors = { 'robot_1': [0.369, 0.380, 0.773],
 #                   'robot_2': [0.043, 0.063, 0.424],

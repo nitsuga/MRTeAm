@@ -98,7 +98,6 @@ class Idle(smach.State):
         else:
             return 'no_tasks'
 
-
 # state: CHOOSE_TASK
 class ChooseTask(smach.State):
     def __init__(self):
@@ -147,7 +146,6 @@ class ChooseTask(smach.State):
         rospy.loginfo("outcome: goal_chosen")
         return 'goal_chosen'
 
-
 # state: SEND_GOAL
 class SendGoal(smach.State):
     def __init__(self):
@@ -178,14 +176,12 @@ class SendGoal(smach.State):
         else:
             return 'no_tasks'
 
-
 #### Utility functions
 
 def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
-
 
 def in_danger_zone(my_pose, other_pose):
     in_danger = False
@@ -239,11 +235,9 @@ def in_danger_zone(my_pose, other_pose):
 
     return in_danger
 
-
 class Collision(object):
     def __init__(self):
         pass
-
 
 class RobotController:
     """ Controls robot behavior. """

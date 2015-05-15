@@ -6,17 +6,17 @@
 #$ -t 1-6
 #$ -V
 
-RUN_COUNT=5
+RUN_COUNT=10
 
 #for map in brooklyn # smartlab
 for map in brooklyn
 do
     #for task_file in brooklyn_tasks_A.txt brooklyn_tasks_C.txt brooklyn_tasks_E.txt
-    for task_file in TASC_scenario_5.txt TASC_scenario_6.txt
+    for task_file in TASC_scenario_5_static.txt # TASC_scenario_6.txt
     do
 	for mechanism in OSI SSI PSI RR
 	do
-	    for start_config in clustered #distributed
+	    for start_config in clustered distributed
 	    do
 		for run in `seq 1 ${RUN_COUNT}`
 		do
