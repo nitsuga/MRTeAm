@@ -63,118 +63,8 @@ DANGER_ZONE_FOV = math.pi / 2
 # DANGER_ZONE_DIST = 1.0
 DANGER_ZONE_DIST = 0.3
 
+# For pretty-printing convenience!
 pp = pprint.PrettyPrinter(indent=2)
-
-
-######## smach state classes ########
-
-# state: IDLE
-class Idle(smach.State):
-    def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['have_tasks', 'all_tasks_complete'],
-                             input_keys=['robot_controller'],
-                             output_keys=['robot_controller'])
-
-    def execute(self, userdata):
-        rc = userdata.robot_controller
-
-        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
-
-        # We idle here unless two conditions are true:
-        # 1. We have tasks in our agenda
-        # 2. self.ok_to_execute == True
-        while not rc.agenda or not rc.ok_to_execute:
-            rc.rate.sleep()
-
-        have_tasks = False
-        for task in rc.agenda:
-            if not task.completed:
-                have_tasks = True
-                break
-
-        if have_tasks:
-            return 'have_tasks'
-        else:
-            return 'no_tasks'
-
-# state: CHOOSE_TASK
-class ChooseTask(smach.State):
-    def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['goal_chosen', 'no_tasks'],
-                             input_keys=['robot_controller'],
-                             output_keys=['robot_controller'])
-
-    def execute(self, userdata):
-        rc = userdata.robot_controller
-
-        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
-
-        # We have two ways to choose the next task from our agenda:
-        # 1. "non-greedy" Choose the first task that hasn't been completed yet
-        # 2. "greedy"     Choose the next closest task
-        # 3. "tsp"        An approximate TSP solution using heuristics. See [2].
-
-        greedy_selection = True
-
-        # "non-greedy"
-        goal_task = None
-        min_uncompleted_dist = None
-        for task in rc.agenda:
-            if not task.completed:
-                if greedy_selection:
-                    from_pose = rc.current_pose
-                    to_pose = rc._point_to_pose(rc._point_to_point_msg(task.location))
-                    path_cost = rc.get_path_cost(from_pose, to_pose)
-
-                    if not min_uncompleted_dist or path_cost < min_uncompleted_dist:
-                        goal_task = task
-                        min_uncompleted_dist = path_cost
-
-                else:
-                    goal_task = task
-                    break
-
-        rc.current_task = goal_task
-
-        # Sanity check
-        if not rc.current_task:
-            rospy.loginfo("outcome: no_tasks")
-            return 'no_tasks'
-
-        rospy.loginfo("outcome: goal_chosen")
-        return 'goal_chosen'
-
-# state: SEND_GOAL
-class SendGoal(smach.State):
-    def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['have_tasks', 'all_tasks_complete'],
-                             input_keys=['robot_controller'],
-                             output_keys=['robot_controller'])
-
-    def execute(self, userdata):
-        rc = userdata.robot_controller
-
-        rospy.loginfo("[{0}] state: idle".format(rc.robot_name))
-
-        # We idle here unless two conditions are true:
-        # 1. We have tasks in our agenda
-        # 2. self.ok_to_execute == True
-        while not rc.agenda or not rc.ok_to_execute:
-            rc.rate.sleep()
-
-        have_tasks = False
-        for task in rc.agenda:
-            if not task.completed:
-                have_tasks = True
-                break
-
-        if have_tasks:
-            return 'have_tasks'
-        else:
-            return 'no_tasks'
 
 #### Utility functions
 
@@ -183,7 +73,17 @@ def stamp(msg):
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
 
+
 def in_danger_zone(my_pose, other_pose):
+    """
+    Determine whether or not another robot is in my path, i.e., whether or not
+    I'm likely to collide with it.
+
+    :param geometry_msgs.msg.Pose my_pose: my current pose
+    :param geometry_msgs.msg.Pose other_pose: the other robot's pose
+    :return: True or False
+    :rtype: bool
+    """
     in_danger = False
 
     if not my_pose or not other_pose:
@@ -235,9 +135,6 @@ def in_danger_zone(my_pose, other_pose):
 
     return in_danger
 
-class Collision(object):
-    def __init__(self):
-        pass
 
 class RobotController:
     """ Controls robot behavior. """
@@ -246,6 +143,9 @@ class RobotController:
         """
         Initialize some ROS stuff (pub/sub, actionlib client) and also
         our state machine.
+
+        :param string robot_name: this robot's name
+        :param bool is_turtlebot: is this a physical turtlebot?
         """
         # Node name
         if robot_name:
@@ -276,8 +176,14 @@ class RobotController:
         self.other_poses = defaultdict(geometry_msgs.msg.Pose)
         self.amcl_pose_subs = {}
 
+        # Maintain a cache of path distances between points so that we don't
+        # have to look them up (via an expensive service call) every time.
+        # Keys are tuples in the form of ((start_x,start_y),(goal_x,goal_y))#
+        # and values are distances in meters (floats).
+        self._path_distance_cache = {}
+
         # Keep track of potential collisions with other robots
-        self.collisions = defaultdict(Collision)
+#        self.collisions = defaultdict(Collision)
 
         self.in_collision = False
 
@@ -301,6 +207,7 @@ class RobotController:
         self.rate = rospy.Rate(RATE)
 
         rospy.loginfo("Robot name: {0}".format(self.robot_name))
+
         if self.is_turtlebot:
             rospy.loginfo("We're a real Turtlebot!")
         else:
@@ -405,7 +312,7 @@ class RobotController:
         # # IDLE
         # smach.StateMachine.add('IDLE', Idle(),
         # transitions={'have_tasks': 'CHOOSE_TASK',
-        #                                         'no_tasks': 'IDLE'})
+        # 'no_tasks': 'IDLE'})
 
         #     # CHOOSE_TASK
         #     smach.StateMachine.add('CHOOSE_TASK', ChooseTask(),
@@ -421,6 +328,8 @@ class RobotController:
         # outcome = sm.execute()
 
     def init_subscribers(self):
+        """ Initialize subscriptions and register callbacks """
+
         rospy.loginfo('Initializing subscribers...')
 
         # '/experiment'
@@ -470,6 +379,8 @@ class RobotController:
         time.sleep(3)
 
     def init_publishers(self):
+        """ Initialize publishers. """
+
         # If we're a Turtlebot, echo /amcl_pose to /{self.robot_name/amcl_pose
         if self.is_turtlebot:
             self.amcl_echo_pub = rospy.Publisher("/{0}/amcl_pose".format(self.robot_name),
@@ -491,17 +402,73 @@ class RobotController:
         # For good measure...
         time.sleep(3)
 
+    def get_path_cost(self, start, goal):
+        """
+        Get the path distance from start to goal. Performs a service call to
+        the global planner if we don't find the distance in a cache.
+
+        :param geometry_msgs.msg.Pose start: start point
+        :param geometry_msgs.msg.Pose goal: end point
+        :return: distance in meters
+        :rtype: float
+        """
+
+        rospy.loginfo("({0}): get_path_cost: ({1},{2})->({3},{4})".format(
+            self.robot_name,
+            start.position.x, start.position.y,
+            goal.position.x, goal.position.y))
+
+        # Let's consider the distances start->goal and goal->start
+        # to be equivalent. We'll need keys to look up (and possibly
+        # store) distances for each direction
+        start_tuple = (start.position.x, start.position.y)
+        goal_tuple = (goal.position.x, goal.position.y)
+        sg_key = (start_tuple, goal_tuple)
+        gs_key = (goal_tuple, start_tuple)
+
+        # The distance to return
+        distance = None
+
+        # First check the cache
+        if sg_key in self._path_distance_cache:
+            rospy.loginfo("  CACHE HIT")
+            distance = self._path_distance_cache[sg_key]
+        elif gs_key in self._path_distance_cache:
+            rospy.loginfo("  CACHE HIT")
+            distance = self._path_distance_cache[gs_key]
+
+        # Otherwise call the planner to find the distance
+        else:
+            rospy.loginfo("  CACHE MISS, LOOKING UP...")
+
+            distance = self._lookup_path_cost(start, goal)
+
+            # Store the distance in the cache
+            self._path_distance_cache[sg_key] = distance
+            self._path_distance_cache[gs_key] = distance
+
+        return distance
+
     def _disable_obstacle_layer(self):
+        """ Disable the obstacle layer of the costmaps """
+
         rospy.loginfo("({0}) Disabling obstacle layer in global costmap".format(self.robot_name))
         self.obs_layer_param_client.update_configuration({'enabled': False})
 
     def _enable_obstacle_layer(self):
+        """ Enable the obstacle layer of the costmaps """
+
         rospy.loginfo("({0}) Enabling obstacle layer in global costmap".format(self.robot_name))
         self.obs_layer_param_client.update_configuration({'enabled': True})
 
     @staticmethod
     def _point_to_point_msg(point):
-        """Convert a mrta.Point to a geometry_msgs.msg.Point"""
+        """ Convert a mrta.Point to a geometry_msgs.msg.Point
+
+        :param mrta.Point: point
+        :return: A new g.m.Point object
+        :rtype: geometry_msgs.msg.Point
+        """
         point_msg = geometry_msgs.msg.Point()
         point_msg.x = point.x
         point_msg.y = point.y
@@ -511,6 +478,12 @@ class RobotController:
 
     @staticmethod
     def _point_to_pose(point):
+        """ Convert a mrta.Point to a geometry_msgs.msg.Pose
+
+        :param mrta.Point: point
+        :return: A new g.m.Pose object
+        :rtype: geometry_msgs.msg.Pose
+        """
         pose_msg = geometry_msgs.msg.Pose()
         pose_msg.position = point
         pose_msg.orientation.w = 1.0
@@ -519,6 +492,12 @@ class RobotController:
 
     @staticmethod
     def _pose_to_posestamped(pose, frame_id='map'):
+        """ Convert a geometry_msgs.msg.Pose to a geometry_msgs.msg.PoseStamped
+
+        :param geometry_msgs.msg.Pose: point
+        :return: A new g.m.PoseStamped object
+        :rtype: geometry_msgs.msg.PoseStamped
+        """
         pose_stamped_msg = geometry_msgs.msg.PoseStamped()
 
         pose_stamped_msg.header.stamp = rospy.get_rostime()
@@ -528,6 +507,7 @@ class RobotController:
         return pose_stamped_msg
 
     def _clear_costmaps(self):
+        """ Reset the costmaps to their initial states (basically the static layer). """
 
         rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
         rospy.wait_for_service(self.cc_srv_name)
@@ -545,8 +525,15 @@ class RobotController:
             rospy.logerr("Service call failed: {0}".format(e))
 
     def _make_nav_plan(self, start, goal):
+        """ Create a global plan between start and goal
 
-        # We need to convert start and goal from type geometry_msgs.Pose
+        :param geometry_msgs.msg.Pose: start
+        :param geometry_msgs.msg.Pose: goal
+        :return: A path from start to goal
+        :rtype: geometry_msgs.msg.Pose[]
+        """
+
+        # We need to convert start and goal from type geometry_msgs.msg.Pose
         # to type geometry_msgs.PoseStamped. tolerance (from the docs):
         # "If the goal is obstructed, how many meters the planner can
         # relax the constraint in x and y before failing."
@@ -584,12 +571,12 @@ class RobotController:
         if self.fsm.current == 'moving' and in_danger_zone(self.current_pose, other_pose):
             rospy.loginfo("({0}) In danger of colliding with {0}".format(self.robot_name, other_name))
 
-    def get_path_cost(self, start, goal):
+    def _lookup_path_cost(self, start, goal):
         """
-        Return the cost of a path from start to goal. The path is obtained
-        from the navfn/MakeNavPlan service. The cost is the sum of distances
-        between points in the path PLUS the angular changes (in randians)
-        needed to re-orient from every point to its successor.
+        Call the global planner service to obtain a path from start to goal
+        and then calculate its cost. The cost is the sum of distances between
+        points in the path PLUS the angular changes (in randians) needed to
+        re-orient from every point to its successor.
 
         This is taken from the alufr ROS package. See getPlanCost() in
         navstack_module.cpp at:
@@ -624,7 +611,7 @@ class RobotController:
                 ## the path returned by make_plan doesn't seem to specify
                 ## orientations in its poses.
                 # yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
-                #yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
+                # yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
                 #yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
                 #path_cost += yaw_delta
 
@@ -748,7 +735,7 @@ class RobotController:
             task_msg = announce_msg.tasks[0]
 
             # path_cost = self.get_path_cost(bid_from,
-            #                                self._point_to_pose(task_msg.location))
+            # self._point_to_pose(task_msg.location))
 
             # Get the cumulative cost of all tasks in out agenda so far
             (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
@@ -759,7 +746,7 @@ class RobotController:
                                                               c_cost))
 
             new_task_cost = self.get_path_cost(bid_from,
-                                               self._point_to_pose(task_msg.location))
+                                                  self._point_to_pose(task_msg.location))
 
             path_cost = c_cost + new_task_cost
 
@@ -784,8 +771,8 @@ class RobotController:
             bid_from = self.current_pose
 
             for task_msg in announce_msg.tasks:
-                path_cost = self.get_path_cost(bid_from,
-                                               self._point_to_pose(task_msg.location))
+                path_cost = self.get_path_cost(
+                    bid_from, self._point_to_pose(task_msg.location))
 
                 rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
                     self.robot_name,
@@ -814,8 +801,8 @@ class RobotController:
             minimum_cost_task_id = None
 
             for task_msg in announce_msg.tasks:
-                #path_cost = self.get_path_cost(bid_from,
-                #                               self._point_to_pose(task_msg.location))
+                # path_cost = self.get_path_cost(bid_from,
+                #                                  self._point_to_pose(task_msg.location))
 
                 new_task_cost = self.get_path_cost(
                     bid_from,
@@ -985,7 +972,7 @@ class RobotController:
                 self.fsm.collision_detected(other_robot=r_name)
 
                 # if in_danger_zone(self.current_pose, other_pose):
-                #     #rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
+                # #rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
                 #     #rospy.loginfo("({0}) Current state: {1}".format(self.robot_name,self.fsm.current))
 
                 #     if self.robot_name > r_name and self.fsm.current != 'resolve_collision':
@@ -1026,7 +1013,7 @@ class RobotController:
     # rospy.loginfo("goal_done_cb(): term_state=={0}, result=={1}".format(term_state,
     # result))
     # if term_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
-    #         self.fsm.goal_reached()
+    # self.fsm.goal_reached()
     #     else:
     #         self.fsm.goal_not_reached()
 
