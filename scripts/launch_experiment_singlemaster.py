@@ -35,7 +35,7 @@ robots = [ { 'name': 'robot_1',
              'port': '11314' } ]
 
 maps = { 'brooklyn': 'brooklyn_lab.png',
-         'smartlab': 'smartlab_ugv_arena_10px_buffers.png' }
+         'smartlab': 'smartlab_ugv_arena_v2.png' }
 
 world_files = { 'brooklyn': { 'clustered': 'brooklyn_arena_3_robots_clustered.world',
                               'distributed': 'brooklyn_arena_3_robots_distributed.world',
