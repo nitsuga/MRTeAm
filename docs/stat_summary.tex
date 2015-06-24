@@ -1,0 +1,128 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{graphicx}
+\usepackage[
+top    = 2.5cm,
+bottom = 2.50cm,
+left   = 2.5cm,
+right  = 2.50cm]{geometry}
+\usepackage{relsize}
+\usepackage{titling}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+% Define a task filename here
+%\newcommand{\taskfile}{tasks_A}
+
+\title{Your Title Here}
+\preauthor{}
+\author{}
+\postauthor{}
+\predate{}
+\date{}
+\postdate{}
+
+\begin{document}
+
+\maketitle
+
+%% Deliberation Time
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{deliberation-$TASKFILE$-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{deliberation-$TASKFILE$-distributed.pdf}
+\end{minipage}
+\\[0.2cm]
+
+%% Execution Time
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{execution-$TASKFILE$-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{execution-$TASKFILE$-distributed.pdf}
+\end{minipage}
+\\[0.2cm]
+
+%% Idle Time
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{idle-$TASKFILE$-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{idle-$TASKFILE$-distributed.pdf}
+\end{minipage}
+
+%%% Delay Time
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{delay-$TASKFILE$-clustered.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{delay-$TASKFILE$-distributed.pdf}
+%\end{minipage}
+%\\[0.5cm]
+
+%% Distance Travelled
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{distance-$TASKFILE$-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{distance-$TASKFILE$-distributed.pdf}
+\end{minipage}
+\\[0.5cm]
+
+%% Near Collisions
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{collisions-$TASKFILE$-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{collisions-$TASKFILE$-distributed.pdf}
+\end{minipage}
+\\[0.5cm]
+
+%%% Per-robot, distance travelled
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{distance-per-robot-CLUSTERED.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{distance-per-robot-DISTRIBUTED.pdf}
+%\end{minipage}
+%\\[0.5cm]
+%
+%%% Per-robot, travel time
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{travel-time-per-robot-CLUSTERED.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{travel-time-per-robot-DISTRIBUTED.pdf}
+%\end{minipage}
+%\\[0.5cm]
+%
+%%% Per-robot,idle time
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{idle-time-per-robot-CLUSTERED.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{idle-time-per-robot-DISTRIBUTED.pdf}
+%\end{minipage}
+%\\[0.5cm]
+%
+%%% Per-robot, delay time
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{delay-per-robot-CLUSTERED.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{delay-per-robot-DISTRIBUTED.pdf}
+%\end{minipage}
+%\\[0.5cm]
+
+\end{document}

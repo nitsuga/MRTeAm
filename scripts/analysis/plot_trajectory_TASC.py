@@ -42,6 +42,7 @@ def read_point_configs():
     #for task_file in ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'tasks_A.txt']:
 #    for task_file in ['TASC_scenario_6.txt']:
     for task_file in ['TASC_scenario_5.txt', 'TASC_scenario_5_static.txt']:
+#    for task_file in ['tasks_A_dynamic.txt']:
         points = []
         config_file = open("{0}/{1}".format(task_file_dir, task_file), "rb")        
         for line in config_file:

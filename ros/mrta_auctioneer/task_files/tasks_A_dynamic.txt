@@ -1,0 +1,11 @@
+# One task per line. Each line is an xy-coordinate pair that indicates
+# the location of a single task. Units are meters.
+0 1.00 5.00
+0 4.00 1.00
+45 6.50 5.00
+45 1.00 3.00
+90 4.00 3.00
+90 6.50 1.00
+135 6.50 3.00
+135 1.00 1.00
+180 4.00 5.00
