@@ -21,7 +21,7 @@ window
 floorplan
 ( 
   name "smartlab_ugv_arena"
-  bitmap "../maps/smartlab_ugv_arena_10px_buffers.png"
+  bitmap "../maps/smartlab_ugv_arena_v2.png"
   size [8.0 6.0 0.75]
   pose [ 4.0 3.0 0 0 ]
 )

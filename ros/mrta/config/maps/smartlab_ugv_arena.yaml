@@ -1,4 +1,4 @@
-image: smartlab_ugv_arena_10px_buffers.png
+image: smartlab_ugv_arena_v2.png
 resolution: 0.01
 origin: [0.0, 0.0, 0.0]
 occupied_thresh: 0.53
