@@ -12,8 +12,8 @@ import sys
 import time
 
 # Paths to ROS binaries
-#ROS_HOME = '/opt/ros/hydro'
-ROS_HOME = '/home/esch/opt/ros/hydro'
+ROS_HOME = '/opt/ros/hydro'
+#ROS_HOME = '/home/esch/opt/ros/hydro'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
@@ -35,7 +35,7 @@ robots = [ { 'name': 'robot_1',
              'port': '11314' } ]
 
 maps = { 'brooklyn': 'brooklyn_lab.png',
-         'smartlab': 'smartlab_ugv_arena_10px_buffers.png' }
+         'smartlab': 'smartlab_ugv_arena_v2.png' }
 
 world_files = { 'brooklyn': { 'clustered': 'brooklyn_arena_3_robots_clustered.world',
                               'distributed': 'brooklyn_arena_3_robots_distributed.world',
@@ -145,7 +145,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                        "map_file:={0}".format(map_file),
                                        "robot_name:={0}".format(robot['name'])])
         running_procs.append(robot_proc)
-        time.sleep(12)
+        time.sleep(10)
 
     # Launch the auctioneer
     print('######## Launching auctioneer ########')
@@ -178,7 +178,6 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
         time_delta = now - start_time
         if time_delta.seconds > timeout_secs:
             exp_running = False
-
 
     # Processes are terminated in reverse order of their insertion
     # into running_procs. We add the rosbag process to the list last

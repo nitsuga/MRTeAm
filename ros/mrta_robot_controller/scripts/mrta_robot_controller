@@ -61,7 +61,7 @@ RATE = 10
 #DANGER_ZONE_FOV = math.pi / 2
 DANGER_ZONE_FOV = math.pi
 #DANGER_ZONE_DIST = 1.0
-DANGER_ZONE_DIST = 0.6
+DANGER_ZONE_DIST = 0.8
 
 # For pretty-printing convenience!
 pp = pprint.PrettyPrinter(indent=2)
@@ -250,9 +250,25 @@ class RobotController:
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv,
                                                                         timeout=5)
 
+        # Set up client for the service that makes path plans
         rospy.loginfo("Starting 'make_plan' service client")
+        rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
+        rospy.wait_for_service(self.cc_srv_name)
+        rospy.logdebug("Service {0} ready.".format(self.plan_srv_name))
+
         self._nav_plan_client = rospy.ServiceProxy(self.plan_srv_name,
                                                    nav_msgs.srv.GetPlan)
+
+
+        # Set up client for the service that clear costmaps
+        rospy.loginfo("Starting 'clear_costmaps' service client")
+
+        rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
+        rospy.wait_for_service(self.cc_srv_name)
+        rospy.logdebug("Service {0} ready.".format(self.cc_srv_name))
+
+        self._clear_costmaps_client = rospy.ServiceProxy(self.cc_srv_name,
+                                                         std_srvs.srv.Empty)
 
         self._disable_obstacle_layer()
         self._clear_costmaps()
@@ -283,13 +299,8 @@ class RobotController:
                 ('resume', 'paused', 'moving'),
 
                 # Collision avoidance
-                # ('collision_detected', 'moving', 'resolve_collision'),
-#                ('collision_detected', '*', 'resolve_collision'),
-#                ('collision', '*', 'resolve_collision'),
                 ('collision_detected', '*', 'collision_pause'),
                 ('collision_cleared', 'collision_pause', 'collision_resume'),
-               # ('collision_detected', 'paused', 'resolve_collision'),
-                # ('collision_resolved', 'resolve_collision', 'idle'),
                 ('collision_resolved', '*', 'idle'),
             ],
             callbacks={
@@ -408,6 +419,21 @@ class RobotController:
         # For good measure...
         time.sleep(3)
 
+    def _is_reachable_distance(self, distance):
+        """
+        True if the distance is some 'reasonable' number (e.g. less than 10000).
+        This test is used in several places. It's been moved into a function so
+        that the actual test can be defined/updated in one place.
+
+        :param distance: float
+        :return: True/False
+        """
+
+        if distance < 10000:
+            return True
+
+        return False
+
     def get_path_cost(self, start, goal):
         """
         Get the path distance from start to goal. Performs a service call to
@@ -418,11 +444,6 @@ class RobotController:
         :return: distance in meters
         :rtype: float
         """
-
-        rospy.loginfo("({0}): get_path_cost: ({1},{2})->({3},{4})".format(
-            self.robot_name,
-            start.position.x, start.position.y,
-            goal.position.x, goal.position.y))
 
         # Let's consider the distances start->goal and goal->start
         # to be equivalent. We'll need keys to look up (and possibly
@@ -436,11 +457,12 @@ class RobotController:
         distance = None
 
         # First check the cache
-        if sg_key in self._path_distance_cache and self._path_distance_cache[sg_key] != sys.maxint:
+        if sg_key in self._path_distance_cache and self._is_reachable_distance(self._path_distance_cache[sg_key]):
             distance = self._path_distance_cache[sg_key]
-        elif gs_key in self._path_distance_cache and self._path_distance_cache[gs_key] != sys.maxint:
-            rospy.loginfo("  CACHE HIT")
+            rospy.loginfo("  CACHE HIT (sg), distance=={0}".format(distance))
+        elif gs_key in self._path_distance_cache and self._is_reachable_distance(self._path_distance_cache[gs_key]):
             distance = self._path_distance_cache[gs_key]
+            rospy.loginfo("  CACHE HIT (gs), distance=={0}".format(distance))
 
         # Otherwise call the planner to find the distance
         else:
@@ -451,6 +473,13 @@ class RobotController:
             # Store the distance in the cache
             self._path_distance_cache[sg_key] = distance
             self._path_distance_cache[gs_key] = distance
+
+
+        rospy.loginfo("({0}): get_path_cost: ({1},{2})->({3},{4}) == {5}".format(
+            self.robot_name,
+            start.position.x, start.position.y,
+            goal.position.x, goal.position.y,
+            distance))
 
         return distance
 
@@ -514,15 +543,12 @@ class RobotController:
     def _clear_costmaps(self):
         """ Reset the costmaps to their initial states (basically the static layer). """
 
-        rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
-        rospy.wait_for_service(self.cc_srv_name)
-        rospy.logdebug("Service ready.")
-
         try:
-            clear_costmaps_proxy = rospy.ServiceProxy(self.cc_srv_name,
-                                                      std_srvs.srv.Empty)
+            rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
+            rospy.wait_for_service(self.cc_srv_name)
+            rospy.logdebug("Service ready.")
 
-            clear_costmaps_proxy()
+            self._clear_costmaps_client()
 
             rospy.logdebug("({0}) cleared costmaps".format(self.robot_name))
 
@@ -572,10 +598,6 @@ class RobotController:
             res += 2.0 * math.pi
         return res
 
-    def handle_collision(self, other_name, other_pose):
-        if self.fsm.current == 'moving' and in_danger_zone(self.current_pose, other_pose):
-            rospy.loginfo("({0}) In danger of colliding with {0}".format(self.robot_name, other_name))
-
     def _lookup_path_cost(self, start, goal):
         """
         Call the global planner service to obtain a path from start to goal
@@ -586,6 +608,11 @@ class RobotController:
         This is taken from the alufr ROS package. See getPlanCost() in
         navstack_module.cpp at:
         https://code.google.com/p/alufr-ros-pkg/source/browse/.
+
+        :param geometry_msgs.msg.Pose: start
+        :param geometry_msgs.msg.Pose: goal
+        :return: The cost of the shortest path from start to goal
+        :rtype: float
         """
 
         # rospy.loginfo("Getting path from {0}...".format(self.plan_srv_name))
@@ -639,7 +666,12 @@ class RobotController:
         Get the cumulative cost of performing all tasks (visiting task points)
         from start. If greedy==True, tasks are ordered to minimize the cost of
         each hop (i.e., the next closest task is chosen). Otherwise, the
-        original list order is used.
+        original list order is used. Ideally, this should be a real TSP solution.
+
+        :param geometry_msgs.msg.Pose: start
+        :param mrta.SensorSweepTask[]: tasks
+        :return: The cumulative cost (distance) of visiting all of the task points
+        :rtype: float
         """
         cumulative_cost = 0.0
 
@@ -722,16 +754,7 @@ class RobotController:
         self._clear_costmaps()
         self._clear_costmaps()
 
-        time.sleep(0.1)
-
-        # Our bid-from point is the location of our most recently won task,
-        # if any. If we haven't won any tasks, bid from our current position.
-        # bid_from = None
-        # if self.last_won_location:
-        # # Convert last_won_location from a Point to a Pose
-        # bid_from = self._point_to_pose(self.last_won_location)
-        # else:
-        # bid_from = self.current_pose
+        time.sleep(0.5)
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
@@ -873,6 +896,12 @@ class RobotController:
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
+
+        time.sleep(0.2)
+
+        self._clear_costmaps()
+#        self._clear_costmaps()
+
         time.sleep(0.5)
 
         # We have two ways to choose the next task from our agenda:
@@ -939,11 +968,6 @@ class RobotController:
             other_pose = self.other_poses[r_name]
 
             if in_danger_zone(self.current_pose, other_pose) and self.robot_name > r_name:
-
-                # if self.robot_name == 'robot_3':
-                #     rospy.loginfo("({0}) is NOT clear of {1}!".format(self.robot_name, r_name))
-                #     rospy.loginfo("({0}) I am at {1}".format(self.robot_name,pp.pformat(self.current_pose)))
-                #     rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
                 is_clear = False
                 break
 
@@ -952,7 +976,7 @@ class RobotController:
     def on_teammate_pose_received(self, amcl_pose_msg, r_name):
         rospy.logdebug("({0}) on_teammate_pose_received ({1})".format(self.robot_name, r_name))
 
-        # self.fsm might not be initialized yet
+        # Sometimes self.fsm might isn't initialized yet...
         try:
             if self.fsm:
                 pass
@@ -967,59 +991,20 @@ class RobotController:
         rospy.logdebug("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
         rospy.logdebug("({0}) I am at {1}".format(self.robot_name,pp.pformat(self.current_pose)))
 
-#        if self.robot_name == 'robot_3':
-#            rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
-
         if self._clear_of_other_robots():
             if self.in_collision:
                 self.in_collision = False
-
                 rospy.loginfo("({0}) Resuming from collision!".format(self.robot_name))
-#                self.fsm.collision_cleared()
-
-#                rospy.loginfo("({0}) Returning from on_teammate_pose_received()!".format(self.robot_name))
 
         else:
             rospy.logdebug("({0}) is in danger of collision!!".format(self.robot_name))
 
-#            if self.robot_name < r_name:
-#                self.in_collision = False
-#            else:
-#                self.in_collision = True
-
-#            if self.fsm.current == 'moving' and self.in_collision:
-
+            # Only pause for collision if we're currently in the 'moving' state and if this
+            # is the first time we're detecting a potential collision (i.e., we're not already
+            # paused).
             if self.fsm.current == 'moving' and not self.in_collision:
                 self.in_collision = True
                 rospy.loginfo("({0}) on_teammate_pose_received: pausing for collision with {1}".format(self.robot_name, r_name))
-
-#                self.fsm.collision_detected(other_robot=r_name)
-
-#                rospy.loginfo("({0}) Returning from on_teammate_pose_received()!".format(self.robot_name))
-
-                # if in_danger_zone(self.current_pose, other_pose):
-                # #rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
-                #     #rospy.loginfo("({0}) Current state: {1}".format(self.robot_name,self.fsm.current))
-
-                #     if self.robot_name > r_name and self.fsm.current != 'resolve_collision':
-                #         rospy.logdebug("({0}) in_collision = True, other robot=={1}".format(self.robot_name,
-                #                                                                            r_name))
-                #         self.in_collision = True
-
-                #         if self.fsm.current == 'moving':
-
-                #             self.fsm.collision_detected(other_robot_name=r_name)
-                # #else:
-                #     #if self.fsm.current == 'resolve_collision':
-                #         #self.fsm.collision_resolved()
-
-                # else:
-                #     rospy.logdebug("({0}) in_collision = False, other robot=={1}".format(self.robot_name,
-                #                                                                        r_name))
-                #     self.in_collision = False
-
-                #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
-
 
     def on_experiment_event_received(self, event_msg):
         if event_msg.event == 'BEGIN_ALLOCATION':
@@ -1049,12 +1034,13 @@ class RobotController:
 
         # Enable the global costmap's obstacle layer
         self._enable_obstacle_layer()
+        time.sleep(0.2)
 
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
         self._clear_costmaps()
 
-        time.sleep(0.5)
+        time.sleep(1.0)
 
         goal_task = self.current_task
 
@@ -1133,10 +1119,12 @@ class RobotController:
 
         rospy.loginfo("({0}) IN 'moving', state: {1}".format(self.robot_name, self.fsm.current))
 
-        # Sometimes wait_for_result() returns, but the goal is still active. Why?
-        while self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
+        ACTIVE = actionlib_msgs.msg.GoalStatus.ACTIVE
+        PENDING = actionlib_msgs.msg.GoalStatus.PENDING
 
-#            time.sleep(0.5)
+        # Sometimes wait_for_result() returns, but the goal is still active. Why?
+        while self.aclient.get_state() == ACTIVE or self.aclient.get_state() == PENDING:
+
             if self.in_collision:
                 self.fsm.collision_detected()
                 return
@@ -1147,11 +1135,10 @@ class RobotController:
 
         rospy.loginfo("({0}) aclient state=={1}".format(self.robot_name, self.aclient.get_state()))
 
-
         # Disable the obstacle layer and clear costmaps again
-        self._disable_obstacle_layer()
-        self._clear_costmaps()
-        self._clear_costmaps()
+#        self._disable_obstacle_layer()
+#        self._clear_costmaps()
+#        self._clear_costmaps()
 
         # If resolving collisions, just return here
         if self.fsm.current == 'resolve_collision':
