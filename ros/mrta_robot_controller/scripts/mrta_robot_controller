@@ -58,10 +58,10 @@ RATE = 10
 
 # If another robot is with this distance (in meters) and field of view (in
 # radians), we're in danger of colliding with it
-DANGER_ZONE_FOV = math.pi / 2
-# DANGER_ZONE_FOV = math.pi
-# DANGER_ZONE_DIST = 1.0
-DANGER_ZONE_DIST = 0.3
+#DANGER_ZONE_FOV = math.pi / 2
+DANGER_ZONE_FOV = math.pi
+#DANGER_ZONE_DIST = 1.0
+DANGER_ZONE_DIST = 0.6
 
 # For pretty-printing convenience!
 pp = pprint.PrettyPrinter(indent=2)
@@ -201,6 +201,7 @@ class RobotController:
         # Initialize our node
         node_name = 'mrta_robot_controller'
         rospy.loginfo("Starting node '{0}'...".format(node_name))
+#        rospy.init_node(node_name, log_level=rospy.DEBUG)
         rospy.init_node(node_name)
 
         # The rate at which we'll sleep while idle
@@ -283,8 +284,11 @@ class RobotController:
 
                 # Collision avoidance
                 # ('collision_detected', 'moving', 'resolve_collision'),
-                ('collision_detected', '*', 'resolve_collision'),
-                # ('collision_detected', 'paused', 'resolve_collision'),
+#                ('collision_detected', '*', 'resolve_collision'),
+#                ('collision', '*', 'resolve_collision'),
+                ('collision_detected', '*', 'collision_pause'),
+                ('collision_cleared', 'collision_pause', 'collision_resume'),
+               # ('collision_detected', 'paused', 'resolve_collision'),
                 # ('collision_resolved', 'resolve_collision', 'idle'),
                 ('collision_resolved', '*', 'idle'),
             ],
@@ -298,7 +302,9 @@ class RobotController:
                 'ontask_success': self.task_success,
                 'ontask_failure': self.task_failure,
                 'onshutdown': self.shutdown,
-                'onresolve_collision': self.resolve_collision
+#                'onresolve_collision': self.resolve_collision,
+                'oncollision_pause': self.collision_pause,
+                'oncollision_resume': self.collision_resume
             }
         )
 
@@ -430,10 +436,9 @@ class RobotController:
         distance = None
 
         # First check the cache
-        if sg_key in self._path_distance_cache:
-            rospy.loginfo("  CACHE HIT")
+        if sg_key in self._path_distance_cache and self._path_distance_cache[sg_key] != sys.maxint:
             distance = self._path_distance_cache[sg_key]
-        elif gs_key in self._path_distance_cache:
+        elif gs_key in self._path_distance_cache and self._path_distance_cache[gs_key] != sys.maxint:
             rospy.loginfo("  CACHE HIT")
             distance = self._path_distance_cache[gs_key]
 
@@ -868,6 +873,7 @@ class RobotController:
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
+        time.sleep(0.5)
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -887,7 +893,6 @@ class RobotController:
                     if not min_uncompleted_dist or path_cost < min_uncompleted_dist:
                         goal_task = task
                         min_uncompleted_dist = path_cost
-
                 else:
                     goal_task = task
                     break
@@ -933,15 +938,19 @@ class RobotController:
         for r_name in self.other_poses:
             other_pose = self.other_poses[r_name]
 
-            if in_danger_zone(self.current_pose, other_pose):
-                rospy.logdebug("({0}) I am NOT clear of {1}!".format(self.robot_name, r_name))
+            if in_danger_zone(self.current_pose, other_pose) and self.robot_name > r_name:
+
+                # if self.robot_name == 'robot_3':
+                #     rospy.loginfo("({0}) is NOT clear of {1}!".format(self.robot_name, r_name))
+                #     rospy.loginfo("({0}) I am at {1}".format(self.robot_name,pp.pformat(self.current_pose)))
+                #     rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
                 is_clear = False
                 break
 
         return is_clear
 
     def on_teammate_pose_received(self, amcl_pose_msg, r_name):
-        rospy.logdebug("({0}) on_teammate_pose_received".format(self.robot_name))
+        rospy.logdebug("({0}) on_teammate_pose_received ({1})".format(self.robot_name, r_name))
 
         # self.fsm might not be initialized yet
         try:
@@ -955,21 +964,38 @@ class RobotController:
         # geometry_msgs/Pose
         other_pose = amcl_pose_msg.pose.pose
         self.other_poses[r_name] = other_pose
-        # rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name,
-        # r_name,
-        # pp.pformat(other_pose)))
+        rospy.logdebug("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
+        rospy.logdebug("({0}) I am at {1}".format(self.robot_name,pp.pformat(self.current_pose)))
+
+#        if self.robot_name == 'robot_3':
+#            rospy.loginfo("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
 
         if self._clear_of_other_robots():
-            self.in_collision = False
-        else:
-            if self.robot_name < r_name:
+            if self.in_collision:
                 self.in_collision = False
-            else:
-                self.in_collision = True
 
-            if self.fsm.current == 'moving' and self.in_collision:
-                rospy.loginfo("({0}) on_teammate_pose_received: collision_detected".format(self.robot_name))
-                self.fsm.collision_detected(other_robot=r_name)
+                rospy.loginfo("({0}) Resuming from collision!".format(self.robot_name))
+#                self.fsm.collision_cleared()
+
+#                rospy.loginfo("({0}) Returning from on_teammate_pose_received()!".format(self.robot_name))
+
+        else:
+            rospy.logdebug("({0}) is in danger of collision!!".format(self.robot_name))
+
+#            if self.robot_name < r_name:
+#                self.in_collision = False
+#            else:
+#                self.in_collision = True
+
+#            if self.fsm.current == 'moving' and self.in_collision:
+
+            if self.fsm.current == 'moving' and not self.in_collision:
+                self.in_collision = True
+                rospy.loginfo("({0}) on_teammate_pose_received: pausing for collision with {1}".format(self.robot_name, r_name))
+
+#                self.fsm.collision_detected(other_robot=r_name)
+
+#                rospy.loginfo("({0}) Returning from on_teammate_pose_received()!".format(self.robot_name))
 
                 # if in_danger_zone(self.current_pose, other_pose):
                 # #rospy.loginfo("({0}) In danger of colliding with {1}".format(self.robot_name,r_name))
@@ -993,6 +1019,7 @@ class RobotController:
                 #     self.in_collision = False
 
                 #rospy.loginfo("Got {0}'s pose:\n{1}".format(r_name, pp.pformat(self.other_poses[r_name])))
+
 
     def on_experiment_event_received(self, event_msg):
         if event_msg.event == 'BEGIN_ALLOCATION':
@@ -1027,7 +1054,7 @@ class RobotController:
         self._clear_costmaps()
         self._clear_costmaps()
 
-        time.sleep(0.2)
+        time.sleep(0.5)
 
         goal_task = self.current_task
 
@@ -1049,20 +1076,14 @@ class RobotController:
         goal_msg.target_pose.pose.orientation.z = 1.0
         goal_msg.target_pose.pose.orientation.w = 0.0
 
-        rospy.loginfo("Sending goal: {0}".format(pp.pformat(goal_msg)))
+        rospy.logdebug("({0}) sending goal: {1}".format(self.robot_name, pp.pformat(goal_msg)))
         #self.aclient.send_goal(goal_msg, done_cb=self.goal_done_cb)
         self.aclient.send_goal(goal_msg)
 
         self.fsm.goal_sent()
 
-    def resolve_collision(self, e):
-        rospy.loginfo("({0}) state: resolve_collision".format(self.robot_name))
-
-        # This might work...
-        #if self.robot_name > e.other_robot_name:
-        #    self.in_collision = True
-
-        goal_task = self.current_task
+    def collision_pause(self, e):
+        rospy.loginfo("({0}) state: collision_pause".format(self.robot_name))
 
         rospy.loginfo("({0}) Pausing to avoid collision...".format(self.robot_name))
         self.aclient.cancel_goal()
@@ -1070,27 +1091,29 @@ class RobotController:
         # Mark a pause in this task's execution
         pause_task_msg = mrta.msg.TaskStatus()
         pause_task_msg.robot_id = self.robot_name
-        pause_task_msg.task_id = goal_task.task_id
+        pause_task_msg.task_id = self.current_task.task_id
         pause_task_msg.status = 'PAUSE'
         stamp(pause_task_msg)
         self.task_status_pub.publish(pause_task_msg)
 
-        #        while self.in_collision:
-        #            self.rate.sleep()
+        while self.in_collision:
+            self.rate.sleep()
 
-        #time.sleep(1)
+        self.fsm.collision_cleared()
 
-        #        if self.robot_name > e.other_robot_name:
-        # Duration to pause
-        pause_duration = 1 + random.random()
-        time.sleep(pause_duration)
+            # Duration to pause
+    #        pause_duration = 1 + random.random()
+    #        time.sleep(pause_duration)
+
+    def collision_resume(self, e):
+        rospy.loginfo("({0}) state: collision_resume".format(self.robot_name))
 
         rospy.loginfo("({0}) Resuming...".format(self.robot_name))
 
         # Mark a resumption of this task's execution
         resume_task_msg = mrta.msg.TaskStatus()
         resume_task_msg.robot_id = self.robot_name
-        resume_task_msg.task_id = goal_task.task_id
+        resume_task_msg.task_id = self.current_task.task_id
         resume_task_msg.status = 'RESUME'
         stamp(resume_task_msg)
         self.task_status_pub.publish(resume_task_msg)
@@ -1101,7 +1124,7 @@ class RobotController:
         rospy.loginfo("({0}) state: moving".format(self.robot_name))
 
         # Wait until the goal is reached
-        self.aclient.wait_for_result()
+#        self.aclient.wait_for_result()
 
         # The actionlib client will send a "goal reached" message, triggering
         # goal_done_cb() to change the current state. Wait here until then.
@@ -1112,7 +1135,18 @@ class RobotController:
 
         # Sometimes wait_for_result() returns, but the goal is still active. Why?
         while self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.ACTIVE:
-            time.sleep(0.5)
+
+#            time.sleep(0.5)
+            if self.in_collision:
+                self.fsm.collision_detected()
+                return
+
+#            rospy.loginfo("({0}) aclient state==ACTIVE and NOT self.in_collision.".format(self.robot_name))
+
+            self.rate.sleep()
+
+        rospy.loginfo("({0}) aclient state=={1}".format(self.robot_name, self.aclient.get_state()))
+
 
         # Disable the obstacle layer and clear costmaps again
         self._disable_obstacle_layer()
@@ -1126,7 +1160,7 @@ class RobotController:
         if self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
             self.fsm.goal_reached()
         else:
-            rospy.loginfo("GoalStatus=={0}".format(self.aclient.get_state()))
+            rospy.loginfo("({0}) GoalStatus=={1}".format(self.robot_name, self.aclient.get_state()))
             # hax...
             if self.fsm.current == 'moving':
                 self.fsm.goal_not_reached()
