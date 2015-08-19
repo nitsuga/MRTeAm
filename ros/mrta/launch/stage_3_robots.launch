@@ -14,6 +14,8 @@
   <!-- FKIE master discovery -->
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" respawn="true" output="screen">
     <param name="name" value="stage_master" />
+    <!-- We want a unique multicast group per experiment. Set it here to avoid conflicts on the cluster. -->
+    <param name="mcast_group" value="226.0.0.$(optenv SGE_TASK_ID 1)" />
   </node>
 
   <!-- FKIE master sync -->
