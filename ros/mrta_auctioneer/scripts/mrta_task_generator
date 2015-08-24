@@ -88,7 +88,7 @@ class TaskGenerator:
         task_msg.task.task_id = task.task_id
         task_msg.task.depends = task.depends
         task_msg.task.type = task.type
-        task_msg.task.num_robots_required = task.num_robots_required
+        task_msg.task.num_robots = task.num_robots
         task_msg.location.x = task.location.x
         task_msg.location.y = task.location.y
         task_msg.location.z = task.location.z

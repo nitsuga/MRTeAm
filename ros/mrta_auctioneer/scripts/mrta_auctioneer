@@ -136,8 +136,8 @@ class Auction(object):
         task_msg.task.task_id = task.task_id
         task_msg.task.depends = task.depends
         task_msg.task.type = task.type
-        task_msg.task.num_robots_required = task.num_robots_required
-        task_msg.task.seconds_required = task.seconds_required
+        task_msg.task.num_robots = task.num_robots
+        task_msg.task.duration = task.duration
         task_msg.location.x = task.location.x
         task_msg.location.y = task.location.y
         task_msg.location.z = task.location.z
@@ -698,7 +698,7 @@ class Auctioneer:
                     continue
 
                 # See task file headers for a description of their format
-                start_secs, task_x, task_y, num_robots, seconds_required = task_line.split()
+                start_secs, task_x, task_y, num_robots, duration = task_line.split()
 
                 # task_id is string-ified here because an id may one day be
                 # an MD5 hash or some other non-integer value. They just happen
@@ -708,7 +708,7 @@ class Auctioneer:
                                                 float(task_y),
                                                 0.0, # z
                                                 int(num_robots),
-                                                float(seconds_required))
+                                                float(duration))
                 #self.tasks.append(new_task)
                 self.scripted_tasks.append(new_task)
                 self.scripted_tasks_by_id[str(task_id)] = new_task

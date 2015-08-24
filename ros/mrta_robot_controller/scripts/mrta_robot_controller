@@ -887,8 +887,8 @@ class RobotController:
                                             float(task_msg.location.x),
                                             float(task_msg.location.y),
                                             0.0, # z
-                                            int(task_msg.task.num_robots_required),
-                                            float(task_msg.task.seconds_required))
+                                            int(task_msg.task.num_robots),
+                                            float(task_msg.task.duration))
             self.agenda.append(new_task)
             self.last_won_location = task_msg.location
 
@@ -1176,7 +1176,7 @@ class RobotController:
         # Possibly wait for other robots to arrive
 
         # 'Execute' the task: sleep for the required time
-        time.sleep(goal_task.seconds_required)
+        time.sleep(goal_task.duration)
 
         # We shouldn't fail to execute any task, since execution is virtual...
         self.fsm.task_succeeded()

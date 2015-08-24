@@ -1,6 +1,0 @@
-image: smartlab_ugv_arena_10px_buffers.png
-resolution: 0.01
-origin: [0.0, 0.0, 0.0]
-occupied_thresh: 0.53
-free_thresh: 0.1
-negate: 0

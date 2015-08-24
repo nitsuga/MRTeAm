@@ -34,10 +34,10 @@ class Task(object):
         self.depends = []
         
         # Number of robots are needed to complete the task
-        self.num_robots_required = 1
+        self.num_robots = 1
 
         # Time required to complete the task, in seconds
-        self.seconds_required = 0
+        self.duration = 0
 
         # Has the task been awarded (assigned) to a robot?
         self.awarded = False
@@ -47,9 +47,9 @@ class Task(object):
 
 class SensorSweepTask(Task):
 
-    def __init__(self, task_id=None, x=0.0, y=0.0, z=0.0, _num_robots_required=1, _seconds_required=0):
+    def __init__(self, task_id=None, x=0.0, y=0.0, z=0.0, _num_robots=1, _duration=0):
         super(SensorSweepTask, self).__init__(task_id, type='SENSOR_SWEEP')
 
         self.location = Point(x, y, z)
-        self.num_robots_required = _num_robots_required
-        self.seconds_required = _seconds_required
+        self.num_robots = _num_robots
+        self.duration = _duration

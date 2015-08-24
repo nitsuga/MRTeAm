@@ -1,14 +1,13 @@
 # One task per line.
 # Fields are:
-#   <start_secs> <x> <y> <num_robots_required> <seconds_required>
+#   <start_secs> <x> <y> <num_robots> <duration>
 # where
 #
-#  start_secs           Seconds after the experiment begins that task 'appears'
-#  x                    The task's x-coordinate location on the map (in meters)
-#  y                    The task's x-coordinate location on the map (in meters)
-#  num_robots_required  How many robots are required to complete this task
-#  seconds_required     How many seconds are required to 'execute' this task
-
+#  start_secs   Seconds after the experiment begins that task 'appears'
+#  x            The task's x-coordinate location on the map (in meters)
+#  y            The task's x-coordinate location on the map (in meters)
+#  num_robots   How many robots are required to complete this task
+#  duration     How many seconds are required to 'execute' this task
 0   1.00 5.00 1 0
 0   4.00 1.00 1 0
 45  7.00 5.00 1 0
