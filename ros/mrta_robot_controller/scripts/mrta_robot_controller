@@ -289,7 +289,9 @@ class RobotController:
                 ('goal_sent', 'send_goal', 'moving'),
 
                 # Goal success/failure
-                ('goal_reached', '*', 'task_success'),
+                ('goal_reached', '*', 'execute_task'),
+                ('task_succeeded', 'execute_task', 'task_success'),
+                ('task_failed', 'execute_task', 'task_failure'),
                 ('resume', 'task_success', 'idle'),
                 ('goal_not_reached', '*', 'task_failure'),
                 ('resume', 'task_failure', 'idle'),
@@ -310,6 +312,7 @@ class RobotController:
                 'onchoose_task': self.choose_task,
                 'onsend_goal': self.send_goal,
                 'onmoving': self.moving,
+                'onexecute_task': self.execute_task,
                 'ontask_success': self.task_success,
                 'ontask_failure': self.task_failure,
                 'onshutdown': self.shutdown,
@@ -882,7 +885,10 @@ class RobotController:
                                                          task_msg.task.task_id))
             new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
                                             float(task_msg.location.x),
-                                            float(task_msg.location.y))
+                                            float(task_msg.location.y),
+                                            0.0, # z
+                                            int(task_msg.task.num_robots_required),
+                                            float(task_msg.task.seconds_required))
             self.agenda.append(new_task)
             self.last_won_location = task_msg.location
 
@@ -1007,12 +1013,12 @@ class RobotController:
                 rospy.loginfo("({0}) on_teammate_pose_received: pausing for collision with {1}".format(self.robot_name, r_name))
 
     def on_experiment_event_received(self, event_msg):
-        if event_msg.event == 'BEGIN_ALLOCATION':
+        if event_msg.event == mrta.msg.ExperimentEvent.BEGIN_ALLOCATION:
             rospy.loginfo("({0}) BEGIN_ALLOCATION: ok_to_execute==False".format(self.robot_name))
             self.ok_to_execute = False
             self.aclient.cancel_goal()
 
-        elif event_msg.event == 'BEGIN_EXECUTION':
+        elif event_msg.event == mrta.msg.ExperimentEvent.BEGIN_EXECUTION:
             rospy.loginfo("({0}) BEGIN_EXECUTION: ok_to_execute==True".format(self.robot_name))
             self.ok_to_execute = True
             rospy.loginfo("({0}) BEGIN_EXECUTION: current state=={1}".format(self.robot_name,
@@ -1044,11 +1050,11 @@ class RobotController:
 
         goal_task = self.current_task
 
-        # Send a message to mark the beginning of this task's execution
+        # Send a message to signal that we are en route toward the task
         begin_task_msg = mrta.msg.TaskStatus()
         begin_task_msg.robot_id = self.robot_name
         begin_task_msg.task_id = goal_task.task_id
-        begin_task_msg.status = 'BEGIN'
+        begin_task_msg.status = mrta.msg.TaskStatus.ENROUTE
         stamp(begin_task_msg)
         self.task_status_pub.publish(begin_task_msg)
 
@@ -1078,7 +1084,7 @@ class RobotController:
         pause_task_msg = mrta.msg.TaskStatus()
         pause_task_msg.robot_id = self.robot_name
         pause_task_msg.task_id = self.current_task.task_id
-        pause_task_msg.status = 'PAUSE'
+        pause_task_msg.status = mrta.msg.TaskStatus.PAUSE
         stamp(pause_task_msg)
         self.task_status_pub.publish(pause_task_msg)
 
@@ -1100,7 +1106,7 @@ class RobotController:
         resume_task_msg = mrta.msg.TaskStatus()
         resume_task_msg.robot_id = self.robot_name
         resume_task_msg.task_id = self.current_task.task_id
-        resume_task_msg.status = 'RESUME'
+        resume_task_msg.status = mrta.msg.TaskStatus.RESUME
         stamp(resume_task_msg)
         self.task_status_pub.publish(resume_task_msg)
 
@@ -1152,6 +1158,32 @@ class RobotController:
             if self.fsm.current == 'moving':
                 self.fsm.goal_not_reached()
 
+    def execute_task(self, e):
+        rospy.loginfo("({0}) state: execute_task".format(self.robot_name))
+
+        goal_task = self.current_task
+
+        # Send a message to mark the beginning of this task's 'execution'
+        rospy.loginfo("({0}) publishing 'BEGIN' to /tasks/status".format(self.robot_name))
+
+        end_task_msg = mrta.msg.TaskStatus()
+        end_task_msg.robot_id = self.robot_name
+        end_task_msg.task_id = goal_task.task_id
+        end_task_msg.status = mrta.msg.TaskStatus.BEGIN
+        stamp(end_task_msg)
+        self.task_status_pub.publish(end_task_msg)
+
+        # Possibly wait for other robots to arrive
+
+        # 'Execute' the task: sleep for the required time
+        time.sleep(goal_task.seconds_required)
+
+        # We shouldn't fail to execute any task, since execution is virtual...
+        self.fsm.task_succeeded()
+
+        #self.fsm.task_failed()
+
+
     def task_success(self, e):
         rospy.loginfo("({0}) state: task_success".format(self.robot_name))
 
@@ -1163,7 +1195,7 @@ class RobotController:
         end_task_msg = mrta.msg.TaskStatus()
         end_task_msg.robot_id = self.robot_name
         end_task_msg.task_id = goal_task.task_id
-        end_task_msg.status = 'SUCCESS'
+        end_task_msg.status = mrta.msg.TaskStatus.SUCCESS
         stamp(end_task_msg)
         self.task_status_pub.publish(end_task_msg)
 
@@ -1185,7 +1217,7 @@ class RobotController:
         end_task_msg = mrta.msg.TaskStatus()
         end_task_msg.robot_id = self.robot_name
         end_task_msg.task_id = goal_task.task_id
-        end_task_msg.status = 'FAILURE'
+        end_task_msg.status = mrta.msg.TaskStatus.FAILURE
         stamp(end_task_msg)
         self.task_status_pub.publish(end_task_msg)
 

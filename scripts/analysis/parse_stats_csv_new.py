@@ -9,6 +9,8 @@ import re
 import rosbag
 import sys
 
+import mrta.msg
+
 CSV_FILENAME = 'stats.csv'
 
 field_names = [

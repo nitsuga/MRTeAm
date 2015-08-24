@@ -1,11 +1,20 @@
-# One task per line. Each line is an xy-coordinate pair that indicates
-# the location of a single task. Units are meters.
-0 1.00 5.00
-0 4.00 1.00
-45 7.00 5.00
-45 1.00 3.00
-90 4.00 3.00
-90 7.00 1.00
-135 7.00 3.00
-135 1.00 1.00
-180 4.00 5.00
+# One task per line.
+# Fields are:
+#   <start_secs> <x> <y> <num_robots_required> <seconds_required>
+# where
+#
+#  start_secs           Seconds after the experiment begins that task 'appears'
+#  x                    The task's x-coordinate location on the map (in meters)
+#  y                    The task's x-coordinate location on the map (in meters)
+#  num_robots_required  How many robots are required to complete this task
+#  seconds_required     How many seconds are required to 'execute' this task
+
+0   1.00 5.00 1 0
+0   4.00 1.00 1 0
+45  7.00 5.00 1 0
+45  1.00 3.00 1 0
+90  4.00 3.00 1 0
+90  7.00 1.00 1 0
+135 7.00 3.00 1 0
+135 1.00 1.00 1 0
+180 4.00 5.00 1 0

@@ -137,6 +137,7 @@ class Auction(object):
         task_msg.task.depends = task.depends
         task_msg.task.type = task.type
         task_msg.task.num_robots_required = task.num_robots_required
+        task_msg.task.seconds_required = task.seconds_required
         task_msg.location.x = task.location.x
         task_msg.location.y = task.location.y
         task_msg.location.z = task.location.z
@@ -609,7 +610,7 @@ class Auctioneer:
         # Send a message to mark the beginning of the experiment
         begin_exp_msg = mrta.msg.ExperimentEvent()
         begin_exp_msg.experiment_id = self.experiment_id
-        begin_exp_msg.event = 'BEGIN_EXPERIMENT'
+        begin_exp_msg.event = mrta.msg.ExperimentEvent.BEGIN_EXPERIMENT
         stamp(begin_exp_msg)
         self.experiment_pub.publish(begin_exp_msg)
 
@@ -684,28 +685,30 @@ class Auctioneer:
             return
 
         try:
-            task_file = open(self.task_file, 'rb')
-        
-            # The task file format is simple (for now): each line
-            # is a whitespace-sepatated pair of x- and y-coordinates
-            # that, together, give the location of a task point
-
             # 'task_id' is an incrementing integer
             task_id = 1
 
+            task_file = open(self.task_file, 'rb')
+
             for task_line in task_file:
-                # Ignore comment lines
-                if task_line.startswith('#'):
+                task_line = task_line.rstrip()
+
+                # Ignore blank lines and comments
+                if not task_line or task_line.startswith('#'):
                     continue
 
-                start_secs, task_x, task_y = task_line.split()                
+                # See task file headers for a description of their format
+                start_secs, task_x, task_y, num_robots, seconds_required = task_line.split()
 
                 # task_id is string-ified here because an id may one day be
                 # an MD5 hash or some other non-integer value. They just happen
                 # to be integers here.
                 new_task = mrta.SensorSweepTask(str(task_id),
                                                 float(task_x),
-                                                float(task_y))
+                                                float(task_y),
+                                                0.0, # z
+                                                int(num_robots),
+                                                float(seconds_required))
                 #self.tasks.append(new_task)
                 self.scripted_tasks.append(new_task)
                 self.scripted_tasks_by_id[str(task_id)] = new_task
@@ -795,7 +798,7 @@ class Auctioneer:
         # the experiment
         begin_alloc_msg = mrta.msg.ExperimentEvent()
         begin_alloc_msg.experiment_id = self.experiment_id
-        begin_alloc_msg.event = 'BEGIN_ALLOCATION'
+        begin_alloc_msg.event = mrta.msg.ExperimentEvent.BEGIN_ALLOCATION
         stamp(begin_alloc_msg)
         self.experiment_pub.publish(begin_alloc_msg)
 
@@ -834,13 +837,13 @@ class Auctioneer:
         # phase and the beginning of the execution phase.
         end_alloc_msg = mrta.msg.ExperimentEvent()
         end_alloc_msg.experiment_id = self.experiment_id
-        end_alloc_msg.event = 'END_ALLOCATION'
+        end_alloc_msg.event = mrta.msg.ExperimentEvent.END_ALLOCATION
         stamp(end_alloc_msg)
         self.experiment_pub.publish(end_alloc_msg)
 
         begin_exec_msg = mrta.msg.ExperimentEvent()
         begin_exec_msg.experiment_id = self.experiment_id
-        begin_exec_msg.event = 'BEGIN_EXECUTION'
+        begin_exec_msg.event = mrta.msg.ExperimentEvent.BEGIN_EXECUTION
         stamp(begin_exec_msg)
         self.experiment_pub.publish(begin_exec_msg)
 
@@ -868,11 +871,11 @@ class Auctioneer:
 
         # We mainly want to keep track of robots that have
         # completed all of their tasks
-        if status == 'ALL_TASKS_COMPLETE':
+        if status == mrta.msg.TaskStatus.ALL_TASKS_COMPLETE:
             rospy.loginfo("Received ALL_TASKS_COMPLETE from {0}".format(robot_id))
             self.team_members_completed.append(robot_id)
 
-        if status == 'SUCCESS':
+        if status == mrta.msg.TaskStatus.SUCCESS:
             rospy.loginfo("{0} has completed task {1}".format(robot_id, task_id))
             self.tasks_by_id[task_id].completed = True
 
@@ -909,7 +912,7 @@ class Auctioneer:
         # Send a message to mark the end of the execution phase
         end_exec_msg = mrta.msg.ExperimentEvent()
         end_exec_msg.experiment_id = self.experiment_id
-        end_exec_msg.event = 'END_EXECUTION'
+        end_exec_msg.event = mrta.msg.ExperimentEvent.END_EXECUTION
         stamp(end_exec_msg)
         self.experiment_pub.publish(end_exec_msg)
 
@@ -932,7 +935,7 @@ class Auctioneer:
         # Send a message to mark the end of the experiment
         end_exp_msg = mrta.msg.ExperimentEvent()
         end_exp_msg.experiment_id = self.experiment_id
-        end_exp_msg.event = 'END_EXPERIMENT'
+        end_exp_msg.event = mrta.msg.ExperimentEvent.END_EXPERIMENT
         stamp(end_exp_msg)
         self.experiment_pub.publish(end_exp_msg)
 
