@@ -1,0 +1,99 @@
+# One task per line.
+# Fields are:
+#   <start_secs> <x> <y> <num_robots> <duration>
+# where
+#
+#  start_secs   Seconds after the experiment begins that task 'appears'
+#  x            The task's x-coordinate location on the map (in meters)
+#  y            The task's x-coordinate location on the map (in meters)
+#  num_robots   How many robots are required to complete this task
+#  duration     How many seconds are required to 'execute' this task
+---
+- task_id: '1'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.00
+    y: 5.00
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '2'
+  type: SENSOR_SWEEP
+  location:
+    x: 4.00
+    y: 5.00
+  arrival_time: 180
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '3'
+  type: SENSOR_SWEEP
+  location:
+    x: 7.00
+    y: 5.00
+  arrival_time: 45
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '4'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.00
+    y: 3.00
+  arrival_time: 45
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '5'
+  type: SENSOR_SWEEP
+  location:
+    x: 4.00
+    y: 3.00
+  arrival_time: 90
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '6'
+  type: SENSOR_SWEEP
+  location:
+    x: 7.00
+    y: 3.00
+  arrival_time: 135
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '7'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.00
+    y: 1.00
+  arrival_time: 135
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '8'
+  type: SENSOR_SWEEP
+  location:
+    x: 4.00
+    y: 1.00
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '9'
+  type: SENSOR_SWEEP
+  location:
+    x: 7.00
+    y: 1.00
+  arrival_time: 90
+  num_robots: 1
+  duration: 0
