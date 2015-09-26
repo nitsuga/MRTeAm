@@ -96,3 +96,4 @@
   arrival_time: 90
   num_robots: 1
   duration: 0
+  depends: []

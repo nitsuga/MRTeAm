@@ -53,6 +53,7 @@ import sys
 from threading import Timer
 import time
 import uuid
+import yaml
 
 # Fysom state machine
 from fysom import Fysom
@@ -685,42 +686,35 @@ class Auctioneer:
             return
 
         try:
-            # 'task_id' is an incrementing integer
-            task_id = 1
-
             task_file = open(self.task_file, 'rb')
 
-            for task_line in task_file:
-                task_line = task_line.rstrip()
+            yaml_tasks = yaml.load(task_file)
 
-                # Ignore blank lines and comments
-                if not task_line or task_line.startswith('#'):
-                    continue
-
-                # See task file headers for a description of their format
-                start_secs, task_x, task_y, num_robots, duration = task_line.split()
+            for yaml_task in yaml_tasks:
 
                 # task_id is string-ified here because an id may one day be
                 # an MD5 hash or some other non-integer value. They just happen
                 # to be integers here.
-                new_task = mrta.SensorSweepTask(str(task_id),
-                                                float(task_x),
-                                                float(task_y),
+                new_task = mrta.SensorSweepTask(str(yaml_task['task_id']),
+                                                float(yaml_task['location']['x']),
+                                                float(yaml_task['location']['y']),
                                                 0.0, # z
-                                                int(num_robots),
-                                                float(duration))
+                                                int(yaml_task['num_robots']),
+                                                float(yaml_task['duration']),
+                                                yaml_task['depends'])
                 #self.tasks.append(new_task)
                 self.scripted_tasks.append(new_task)
-                self.scripted_tasks_by_id[str(task_id)] = new_task
+                self.scripted_tasks_by_id[str(yaml_task['task_id'])] = new_task
                 
-                self.task_timers.append(Timer(float(start_secs),
+                self.task_timers.append(Timer(float(yaml_task['arrival_time']),
                                               self.add_scripted_task,
-                                              [str(task_id)]))
+                                              [str(yaml_task['task_id'])]))
 
-                task_id += 1
-
-        except IOError:
-            rospy.logerr("Can't open task file {0} for reading!".format(self.task_file))
+        except Exception as e:
+            rospy.logerr("Can't open/parse task file {0}!".format(self.task_file))
+            e_type, e_value, e_traceback = sys.exc_info()
+            rospy.logerr("{0}: {1}".format(e_type, e_value))
+#            rospy.logerr("{0}".format(e_traceback.format_exc()))
 
         rospy.loginfo("Scripted Tasks:\n{0}".format(pp.pformat(self.scripted_tasks_by_id)))
 

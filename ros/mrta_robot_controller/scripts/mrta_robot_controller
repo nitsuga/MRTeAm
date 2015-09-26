@@ -195,6 +195,9 @@ class RobotController:
         # List of tasks that we have been awarded (SensorSweepTask)
         self.agenda = []
 
+        # Keep track of the number of robots that have arrived at task locations
+        self.arrived_count = defaultdict(int)
+
         # Unless true, we may only bid on tasks but NOT begin executing tasks
         self.ok_to_execute = False
 
@@ -289,7 +292,8 @@ class RobotController:
                 ('goal_sent', 'send_goal', 'moving'),
 
                 # Goal success/failure
-                ('goal_reached', '*', 'execute_task'),
+                ('goal_reached', '*', 'arrived'),
+                ('arrival_sent', '*', 'execute_task'),
                 ('task_succeeded', 'execute_task', 'task_success'),
                 ('task_failed', 'execute_task', 'task_failure'),
                 ('resume', 'task_success', 'idle'),
@@ -312,6 +316,7 @@ class RobotController:
                 'onchoose_task': self.choose_task,
                 'onsend_goal': self.send_goal,
                 'onmoving': self.moving,
+                'onarrived': self.arrived,
                 'onexecute_task': self.execute_task,
                 'ontask_success': self.task_success,
                 'ontask_failure': self.task_failure,
@@ -394,6 +399,11 @@ class RobotController:
                                              mrta.msg.TaskAward,
                                              self.won)
         rospy.loginfo('subscribed to /tasks/award')
+
+        # '/tasks/status'
+        self.status_sub = rospy.Subscriber('/tasks/status',
+                                           mrta.msg.TaskStatus,
+                                           self.status_received)
 
         # For good measure...
         time.sleep(3)
@@ -888,7 +898,8 @@ class RobotController:
                                             float(task_msg.location.y),
                                             0.0, # z
                                             int(task_msg.task.num_robots),
-                                            float(task_msg.task.duration))
+                                            float(task_msg.task.duration),
+                                            task_msg.task.depends)
             self.agenda.append(new_task)
             self.last_won_location = task_msg.location
 
@@ -896,6 +907,17 @@ class RobotController:
 
         rospy.loginfo("({0}) won(): current_state=={1}".format(self.robot_name,
                                                                self.fsm.current))
+
+
+    def status_received(self, status_msg):
+        rospy.loginfo("({0}): status_received()".format(self.robot_name))
+
+        # Update the number of robots that have arrived at a task location
+        if status_msg.status == mrta.msg.TaskStatus.ARRIVED:
+            self.arrived_count[status_msg.task_id] += 1
+            rospy.loginfo("({0}): {1} robots have arrived at task {2}".format(self.robot_name,
+                                                                              self.arrived_count[status_msg.task_id],
+                                                                              status_msg.task_id))
 
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
@@ -1050,11 +1072,11 @@ class RobotController:
 
         goal_task = self.current_task
 
-        # Send a message to signal that we are en route toward the task
+        # Send a message to signal that we are moving toward the task
         begin_task_msg = mrta.msg.TaskStatus()
         begin_task_msg.robot_id = self.robot_name
         begin_task_msg.task_id = goal_task.task_id
-        begin_task_msg.status = mrta.msg.TaskStatus.ENROUTE
+        begin_task_msg.status = mrta.msg.TaskStatus.MOVING
         stamp(begin_task_msg)
         self.task_status_pub.publish(begin_task_msg)
 
@@ -1151,12 +1173,42 @@ class RobotController:
             return
 
         if self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+            rospy.loginfo("({0}): Arrived at task {1}".format(self.robot_name, self.current_task.task_id))
             self.fsm.goal_reached()
         else:
             rospy.loginfo("({0}) GoalStatus=={1}".format(self.robot_name, self.aclient.get_state()))
             # hax...
             if self.fsm.current == 'moving':
                 self.fsm.goal_not_reached()
+
+    def arrived(self, e):
+        rospy.loginfo("({0}) state: arrived".format(self.robot_name))
+
+        goal_task = self.current_task
+
+        # Send a message to mark the beginning of this task's 'execution'
+        rospy.loginfo("({0}) publishing 'ARRIVED' to /tasks/status".format(self.robot_name))
+
+        end_task_msg = mrta.msg.TaskStatus()
+        end_task_msg.robot_id = self.robot_name
+        end_task_msg.task_id = goal_task.task_id
+        end_task_msg.status = mrta.msg.TaskStatus.ARRIVED
+        stamp(end_task_msg)
+        self.task_status_pub.publish(end_task_msg)
+
+        # Wait for the task's required number of robots to arrive
+        rospy.loginfo("({0}): waiting for {1} robots to arrive at task {2}".format(self.robot_name,
+                                                                                   goal_task.num_robots,
+                                                                                   goal_task.task_id))
+
+        while self.arrived_count[goal_task.task_id] < goal_task.num_robots:
+            self.rate.sleep()
+
+        rospy.loginfo("({0}): All robots have arrived at task {1}".format(self.robot_name,
+                                                                          goal_task.task_id))
+
+        # We shouldn't fail to execute any task, since execution is virtual...
+        self.fsm.arrival_sent()
 
     def execute_task(self, e):
         rospy.loginfo("({0}) state: execute_task".format(self.robot_name))
@@ -1182,7 +1234,6 @@ class RobotController:
         self.fsm.task_succeeded()
 
         #self.fsm.task_failed()
-
 
     def task_success(self, e):
         rospy.loginfo("({0}) state: task_success".format(self.robot_name))

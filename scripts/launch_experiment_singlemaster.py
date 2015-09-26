@@ -193,4 +193,3 @@ if __name__ == '__main__':
     task_file = args.task_file
 
     launch_experiment(mechanism, map_file, world_file, task_file, args)
-
