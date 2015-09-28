@@ -32,6 +32,10 @@ class Task(object):
         # Number of robots are needed to complete the task
         self.num_robots = _num_robots
 
+        # Number of robots this task has been allocated/awarded to. Important
+        # if this is a multi-robot task.
+        self.num_robots_allocated = 0
+
         # Time required to complete the task, in seconds
         self.duration = _duration
 

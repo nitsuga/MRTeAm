@@ -18,3 +18,22 @@
   duration: 0
   depends: []
 
+- task_id: '2'
+  type: SENSOR_SWEEP
+  location:
+    x: 4.00
+    y: 5.00
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '3'
+  type: SENSOR_SWEEP
+  location:
+    x: 7.00
+    y: 5.00
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
