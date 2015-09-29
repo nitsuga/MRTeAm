@@ -184,7 +184,7 @@ class RobotController:
 
         # Keep track of the completion status of all tasks
         # Keys are task_ids, values are True/False
-        self.task_status = defaultdict(bool)
+        self.task_complete = defaultdict(bool)
 
         # Maintain a cache of path distances between points so that we don't
         # have to look them up (via an expensive service call) every time.
@@ -295,6 +295,7 @@ class RobotController:
 
                 # Choosing/sending goals
                 ('have_incomplete_tasks', 'idle', 'choose_task'),
+                ('no_unconstrained_tasks', 'choose_task', 'idle'),
                 ('no_incomplete_tasks', 'idle', 'idle'),
                 # ('no_tasks', 'idle', 'idle'),
                 ('goal_chosen', 'choose_task', 'send_goal'),
@@ -693,7 +694,8 @@ class RobotController:
         if path_cost == 0.0:
             path_cost = float(sys.maxint)
 
-        rospy.loginfo("Path cost from ({0},{1}) to ({2},{3}) is {4}".format(
+        rospy.loginfo("({0}) Path cost from ({1},{2}) to ({3},{4}) is {5}".format(
+            self.robot_name,
             start.position.x, start.position.y,
             goal.position.x, goal.position.y,
             path_cost))
@@ -921,6 +923,9 @@ class RobotController:
         for task_msg in award_msg.tasks:
             rospy.loginfo("({0}) I won task {1}!".format(self.robot_name,
                                                          task_msg.task.task_id))
+
+            rospy.loginfo("({0}): task {1} depends on {2}".format(self.robot_name, task_msg.task.task_id, pp.pformat(task_msg.task.depends)))
+
             new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
                                             float(task_msg.location.x),
                                             float(task_msg.location.y),
@@ -928,6 +933,9 @@ class RobotController:
                                             int(task_msg.task.num_robots),
                                             float(task_msg.task.duration),
                                             task_msg.task.depends)
+
+            rospy.loginfo("({0}): task {1} depends on ".format(self.robot_name, new_task.task_id, pp.pformat(new_task.depends)))
+
             self.agenda.append(new_task)
             self.last_won_location = task_msg.location
 
@@ -950,7 +958,7 @@ class RobotController:
                                                                               self.arrived_count[status_msg.task_id],
                                                                               status_msg.task_id))
         elif status_msg.status == mrta.msg.TaskStatus.SUCCESS:
-            self.task_status[status_msg.task_id] = True
+            self.task_complete[status_msg.task_id] = True
             rospy.loginfo("({0}): {1} has completed task {2}".format(self.robot_name,
                                                                      status_msg.robot_id,
                                                                      status_msg.task_id))
@@ -969,8 +977,34 @@ class RobotController:
 
         time.sleep(0.5)
 
-        # TODO: TOPO SORT TASKS IN AGENDA HERE!
+        # task_deps is a directed graph. Nodes represent tasks and edges represent
+        # (ordering) dependencies. The format is
+        #
+        #  task_deps[task_i] = [task_j, task_k, ...]
+        #
+        # where task_i requires task_j, task_k, ... to be completed before it can begin.
+        # Sorting is done with the toposort module. See: https://pypi.python.org/pypi/toposort
 
+        task_deps = defaultdict(list)
+        for task in self.agenda:
+            # Don't consider completed tasks
+            if self.task_complete[task.task_id]:
+                continue
+            uncompleted_dependencies = [t_id for t_id in task.depends if not self.task_complete[t_id]]
+            task_deps[task.task_id] = set(uncompleted_dependencies)
+
+        dep_ordered_tasks = list(toposort(task_deps))
+
+        # Our next task should have no unment dependencies. The first element of the list constructed
+        # above should contain only such tasks.
+        unconstrained_task_ids = dep_ordered_tasks[0]
+
+        rospy.loginfo("({0}): unconstrained_task_ids: {1}".format(self.robot_name,pp.pformat(unconstrained_task_ids)))
+
+        unconstrained = []
+        for task in self.agenda:
+            if task.task_id in unconstrained_task_ids:
+                unconstrained.append(task)
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -980,7 +1014,8 @@ class RobotController:
 
         goal_task = None
         min_uncompleted_dist = None
-        for task in self.agenda:
+#        for task in self.agenda:
+        for task in unconstrained:
             if not task.completed:
                 if greedy_selection:
                     from_pose = self.current_pose
@@ -998,8 +1033,13 @@ class RobotController:
 
         # Sanity check
         if not self.current_task:
-            rospy.loginfo("({0}) event: no_tasks".format(self.robot_name))
-            self.fsm.no_tasks()
+
+            if len(dep_ordered_tasks) > 1:
+                rospy.loginfo("({0}): no unconstrained tasks...".format(self.robot_name))
+                self.fsm.no_unconstrained_tasks()
+            else:
+                rospy.loginfo("({0}) event: no_tasks".format(self.robot_name))
+                self.fsm.no_tasks()
 
         # If the minimum cost (closest task) is sys.maxint, then
         # we don't have any valid paths

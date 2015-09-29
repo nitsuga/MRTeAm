@@ -27,7 +27,7 @@ class Task(object):
         self.type = _type
 
         # A list of task_ids that this task depends on
-        self.depends = []
+        self.depends = _depends
         
         # Number of robots are needed to complete the task
         self.num_robots = _num_robots

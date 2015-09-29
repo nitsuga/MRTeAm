@@ -11,8 +11,8 @@
 - task_id: '1'
   type: SENSOR_SWEEP
   location:
-    x: 1.00
-    y: 5.00
+    x: 2.50
+    y: 3.50
   arrival_time: 0
   num_robots: 2
   duration: 0
@@ -21,19 +21,19 @@
 - task_id: '2'
   type: SENSOR_SWEEP
   location:
-    x: 4.00
-    y: 5.00
+    x: 5.00
+    y: 3.00
   arrival_time: 0
   num_robots: 1
   duration: 0
-  depends: []
+  depends: ['1']
 
 - task_id: '3'
   type: SENSOR_SWEEP
   location:
     x: 7.00
-    y: 5.00
+    y: 4.50
   arrival_time: 0
-  num_robots: 1
+  num_robots: 2
   duration: 0
-  depends: []
+  depends: ['2']

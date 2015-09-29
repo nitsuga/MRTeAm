@@ -720,7 +720,9 @@ class Auctioneer:
                                                 int(yaml_task['num_robots']),
                                                 float(yaml_task['duration']),
                                                 yaml_task['depends'])
-                #self.tasks.append(new_task)
+
+                rospy.loginfo("auctioneer: task '{0}' depends on {1}".format(new_task.task_id, new_task.depends))
+
                 self.scripted_tasks.append(new_task)
                 self.scripted_tasks_by_id[str(yaml_task['task_id'])] = new_task
                 

@@ -93,8 +93,8 @@
       [
 <!--       '/*fake_localization',-->
        '/map_server',
-       '/*move_base_node',
-       '/*mrta_robot_controller'
+       '/*move_base_node'
+<!--       '/*mrta_robot_controller' -->
       ]
     </rosparam>
 
