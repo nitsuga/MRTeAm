@@ -7,11 +7,13 @@ import glob
 import math
 import os
 from os import listdir
-from os.path import isfile, join
+import os.path
+from os.path import isdir, isfile, join
 import re
 import rosbag
 import rospkg
 import sys
+import yaml
 
 # For debugging
 import pprint
@@ -20,7 +22,7 @@ pp = pprint.PrettyPrinter(indent=4)
 IMG_WIDTH, IMG_HEIGHT = 800, 600
 
 # Default location of task (target point) files
-TASK_FILES_DEFAULT = '~/GIT/mrta/ros/mrta_auctioneer/task_files'
+TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
 
 stroke_colors = {'robot_1': (1.0, 0.0, 0.0),  # Red
                  'robot_2': (0.0, 1.0, 0.0),  # Green
@@ -38,18 +40,21 @@ target_point_configs = {}
 
 robot_names = ['robot_1', 'robot_2', 'robot_3']
 
-def read_point_configs():
-    rospack = rospkg.RosPack()
 
-    task_file_dir = "{0}/task_files".format(rospack.get_path('mrta_auctioneer'))
+def _read_points(task_file):
+    points = []
 
-    task_files = [ f for f in listdir(task_file_dir) if isfile(join(task_file_dir,f)) ]
+    # YAML config file
+    if task_file.name.endswith('yaml'):
+        yaml_tasks = yaml.load(task_file)
 
-    for task_file in task_files:
-        points = []
-        config_file = open(join(task_file_dir,task_file), "rb")
-        for line in config_file:
+        for yaml_task in yaml_tasks:
+            task_loc = yaml_task['location']
+            points.append( [ float(task_loc['x']), float(task_loc['y']) ] )
 
+    # .txt config file
+    elif task_file.name.endswith('txt'):
+        for line in task_file:
             # Ignore comments
             if line.startswith('#'):
                 continue
@@ -59,10 +64,22 @@ def read_point_configs():
             # x,y = target point location
             # n   = number of robots required
             # d   = duration of the task
-            s, x, y, num_robots, duration = line.split()
+            task_fields = line.split()
+            x, y = task_fields[1], task_fields[2]
             points.append([float(x) * 100., float(y) * 100.])
 
-        target_point_configs[task_file] = points
+    return points
+
+def read_point_configs(task_dir):
+
+    task_filenames = [ f for f in listdir(task_dir) if isfile(join(task_dir,f)) ]
+
+    for task_filename in task_filenames:
+        task_file_path = join(task_dir, task_filename)
+
+        print "Reading points from {0}...".format(task_file_path)
+        task_file = open(task_file_path, "rb")
+        target_point_configs[task_filename] = _read_points(task_file)
 
 def draw_arena(ctx):
     """ Given a Cairo graphics context (ctx), draw the walls of the arena """
@@ -216,9 +233,9 @@ def draw_trajectories(ctx, run_msgs):
         ctx.stroke()
 
 
-def plot_trajectory(bag_paths, task_file_dir):
+def plot_trajectory(bag_paths, task_dir):
 
-    read_point_configs()
+    read_point_configs(task_dir)
 
     for bag_path in bag_paths:
         print("Reading {0}".format(bag_path))
@@ -260,7 +277,7 @@ def plot_trajectory(bag_paths, task_file_dir):
         for topic, msg, msg_time in bag.read_messages():
             run_msgs[topic].append(msg)
 
-        draw_trajectories(ctx, run_msgs)
+#        draw_trajectories(ctx, run_msgs)
 
         bag_basename = bag_filename.replace('.bag', '')
         surface.write_to_png(bag_basename + '.png')
@@ -273,7 +290,7 @@ if __name__ == "__main__":
                         nargs='+',
                         help='Path to the bag file of the experiment to plot.')
 
-    parser.add_argument("--task_file_dir",
+    parser.add_argument("--task_dir",
                         nargs='?',
                         default=TASK_FILES_DEFAULT,
                         help="Location of task configuration (target point) files")
@@ -281,7 +298,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     bag_files = args.bag_file
-    task_file_dir = args.task_file_dir
+    task_dir = args.task_dir
 
 #    pp.pprint(bag_files)
 
@@ -294,6 +311,6 @@ if __name__ == "__main__":
     print("bag paths: ")
     pp.pprint(bag_paths)
 
-    print("task_file_dir: {0}".format(task_file_dir))
+    print("task_dir: {0}".format(task_dir))
 
-    plot_trajectory(bag_paths, task_file_dir)
+    plot_trajectory(bag_paths, task_dir)
