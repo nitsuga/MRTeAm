@@ -966,6 +966,8 @@ class RobotController:
 
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
+        rospy.loginfo("({0}) agenda: {1}".format(self.robot_name, pp.pformat([t.task_id for t in self.agenda])))
+
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
@@ -987,6 +989,7 @@ class RobotController:
 
         task_deps = defaultdict(list)
         for task in self.agenda:
+            rospy.loginfo("({0}) topo sorting task {1}".format(self.robot_name, task.task_id))
             # Don't consider completed tasks
             if self.task_complete[task.task_id]:
                 continue
@@ -995,16 +998,33 @@ class RobotController:
 
         dep_ordered_tasks = list(toposort(task_deps))
 
+        rospy.loginfo("({0}) dep_ordered_tasks: {1}".format(self.robot_name, pp.pformat(dep_ordered_tasks)))
+
+
         # Our next task should have no unment dependencies. The first element of the list constructed
         # above should contain only such tasks.
-        unconstrained_task_ids = dep_ordered_tasks[0]
+#        unconstrained_task_ids = dep_ordered_tasks[0]
 
-        rospy.loginfo("({0}): unconstrained_task_ids: {1}".format(self.robot_name,pp.pformat(unconstrained_task_ids)))
+        # Our next task should have the least amount of unmet dependencies. The first element of the list constructed
+        # aboveis a list of tasks with unmet dependencies. The next element is a list of tasks with one dependency,
+        # and so on.
+        least_constrained_task_ids = []
 
-        unconstrained = []
+        for task_ids in dep_ordered_tasks:
+            least_constrained_task_ids = task_ids
+
+            # Filter out tasks that we don't own
+            least_constrained_task_ids = [ t_id for t_id in least_constrained_task_ids if self._is_task_id_in_agenda(t_id)]
+
+            if least_constrained_task_ids:
+                break
+
+        rospy.loginfo("({0}): least_constrained_task_ids: {1}".format(self.robot_name,pp.pformat(least_constrained_task_ids)))
+
+        least_constrained = []
         for task in self.agenda:
-            if task.task_id in unconstrained_task_ids:
-                unconstrained.append(task)
+            if task.task_id in least_constrained_task_ids:
+                least_constrained.append(task)
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -1015,7 +1035,7 @@ class RobotController:
         goal_task = None
         min_uncompleted_dist = None
 #        for task in self.agenda:
-        for task in unconstrained:
+        for task in least_constrained:
             if not task.completed:
                 if greedy_selection:
                     from_pose = self.current_pose
@@ -1033,7 +1053,6 @@ class RobotController:
 
         # Sanity check
         if not self.current_task:
-
             if len(dep_ordered_tasks) > 1:
                 rospy.loginfo("({0}): no unconstrained tasks...".format(self.robot_name))
                 self.fsm.no_unconstrained_tasks()
@@ -1286,6 +1305,22 @@ class RobotController:
 
         rospy.loginfo("({0}): All robots have arrived at task {1}".format(self.robot_name,
                                                                           goal_task.task_id))
+
+        # Wait for the task's dependencies to be met
+        rospy.loginfo("({0}): waiting for {1}'s dependencies to be met".format(self.robot_name,
+                                                                               goal_task.task_id))
+
+        constrained = True
+        while constrained:
+            constrained = False
+            self.rate.sleep()
+            for task_id in goal_task.depends:
+                if not self.task_complete[task_id]:
+                    constrained = True
+                    break
+
+        rospy.loginfo("({0}): {1}'s dependencies are met".format(self.robot_name,
+                                                                 goal_task.task_id))
 
         # We shouldn't fail to execute any task, since execution is virtual...
         self.fsm.arrival_sent()
