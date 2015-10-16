@@ -10,13 +10,14 @@
 
 #export ROS_OS_OVERRIDE=rhel
 
-#RUN_COUNT=10
+RUN_COUNT=10
 
 #for map in brooklyn # smartlab
 for map in smartlab
 do
     #for task_file in brooklyn_tasks_A.txt brooklyn_tasks_C.txt brooklyn_tasks_E.txt
-    for task_file in tasks_A_dynamic.txt
+#    for task_file in tasks_A_dynamic.txt
+    for task_file in MR-CT-DA-scenario1.yaml
     do
 	for mechanism in OSI SSI PSI RR
 	do

@@ -4,7 +4,8 @@
   <param name="/use_sim_time" value="true"/>
 
   <!-- Map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" />
+<!--  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" /> -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file)" />
 
   <!-- BEGIN ROBOT -->
   <group ns="$(arg robot_name)">
