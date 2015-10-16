@@ -50,7 +50,8 @@ def _read_points(task_file):
 
         for yaml_task in yaml_tasks:
             task_loc = yaml_task['location']
-            points.append( [ float(task_loc['x']), float(task_loc['y']) ] )
+            x, y = float(task_loc['x']) * 100., float(task_loc['y']) * 100.
+            points.append( [ x, y ] )
 
     # .txt config file
     elif task_file.name.endswith('txt'):
@@ -107,7 +108,11 @@ def draw_arena(ctx):
     ctx.stroke()
 
     ctx.move_to(500. / IMG_WIDTH, 600. / IMG_HEIGHT)  # w7
-    ctx.line_to(500. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.line_to(500. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(600. / IMG_WIDTH, 500. / IMG_HEIGHT)  # w7
+    ctx.line_to(600. / IMG_WIDTH, 400. / IMG_HEIGHT)
     ctx.stroke()
 
     ctx.move_to(0, 400. / IMG_HEIGHT)  # w8
@@ -123,11 +128,11 @@ def draw_arena(ctx):
     ctx.stroke()
 
     ctx.move_to(200. / IMG_WIDTH, 300. / IMG_HEIGHT)  # w11
-    ctx.line_to(200. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.line_to(200. / IMG_WIDTH, 100. / IMG_HEIGHT)
     ctx.stroke()
 
-    ctx.move_to(300. / IMG_WIDTH, 300. / IMG_HEIGHT)  # w12
-    ctx.line_to(300. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.move_to(300. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w12
+    ctx.line_to(300. / IMG_WIDTH, 100. / IMG_HEIGHT)
     ctx.stroke()
 
     ctx.move_to(0, 200. / IMG_HEIGHT)  # w13
@@ -135,18 +140,18 @@ def draw_arena(ctx):
     ctx.stroke()
 
     ctx.move_to(300. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w14
-    ctx.line_to(600. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.line_to(500. / IMG_WIDTH, 200. / IMG_HEIGHT)
     ctx.stroke()
 
-    ctx.move_to(200. / IMG_WIDTH, 100. / IMG_HEIGHT)  # w15
-    ctx.line_to(200. / IMG_WIDTH, 0)
+    ctx.move_to(600. / IMG_WIDTH, 300. / IMG_HEIGHT)  # w15
+    ctx.line_to(600. / IMG_WIDTH, 100. / IMG_HEIGHT)
     ctx.stroke()
 
-    ctx.move_to(500. / IMG_WIDTH, 100. / IMG_HEIGHT)  # w16
+    ctx.move_to(500. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w16
     ctx.line_to(500. / IMG_WIDTH, 0)
     ctx.stroke()
 
-    ctx.move_to(700. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w11
+    ctx.move_to(600. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w11
     ctx.line_to(800. / IMG_WIDTH, 200. / IMG_HEIGHT)
     ctx.stroke()
 
@@ -203,19 +208,28 @@ def draw_target_points(ctx, target_points):
         ctx.line_to((task_x + 5) / IMG_WIDTH, (task_y - 5) / IMG_HEIGHT)
         ctx.stroke()
 
-
 def draw_trajectories(ctx, run_msgs):
     # Trajectory line width
-    ctx.set_line_width((2. / IMG_WIDTH))
+    ctx.set_line_width((5. / IMG_WIDTH))
 
     for r_name in robot_names:
 
         # Stroke color
         stroke_color = stroke_colors[r_name]
-        ctx.set_source_rgb(stroke_color[0], stroke_color[1], stroke_color[2])
 
         start_pose = None
-        for amcl_msg in run_msgs['/{0}/amcl_pose'.format(r_name)]:
+        num_poses = len(run_msgs['/{0}/amcl_pose'.format(r_name)])
+
+        last_pose = None
+
+        for i,amcl_msg in list(enumerate(run_msgs['/{0}/amcl_pose'.format(r_name)])):
+
+#            print(amcl_msg)
+
+            alpha = i*1. / num_poses
+#            print('alpha: {0}'.format(alpha))
+            ctx.set_source_rgba(stroke_color[0], stroke_color[1], stroke_color[2], alpha)
+
             amcl_pose = amcl_msg.pose.pose
             pose_x = amcl_pose.position.x
             pose_y = amcl_pose.position.y
@@ -223,14 +237,17 @@ def draw_trajectories(ctx, run_msgs):
             if pose_x == 0 and pose_y == 0:
                 continue
 
-            if start_pose is None:
+            if last_pose is None:
                 ctx.move_to(pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT)
-                start_pose = amcl_pose
                 # print "{0} start_pose: {1}:".format(r_name, start_pose)
             else:
-                ctx.line_to(pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT)
+                ctx.move_to(last_pose.position.x * 100. / IMG_WIDTH, last_pose.position.y * 100. / IMG_HEIGHT)
 
-        ctx.stroke()
+            ctx.line_to(pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT)
+
+            ctx.stroke()
+
+            last_pose = amcl_pose
 
 
 def plot_trajectory(bag_paths, task_dir):
@@ -277,7 +294,7 @@ def plot_trajectory(bag_paths, task_dir):
         for topic, msg, msg_time in bag.read_messages():
             run_msgs[topic].append(msg)
 
-#        draw_trajectories(ctx, run_msgs)
+        draw_trajectories(ctx, run_msgs)
 
         bag_basename = bag_filename.replace('.bag', '')
         surface.write_to_png(bag_basename + '.png')
