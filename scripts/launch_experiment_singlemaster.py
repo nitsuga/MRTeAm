@@ -12,7 +12,7 @@ import sys
 import time
 
 # Paths to ROS binaries
-ROS_HOME = '/opt/ros/indigo'
+ROS_HOME = '/opt/ros/hydro'
 #ROS_HOME = '/home/esch/opt/ros/hydro'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)

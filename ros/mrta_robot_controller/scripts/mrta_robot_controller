@@ -972,7 +972,7 @@ class RobotController:
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
 
-        time.sleep(0.2)
+        time.sleep(0.5)
 
         self._clear_costmaps()
 #        self._clear_costmaps()
@@ -1161,7 +1161,7 @@ class RobotController:
 
         # Enable the global costmap's obstacle layer
         self._enable_obstacle_layer()
-        time.sleep(0.2)
+        time.sleep(1.0)
 
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
