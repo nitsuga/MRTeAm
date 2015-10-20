@@ -233,9 +233,9 @@ class AuctionOSI(Auction):
 
         # For now, award the single lowest bidder. But we may want to award the 'num_robots' lowest bidders
         # per round (i.e., bid_tuples[:num_robots] rather than bid_tuples[0], below)
-#        num_robots = task.num_robots
-#        winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
-        winner_ids = map(lambda entry: entry[0], bid_tuples[:1])
+        num_robots = task.num_robots
+        winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
+#        winner_ids = map(lambda entry: entry[0], bid_tuples[:1])
 
         rospy.loginfo("winner(s) of task {0}: '{1}'".format(task_id, winner_ids))
 
