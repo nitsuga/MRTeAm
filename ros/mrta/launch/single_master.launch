@@ -23,7 +23,7 @@
       <param name="controller_frequency" value="5.0" />
       <param name="shutdown_costmaps" value="false" />
 
-<!--      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
+      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
 
       <!--
       <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
@@ -65,9 +65,9 @@
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
 
-      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />
+<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" /> -->
 
-<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />-->
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
 
@@ -94,7 +94,7 @@
       <param name="controller_frequency" value="5.0" />
       <param name="shutdown_costmaps" value="false" />
 
-<!--      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
+      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
 
       <!--
       <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
@@ -136,9 +136,9 @@
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
 
-      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />
+      <!--<rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />-->
 
-<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />-->
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
 
@@ -165,7 +165,7 @@
       <param name="controller_frequency" value="5.0" />
       <param name="shutdown_costmaps" value="false" />
 
-<!--      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
+      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
 
       <!--
       <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
@@ -207,9 +207,9 @@
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
 
-      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />
+      <!--<rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />-->
 
-<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />-->
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
 

@@ -83,7 +83,7 @@ Visualization Manager:
       Topic: /robot_3/move_base_node/GlobalPlanner/plan
       Value: true
     - Alpha: 1
-      Buffer Length: 1
+      Buffer Length: 5
       Class: rviz/Path
       Color: 255; 0; 4
       Enabled: true
@@ -100,13 +100,13 @@ Visualization Manager:
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Keep: 1
       Length: 0.5
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /robot_3/odom
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -140,10 +140,10 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 255; 0; 4
-      Enabled: true
+      Enabled: false
       Name: TP Plan
       Topic: /robot_3/move_base_node/TrajectoryPlannerROS/local_plan
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -198,5 +198,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1680
-  X: 1911
+  X: 1920
   Y: 0

@@ -291,10 +291,14 @@ def plot_trajectory(bag_paths, task_dir):
         draw_target_points(ctx, target_points)
 
         run_msgs = defaultdict(list)
-        for topic, msg, msg_time in bag.read_messages():
-            run_msgs[topic].append(msg)
 
-        draw_trajectories(ctx, run_msgs)
+        try:
+            for topic, msg, msg_time in bag.read_messages():
+                run_msgs[topic].append(msg)
+            draw_trajectories(ctx, run_msgs)
+        except:
+            print("Couldn't read messages from {0}!".format(bag_path))
+            continue
 
         bag_basename = bag_filename.replace('.bag', '')
         surface.write_to_png(bag_basename + '.png')

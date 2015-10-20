@@ -82,7 +82,7 @@ Visualization Manager:
       Topic: /robot_1/move_base_node/GlobalPlanner/plan
       Value: true
     - Alpha: 1
-      Buffer Length: 1
+      Buffer Length: 5
       Class: rviz/Path
       Color: 255; 0; 4
       Enabled: true
@@ -107,13 +107,13 @@ Visualization Manager:
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Keep: 1
       Length: 0.5
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /robot_1/odom
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -175,11 +175,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 206.591
+      Scale: 209.042
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 1.86341
-      Y: 1.72376
+      X: 3.25029
+      Y: 3.44835
     Saved: ~
 Window Geometry:
   Displays:
@@ -197,5 +197,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1680
-  X: 1911
+  X: 1920
   Y: 0

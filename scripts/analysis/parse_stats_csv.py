@@ -112,11 +112,11 @@ def count_interval_times(start_event, end_event, messages):
             else:
                 interval_time = message.header.stamp - last_start_stamp
                 interval_secs = interval_time.secs + (interval_time.nsecs/1000000000.)
-                print("{0}--{1}=={2}".format(start_event, end_event, interval_secs))
+                #print("{0}--{1}=={2}".format(start_event, end_event, interval_secs))
                 interval_times += interval_secs
                 last_start_stamp = None
 
-    print("total: {0}".format(interval_times))
+    #print("total: {0}".format(interval_times))
     return interval_times
 
 def parse_stats(bag_paths, output):
@@ -156,8 +156,12 @@ def parse_stats(bag_paths, output):
 
         run_msgs = defaultdict(list)
 
-        for topic,msg,msg_time in bag.read_messages():
-            run_msgs[topic].append(msg)
+        try:
+            for topic,msg,msg_time in bag.read_messages():
+                run_msgs[topic].append(msg)
+        except:
+            print("Couldn't read messages from {0}!".format(bag_path))
+            continue
 
         exp_msgs = []
         experiment_finished = False
@@ -171,19 +175,19 @@ def parse_stats(bag_paths, output):
             print("Experiment timed out! Skipping...")
             continue
 
-        print('TOTAL_RUN_TIME:')
+#        print('TOTAL_RUN_TIME:')
         total_run_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_EXPERIMENT,
                                               mrta.msg.ExperimentEvent.END_EXPERIMENT,
                                               exp_msgs)
         row_fields['TOTAL_RUN_TIME'] = total_run_time # 'TOTAL_RUN_TIME'
 
-        print('DELIBERATION_TIME:')
+#        print('DELIBERATION_TIME:')
         delib_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
                                           mrta.msg.ExperimentEvent.END_ALLOCATION,
                                           exp_msgs)
         row_fields['DELIBERATION_TIME'] = delib_time # 'DELIBERATION_TIME'
 
-        print('EXECUTION_PHASE_TIME:')
+#        print('EXECUTION_PHASE_TIME:')
         exec_phase_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_EXECUTION,
                                                mrta.msg.ExperimentEvent.END_EXECUTION,
                                                exp_msgs)
@@ -242,25 +246,25 @@ def parse_stats(bag_paths, output):
 
             r_status_msgs = [m for m in run_msgs['/tasks/status'] if m.robot_id == r_name]
 
-            print('{0} movement time:'.format(r_name))
+#            print('{0} movement time:'.format(r_name))
             # Movement time
             robot.movement_time = count_interval_times(mrta.msg.TaskStatus.MOVING,
                                                        mrta.msg.TaskStatus.ARRIVED,
                                                        r_status_msgs)
 
-            print('{0} execution time:'.format(r_name))
+#            print('{0} execution time:'.format(r_name))
             # Execution time
             robot.execution_time = count_interval_times(mrta.msg.TaskStatus.BEGIN,
                                                         mrta.msg.TaskStatus.SUCCESS,
                                                         r_status_msgs)
 
-            print('{0} waiting time:'.format(r_name))
+#            print('{0} waiting time:'.format(r_name))
             # Waiting time
             robot.waiting_time = count_interval_times(mrta.msg.TaskStatus.ARRIVED,
                                                       mrta.msg.TaskStatus.BEGIN,
                                                       r_status_msgs)
 
-            print('{0} delay time:'.format(r_name))
+#            print('{0} delay time:'.format(r_name))
             # Delay time
             robot.delay_time = count_interval_times(mrta.msg.TaskStatus.PAUSE,
                                                     mrta.msg.TaskStatus.RESUME,
