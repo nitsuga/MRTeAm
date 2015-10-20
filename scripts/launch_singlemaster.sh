@@ -11,6 +11,7 @@
 #export ROS_OS_OVERRIDE=rhel
 
 RUN_COUNT=10
+SCRIPT_DIR=~/GIT/mrta/scripts
 
 #for map in brooklyn # smartlab
 for map in smartlab
@@ -25,7 +26,7 @@ do
 	    do
 		for run in `seq 1 ${RUN_COUNT}`
 		do
-		    ./launch_experiment_singlemaster.py ${mechanism} ${map} ${start_config} ${task_file}
+		    $SCRIPT_DIR/launch_experiment_singlemaster.py ${mechanism} ${map} ${start_config} ${task_file}
 
 		done # end "run"
 
