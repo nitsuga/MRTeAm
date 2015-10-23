@@ -15,7 +15,7 @@
    inkscape:version="0.48.4 r9939"
    width="606"
    height="542"
-   sodipodi:docname="TASC_scenario_5.svg"
+   sodipodi:docname="TASC_scenario_6.svg"
    inkscape:export-filename="/home/eric/nitsy76@gmail.com/research/mechanisms/images/TASC_scenario_5.png"
    inkscape:export-xdpi="200.10001"
    inkscape:export-ydpi="200.10001">
@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -95,17 +95,17 @@
      guidetolerance="10"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:window-width="1920"
-     inkscape:window-height="1025"
+     inkscape:window-width="1784"
+     inkscape:window-height="1226"
      id="namedview3057"
      showgrid="false"
-     inkscape:zoom="1.2315661"
-     inkscape:cx="305.19488"
-     inkscape:cy="281.27601"
-     inkscape:window-x="0"
-     inkscape:window-y="27"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer4" />
+     inkscape:zoom="1.7416975"
+     inkscape:cx="73.226891"
+     inkscape:cy="391.80457"
+     inkscape:window-x="741"
+     inkscape:window-y="156"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
   <image
      width="606"
      height="542"
@@ -126,17 +126,17 @@
      style="display:inline">
     <path
        sodipodi:type="arc"
-       style="fill:none;stroke:#000000;stroke-width:0.91197432;stroke-miterlimit:4;stroke-dasharray:none"
+       style="fill:none;stroke:#000000;stroke-width:0.91197431;stroke-miterlimit:4;stroke-dasharray:none"
        id="path3088"
        sodipodi:cx="83.633354"
        sodipodi:cy="125.45718"
        sodipodi:rx="4.0598717"
        sodipodi:ry="4.0598717"
        d="m 87.693226,125.45718 a 4.0598717,4.0598717 0 1 1 -8.119743,0 4.0598717,4.0598717 0 1 1 8.119743,0 z"
-       transform="matrix(1.0965221,0,0,1.0965221,-11.705821,-15.566566)" />
+       transform="matrix(1.0965221,0,0,1.0965221,248.24592,-5.5183053)" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 225,92 0,-45 30,0 0,45 z"
+       d="m 25,272 0,-45 30,0 0,45 z"
        id="path3860"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
@@ -152,20 +152,20 @@
        transform="matrix(0.80856167,0,0,0.80856167,87.041813,18.790981)" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 325,342 0,-140 30,0 0,140 z"
+       d="m 40,142 0,-50 50,0 0,50 z"
        id="path3865"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
     <path
        sodipodi:type="arc"
-       style="fill:none;stroke:#000000;stroke-width:1.07436914;stroke-miterlimit:4;stroke-dasharray:none"
+       style="fill:none;stroke:#000000;stroke-width:1.07436919;stroke-miterlimit:4;stroke-dasharray:none"
        id="path3867"
        sodipodi:cx="518.03961"
        sodipodi:cy="381.2291"
        sodipodi:rx="4.8718457"
        sodipodi:ry="4.8718457"
        d="m 522.91146,381.2291 a 4.8718457,4.8718457 0 1 1 -9.74369,0 4.8718457,4.8718457 0 1 1 9.74369,0 z"
-       transform="matrix(0.93077878,0,0,0.93077878,37.819722,27.160048)" />
+       transform="matrix(0.93077878,0,0,0.93077878,-82.145667,-72.874563)" />
     <path
        sodipodi:type="arc"
        style="fill:none;stroke:#000000;stroke-width:1.07436919;stroke-miterlimit:4;stroke-dasharray:none"
@@ -185,16 +185,16 @@
        sodipodi:rx="4.4658589"
        sodipodi:ry="4.4658589"
        d="m 69.829789,467.70435 a 4.4658589,4.4658589 0 1 1 -8.931718,0 4.4658589,4.4658589 0 1 1 8.931718,0 z"
-       transform="matrix(1.0068752,0,0,1.0068752,-5.8133169,1.0800932)" />
+       transform="matrix(1.0068619,0,0,1.0068759,79.18405,-53.916797)" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 365,402 0,-40 40,0 0,40 z"
+       d="m 355,352 0,-150 35,0 0,150 z"
        id="path3962"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 180,352 0,-155 20,0 0,155 z"
+       d="m 220,202 0,-20 105,0 0,20 z"
        id="path3964"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
@@ -206,54 +206,54 @@
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="115.68555"
-       y="118.21777"
+       x="376.03513"
+       y="128.26604"
        id="text3966"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968"
-         x="115.68555"
-         y="118.21777"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 1</tspan><tspan
+         x="376.03513"
+         y="128.26604"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 6</tspan><tspan
          sodipodi:role="line"
-         x="115.68555"
-         y="133.21777"
+         x="376.03513"
+         y="143.26604"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4446">0s, 1R</tspan></text>
+         id="tspan4446">90s, 1R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="384.67188"
-       y="417.26279"
+       x="372.17188"
+       y="369.03397"
        id="text3966-4"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-5"
-         x="384.67188"
-         y="417.26279"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 2</tspan><tspan
+         x="372.17188"
+         y="369.03397"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 5</tspan><tspan
          sodipodi:role="line"
-         x="384.67188"
-         y="432.26279"
+         x="372.17188"
+         y="384.03397"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4448">0s, 2R</tspan></text>
+         id="tspan4448">90s, 2R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="143.64801"
-       y="270.71777"
+       x="272.19824"
+       y="220.76651"
        id="text3966-7"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-0"
-         x="143.64801"
-         y="270.71777"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 3</tspan><tspan
+         x="272.19824"
+         y="220.76651"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 1</tspan><tspan
          sodipodi:role="line"
-         x="143.64801"
-         y="285.71777"
+         x="272.19824"
+         y="235.76651"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4000-9">45s, 2R</tspan></text>
+         id="tspan4000-9">0s, 2R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -265,80 +265,80 @@
          id="tspan3968-9"
          x="538.22693"
          y="88.183159"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 4</tspan><tspan
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 2</tspan><tspan
          sodipodi:role="line"
          x="538.22693"
          y="103.18316"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4446-4">45s, 1R</tspan></text>
+         id="tspan4446-4">0s, 1R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="386.92819"
-       y="268.21777"
+       x="65.198242"
+       y="159.1288"
        id="text3966-53"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-8"
-         x="386.92819"
-         y="268.21777"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 5</tspan><tspan
+         x="65.198242"
+         y="159.1288"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 4</tspan><tspan
          sodipodi:role="line"
-         x="386.92819"
-         y="283.21777"
+         x="65.198242"
+         y="174.1288"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4446-5">90s, 2R</tspan></text>
+         id="tspan4446-5">45s, 2R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="553.43243"
-       y="378.21777"
+       x="439.45361"
+       y="278.18317"
        id="text3966-45"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-7"
-         x="553.43243"
-         y="378.21777"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 6</tspan><tspan
+         x="439.45361"
+         y="278.18317"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 7</tspan><tspan
          sodipodi:role="line"
-         x="553.43243"
-         y="393.21777"
+         x="439.45361"
+         y="293.18317"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4446-7">90s, 1R</tspan></text>
+         id="tspan4446-7">135s, 1R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="287.87735"
-       y="65.717773"
+       x="39.276367"
+       y="289.63727"
        id="text3966-8"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-2"
-         x="287.87735"
-         y="65.717773"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 7</tspan><tspan
+         x="39.276367"
+         y="289.63727"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 8</tspan><tspan
          sodipodi:role="line"
-         x="287.87735"
-         y="80.717773"
+         x="39.276367"
+         y="304.63727"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
          id="tspan4446-2">135s, 2R</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="98.426109"
-       y="468.21777"
+       x="142.63585"
+       y="438.36185"
        id="text3966-9"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-3"
-         x="98.426109"
-         y="468.21777"
-         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 8</tspan><tspan
+         x="142.63585"
+         y="438.36185"
+         style="font-size:12px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 3</tspan><tspan
          sodipodi:role="line"
-         x="98.426109"
-         y="483.21777"
+         x="142.63585"
+         y="453.36185"
          style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
-         id="tspan4446-74">135s, 1R</tspan></text>
+         id="tspan4446-74">45s, 1R</tspan></text>
   </g>
   <g
      inkscape:groupmode="layer"

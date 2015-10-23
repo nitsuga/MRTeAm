@@ -27,12 +27,14 @@ robot_names = [ 'robot_1',
                 'robot_2',
                 'robot_3' ]
 
+
 class Experiment(object):
     def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None):
         self.bag = bag
         self.mechanism = mechanism
         self.start_config = start_config
         self.task_file = task_file
+
 
 def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False):
     print "Plotting {0}".format(out_filename)
@@ -84,6 +86,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
 
     plt.savefig(out_filename)
     plt.close()
+
 
 def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False):
     print "Plotting {0}".format(out_filename)
@@ -148,6 +151,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     plt.savefig(out_filename)
     plt.close()
 
+
 def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None, out_filename=None):
     print "Plotting {0}".format(out_filename)
 
@@ -156,21 +160,19 @@ def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None
     x_pos = np.arange(x_start, len(mechanisms) + x_start)
 
     # A dict of <mechanism_name> => <list of values>
-    stat_by_mechanism = { 'RR': defaultdict(list),
-                          'OSI': defaultdict(list),
-                          'SSI': defaultdict(list),
-                          'PSI': defaultdict(list) }
+    stat_by_mechanism = {'RR': defaultdict(list),
+                         'OSI': defaultdict(list),
+                         'SSI': defaultdict(list),
+                         'PSI': defaultdict(list)}
 
-    stat_by_role = { 'robot-1': defaultdict(list),
-                     'robot-2': defaultdict(list),
-                     'robot-3': defaultdict(list) }
+    stat_by_role = {'robot-1': defaultdict(list),
+                    'robot-2': defaultdict(list),
+                    'robot-3': defaultdict(list)}
 
     all_role_names = set()
     # Populate said lists of values, by mechanism
     for exp in experiments:
         for role_name,robot_name in sorted(exp.roles.items()):
-
-
             all_role_names.add(role_name)
             robot = exp.robots_by_name[robot_name]
 
@@ -199,14 +201,14 @@ def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None
     
     for i,mechanism in enumerate(mechanisms):
         for j,role_name in enumerate(all_role_names):
-#            print "{0}, {1}".format(mechanism, role_name)
+            # print "{0}, {1}".format(mechanism, role_name)
             means_by_role[role_name].append(np.mean(stat_by_role[role_name][mechanism]))
             errors_by_role[role_name].append(stats.sem(stat_by_role[role_name][mechanism]))
 
-#            print stat_by_role[role_name][mechanism]
+            # print stat_by_role[role_name][mechanism]
             # Plot sample values as red dots
-#            plt.plot([x + (bar_width*i) for x in x_pos],
-#                     stat_by_role[role_name][mechanism], 'r.')
+            # plt.plot([x + (bar_width*i) for x in x_pos],
+            #          stat_by_role[role_name][mechanism], 'r.')
 
     bars = []
     # Plot bars with std errors
@@ -226,12 +228,12 @@ def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None
     plt.savefig(out_filename)
     plt.close()
 
-            
+
 def main(argv):
 
     aframe = pd.read_csv(argv[0])
 
-    #### Stats for all point configs, grouped by start config { CLUSTERED, DISTRIBUTED }
+    # Stats for all point configs, grouped by start config { CLUSTERED, DISTRIBUTED }
     for start_config in start_configs:
 
         # #### Deliberation time
@@ -323,15 +325,16 @@ def main(argv):
         #                      y_label='Seconds',
         #                      out_filename=plot_filename )
 
-        #### Stats by point config
+        # Stats by point config
         for task_file in task_files:
 
-            af = aframe[aframe.START_CONFIG==start_config][aframe.TASK_FILE==task_file]
+            af = aframe[aframe.START_CONFIG == start_config][aframe.TASK_FILE==task_file]
 
-            task_file = task_file.replace('.txt','')
+            # task_file = task_file.replace('.txt', '')
+            task_file = task_file.replace('.yaml', '')
 
             # Total run time stacked: deliberation time + execution time
-            #### Total run time
+            # Total run time
             plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'stacked-runtime-{0}-{1}.pdf'.format(task_file, start_config)
             plot_stacked_stats( af = af,
@@ -342,7 +345,7 @@ def main(argv):
                                 out_filename=plot_filename)
 #                                y_limit=450)
 
-            #### Total run time
+            # Total run time
             plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'run-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -352,7 +355,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=450)
 
-            #### Deliberation time
+            # Deliberation time
             plot_title = 'Deliberation Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'deliberation-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -362,7 +365,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=9)
 
-            #### Execution time
+            # Execution time
             plot_title = 'Execution Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'execution-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -372,7 +375,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=450)
 
-            #### Execution time
+            # Execution time
             plot_title = 'Movement Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'movement-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -382,7 +385,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=450)
 
-            #### Waiting time
+            # Waiting time
             plot_title = 'Waiting Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'waiting-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -392,7 +395,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=450)
 
-            #### Idle time
+            # Idle time
             plot_title = 'Idle Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'idle-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -402,7 +405,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=400)
 
-            #### Delay time
+            # Delay time
             plot_title = 'Overall Delay Time, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'delay-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -420,7 +423,7 @@ def main(argv):
             #                    y_label='cm',
             #                    out_filename=plot_filename )
 
-            #### Distance Travelled
+            # Distance Travelled
             plot_title = 'Total Distance Travelled, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'distance-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
@@ -430,7 +433,7 @@ def main(argv):
                                out_filename=plot_filename)
 #                               y_limit=50)
 
-            #### Near Collisions
+            # Near Collisions
             plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'collisions-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat( af = af,
