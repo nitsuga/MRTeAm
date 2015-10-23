@@ -5,6 +5,8 @@ import cairo
 from collections import defaultdict
 import glob
 import math
+import mrta
+import mrta.msg
 import os
 from os import listdir
 import os.path
@@ -208,9 +210,66 @@ def draw_target_points(ctx, target_points):
         ctx.line_to((task_x + 5) / IMG_WIDTH, (task_y - 5) / IMG_HEIGHT)
         ctx.stroke()
 
+def _pose_equal(pose1, pose2):
+    """ True if pose1 is a different position or orientation than pose2
+    :param pose1:
+    :param pose2:
+    :return:
+    """
+    p1_pos = pose1.pose.pose.position
+    p1_orient = pose1.pose.pose.orientation
+    p2_pos = pose2.pose.pose.position
+    p2_orient = pose2.pose.pose.orientation
+
+    if p1_pos.x != p2_pos.x or p1_pos.y != p2_pos.y or p1_orient.z != p2_orient.z or p1_orient.w != p2_orient.w:
+        return False
+
+    return True
+
 def draw_trajectories(ctx, run_msgs):
     # Trajectory line width
     ctx.set_line_width((5. / IMG_WIDTH))
+
+    # Get the end time of the execution phase
+    exec_end_stamp = None
+    # for msg in run_msgs['/experiment']:
+    #     if msg.event == mrta.msg.ExperimentEvent.END_EXECUTION:
+    #         exec_end_stamp = msg.header.stamp
+
+    # Find the timestamps when the first robot started moving and the last robot stopped moving
+    team_move_begin_stamp = None
+    team_move_end_stamp = None
+
+    for r_name in robot_names:
+
+        robot_move_begin_stamp = None
+        robot_move_end_stamp = None
+
+        last_pose_msg = None
+        for amcl_msg in run_msgs['/{0}/amcl_pose'.format(r_name)]:
+            if not last_pose_msg:
+                last_pose_msg = amcl_msg
+                continue
+
+            # If the robot moved
+            if not _pose_equal(amcl_msg, last_pose_msg):
+
+                if not robot_move_begin_stamp:
+                    robot_move_begin_stamp = amcl_msg.header.stamp
+
+                    if not team_move_begin_stamp or robot_move_begin_stamp < team_move_begin_stamp:
+                        team_move_begin_stamp = robot_move_begin_stamp
+
+                robot_move_end_stamp = amcl_msg.header.stamp
+                if not team_move_end_stamp or robot_move_end_stamp > team_move_end_stamp:
+                    team_move_end_stamp = robot_move_end_stamp
+
+    # print('team_move_begin_stamp: {0}'.format(team_move_begin_stamp))
+    # print('team_move_end_stamp: {0}'.format(team_move_end_stamp))
+
+    move_total_time = team_move_end_stamp - team_move_begin_stamp
+    move_total_secs = move_total_time.secs + (move_total_time.nsecs/1000000000.)
+    # print("move_total_secs: {0}".format(move_total_secs))
 
     for r_name in robot_names:
 
@@ -224,10 +283,25 @@ def draw_trajectories(ctx, run_msgs):
 
         for i,amcl_msg in list(enumerate(run_msgs['/{0}/amcl_pose'.format(r_name)])):
 
-#            print(amcl_msg)
+            # alpha = i*1. / num_poses
 
-            alpha = i*1. / num_poses
-#            print('alpha: {0}'.format(alpha))
+            pose_stamp = amcl_msg.header.stamp
+            # Don't draw anything if we haven't started moving yet
+            if pose_stamp < team_move_begin_stamp:
+                continue
+
+            pose_elapsed = pose_stamp - team_move_begin_stamp
+            pose_elapsed_secs = pose_elapsed.secs + (pose_elapsed.nsecs/1000000000.)
+
+#            print('pose_stamp: {0}'.format(pose_stamp))
+#            print('pose_elapsed: {0}'.format(pose_elapsed))
+#            print('team_move_begin_stamp: {0}'.format(team_move_begin_stamp))
+#             print('pose_elapsed_secs: {0}'.format(pose_elapsed_secs))
+#             print('move_total_secs: {0}'.format(move_total_secs))
+
+            alpha = pose_elapsed_secs / move_total_secs
+
+            # print('alpha: {0}'.format(alpha))
             ctx.set_source_rgba(stroke_color[0], stroke_color[1], stroke_color[2], alpha)
 
             amcl_pose = amcl_msg.pose.pose
