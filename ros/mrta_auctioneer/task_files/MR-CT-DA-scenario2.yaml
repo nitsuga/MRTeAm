@@ -74,7 +74,7 @@
     x: 5.50
     y: 3.00
   arrival_time: 135
-  num_robots: 2
+  num_robots: 1
   duration: 0
   depends: ['8']
 
