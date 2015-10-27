@@ -18,7 +18,7 @@ for map in smartlab
 do
     #for task_file in brooklyn_tasks_A.txt brooklyn_tasks_C.txt brooklyn_tasks_E.txt
 #    for task_file in tasks_A_dynamic.txt
-    for task_file in MR-CT-DA-scenario1.yaml
+    for task_file in MR-CT-DA-scenario2.yaml
     do
 	for mechanism in OSI SSI PSI RR
 	do

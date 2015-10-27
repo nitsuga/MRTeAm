@@ -4,8 +4,8 @@
   <param name="/use_sim_time" value="true"/>
 
   <!-- Map server -->
-<!--  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" /> -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file)" />
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" />
+<!--  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file)" /> -->
 
   <!-- BEGIN ROBOT -->
   <group ns="$(arg robot_name)">
@@ -17,7 +17,7 @@
       <param name="controller_frequency" value="5.0" />
       <param name="shutdown_costmaps" value="false" />
 
-<!--      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
+      <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
 
       <!--
       <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
@@ -59,9 +59,9 @@
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
 
-      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />
+<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />-->
 
-<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />-->
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
 

@@ -60,7 +60,7 @@ RATE = 10
 # If another robot is with this distance (in meters) and field of view (in
 # radians), we're in danger of colliding with it
 #DANGER_ZONE_FOV = math.pi / 2
-DANGER_ZONE_FOV = math.pi
+DANGER_ZONE_FOV = math.pi / 2
 #DANGER_ZONE_DIST = 1.0
 DANGER_ZONE_DIST = 0.8
 
