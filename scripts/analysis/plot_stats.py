@@ -8,7 +8,10 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pprint
 from scipy import stats
+
+pp = pprint.PrettyPrinter(indent=4)
 
 # Some global constants
 mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
@@ -27,6 +30,11 @@ robot_names = [ 'robot_1',
                 'robot_2',
                 'robot_3' ]
 
+colors = ( [0.0, 1.0, 0.0],  # 'green'
+           [1.0, 0.0, 0.0],  # 'red'
+           [0.0, 0.0, 1.0],  # 'blue'
+           [0.5, 0.0, 1.0] ) # 'violet'
+
 
 class Experiment(object):
     def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None):
@@ -40,7 +48,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     print "Plotting {0}".format(out_filename)
 
     # A dict of <mechanism_name> => <list of values>
-    stat_by_mechanism = defaultdict(list)
+    # stat_by_mechanism = defaultdict(list)
 
     # Populate said lists of values, by mechanism
     # for exp in experiments:
@@ -152,70 +160,31 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     plt.close()
 
 
-def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None, out_filename=None):
+def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None):
     print "Plotting {0}".format(out_filename)
 
     bar_width = 0.25
     x_start = 0.25
     x_pos = np.arange(x_start, len(mechanisms) + x_start)
-
-    # A dict of <mechanism_name> => <list of values>
-    stat_by_mechanism = {'RR': defaultdict(list),
-                         'OSI': defaultdict(list),
-                         'SSI': defaultdict(list),
-                         'PSI': defaultdict(list)}
-
-    stat_by_role = {'robot-1': defaultdict(list),
-                    'robot-2': defaultdict(list),
-                    'robot-3': defaultdict(list)}
-
-    all_role_names = set()
-    # Populate said lists of values, by mechanism
-    for exp in experiments:
-        for role_name,robot_name in sorted(exp.roles.items()):
-            all_role_names.add(role_name)
-            robot = exp.robots_by_name[robot_name]
-
-            # If exp.<attr_name> is an attribute, collect its value. If it's an
-            # instance method, call it to obtain its value
-            # hax
-            if attr_name == 'robot_travel_time' or attr_name == 'robot_idle_time':
-                attr_value = getattr(exp, attr_name)
-                stat_by_role[role_name][exp.mechanism].append(attr_value.__call__(robot_name))
-
-            else:
-                attr_value = getattr(robot, attr_name)
-
-                if attr_value.__func__:
-                    stat_by_role[role_name][exp.mechanism].append(attr_value.__call__())
-                else:
-                    stat_by_role[role_name][exp.mechanism].append(attr_value)
-
-    all_role_names = sorted(all_role_names)
-
     plt.title(title)
     plt.ylabel(y_label)
 
-    means_by_role = defaultdict(list)
-    errors_by_role = defaultdict(list)
-    
-    for i,mechanism in enumerate(mechanisms):
-        for j,role_name in enumerate(all_role_names):
-            # print "{0}, {1}".format(mechanism, role_name)
-            means_by_role[role_name].append(np.mean(stat_by_role[role_name][mechanism]))
-            errors_by_role[role_name].append(stats.sem(stat_by_role[role_name][mechanism]))
+    stat_means = defaultdict(list)
+    stat_errors = defaultdict(list)
 
-            # print stat_by_role[role_name][mechanism]
-            # Plot sample values as red dots
-            # plt.plot([x + (bar_width*i) for x in x_pos],
-            #          stat_by_role[role_name][mechanism], 'r.')
+    for i,mechanism in enumerate(mechanisms):
+        for j,robot_name in enumerate(robot_names):
+            # print "{0}, {1}".format(mechanism, role_name)
+            sample = af[af.MECHANISM==mechanism]['{0}_{1}'.format(robot_name.replace('_','').upper(), attr_name)]
+            stat_means[robot_name].append(np.mean(sample))
+            stat_errors[robot_name].append(stats.sem(sample))
 
     bars = []
     # Plot bars with std errors
-    for i,role_name in enumerate(all_role_names):
+    for i,robot_name in enumerate(robot_names):
         grey_level = 0.25 + (i*0.25)
         bars.append(plt.bar([x + (bar_width*i) for x in x_pos],
-                    means_by_role[role_name], yerr=errors_by_role[role_name],
+                    stat_means[robot_name], yerr=stat_errors[robot_name],
                     color=[grey_level] * 3, width=bar_width))
 
     # Bar labels
@@ -223,11 +192,73 @@ def plot_per_robot_stat(experiments=[], attr_name=None, title=None, y_label=None
     ymin, ymax = plt.ylim()
     plt.ylim(0, ymax+(ymax*0.2))
     plt.xlim(0, x_pos[-1] + 1)
-    plt.legend( [bar[0] for bar in bars], all_role_names )
+    plt.legend( [bar[0] for bar in bars], robot_names )
 
     plt.savefig(out_filename)
     plt.close()
 
+def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None, out_filename=None):
+    print "Plotting {0}".format(out_filename)
+
+    bar_width = 0.25
+    x_start = 0.25
+    x_pos = np.arange(x_start, len(mechanisms) + x_start)
+    plt.title(title)
+    plt.ylabel(y_label)
+
+    stat_means_by_attr = defaultdict(lambda: defaultdict(list))
+    stat_errors_by_attr = defaultdict(lambda: defaultdict(list))
+
+    for mechanism in mechanisms:
+        for robot_name in robot_names:
+            for attr_name in attr_names:
+#                print "{0}, {1}, {2}".format(mechanism, robot_name, attr_name)
+                sample = af[af.MECHANISM==mechanism]['{0}_{1}'.format(robot_name.replace('_','').upper(), attr_name)]
+#                pp.pprint(sample)
+                stat_means_by_attr[robot_name][attr_name].append(np.mean(sample))
+                stat_errors_by_attr[robot_name][attr_name].append(stats.sem(sample))
+
+    bars = []
+    # Plot bars with std errors
+
+    for i,robot_name in enumerate(robot_names):
+
+        r_level = 0.25 + (i*0.25)
+        g_level = 0.25 + (i*0.25)
+        b_level = 0.25 + (i*0.25)
+
+        grey_level = 0.5 + (i*0.25)
+
+#        last_means = None
+        bottoms = [0.0 for x in mechanisms]
+        for j, attr_name in enumerate(attr_names):
+            print("{0}-{1}".format(robot_name, attr_name))
+            print("bottoms: {0}".format(pp.pformat(bottoms)))
+
+            stat_means = stat_means_by_attr[robot_name][attr_name]
+            stat_errors = stat_errors_by_attr[robot_name][attr_name]
+
+            print("means: {0}".format(pp.pformat(stat_means)))
+
+            color = colors[j]
+
+            bars.append(plt.bar([x + (bar_width*i) for x in x_pos],
+                        stat_means_by_attr[robot_name][attr_name],
+                        color=[x * grey_level for x in color], width=bar_width, bottom=bottoms))
+
+            bottoms = map(lambda x,y: x+y, bottoms, stat_means)
+#            last_means = stat_means_by_attr[robot_name][attr_name]
+
+    # Bar labels
+    plt.xticks([x+0.33 for x in x_pos], mechanisms)
+    ymin, ymax = plt.ylim()
+    plt.ylim(0, ymax+(ymax*0.2))
+    plt.xlim(0, x_pos[-1] + 1)
+    # plt.legend( [bar[0] for bar in bars], robot_names )
+    plt.legend( bars, attr_names )
+
+    plt.savefig(out_filename)
+    plt.close()
 
 def main(argv):
 
@@ -442,23 +473,32 @@ def main(argv):
                                y_label='',
                                out_filename=plot_filename )
 
-            # #### Distance travelled per robot
-            # plot_title = 'Distance per Robot: "{0}", {1} start'.format(task_file, start_config)
-            # plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
-            # plot_per_robot_stat( af = af,
-            #                      attr_name='TOTAL_DISTANCE',
-            #                      title=plot_title,
-            #                      y_label='cm',
-            #                      out_filename=plot_filename )
-            
-            # #### Travel time per robot
-            # plot_title = 'Travel time per Robot: "{0}", {1} start'.format(task_file, start_config)
-            # plot_filename = 'travel-time-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
-            # plot_per_robot_stat( af = af,
-            #                      attr_name='robot_travel_time',
-            #                      title=plot_title,
-            #                      y_label='Seconds',
-            #                      out_filename=plot_filename )
+            #### Distance travelled per robot
+            plot_title = 'Distance per Robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            plot_per_robot_stat( af = af,
+                                 attr_name='DISTANCE',
+                                 title=plot_title,
+                                 y_label='cm',
+                                 out_filename=plot_filename )
+
+            #### Stacked execution phase times per robot
+            plot_title = 'Execution phase per robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_filename = 'execution-phase-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            plot_stacked_per_robot_stat(af = af,
+                                        attr_names=['MOVEMENT_TIME', 'WAITING_TIME', 'DELAY_TIME', 'IDLE_TIME'],
+                                        title=plot_title,
+                                        y_label='seconds',
+                                        out_filename=plot_filename)
+
+            #### Movement time per robot
+            plot_title = 'Movement time per robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_filename = 'movement-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            plot_per_robot_stat( af = af,
+                                 attr_name='MOVEMENT_TIME',
+                                 title=plot_title,
+                                 y_label='Seconds',
+                                 out_filename=plot_filename )
             
             # #### Idle time per robot
             # plot_title = 'Idle time per Robot: "{0}", {1} start'.format(task_file, start_config)

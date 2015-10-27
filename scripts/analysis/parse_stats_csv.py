@@ -28,6 +28,7 @@ field_names = [
     'TOTAL_RUN_TIME',
     'DELIBERATION_TIME',
     'EXECUTION_PHASE_TIME',
+    'DOWN_TIME',
     'TOTAL_MOVEMENT_TIME',
     'TOTAL_EXECUTION_TIME',
     'TOTAL_WAITING_TIME',
@@ -194,6 +195,13 @@ def parse_stats(bag_paths, output):
         row_fields['EXECUTION_PHASE_TIME'] = exec_phase_time # 'EXECUTION_PHASE_TIME'
 
 
+        # 'Down' time??
+        down_time  = count_interval_times(mrta.msg.ExperimentEvent.END_EXECUTION,
+                                          mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
+                                          exp_msgs)
+        row_fields['DOWN_TIME'] = down_time # 'DOWN_TIME'
+
+
         # The timestamp of the last 'END_EXECUTION' message
         exp_end_execution_stamp = None
         for msg in exp_msgs:
@@ -251,6 +259,10 @@ def parse_stats(bag_paths, output):
             robot.movement_time = count_interval_times(mrta.msg.TaskStatus.MOVING,
                                                        mrta.msg.TaskStatus.ARRIVED,
                                                        r_status_msgs)
+
+            robot.movement_time += count_interval_times(mrta.msg.TaskStatus.MOVING,
+                                                        mrta.msg.TaskStatus.FAILURE,
+                                                        r_status_msgs)
 
 #            print('{0} execution time:'.format(r_name))
             # Execution time
