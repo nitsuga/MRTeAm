@@ -60,13 +60,13 @@ import yaml
 from fysom import Fysom
 
 # ROS modules
-import actionlib
+# import actionlib
 from collections import defaultdict
-import geometry_msgs.msg
-import move_base_msgs.msg
-import nav_msgs.msg
-import rosgraph
-import rosgraph.names
+# import geometry_msgs.msg
+# import move_base_msgs.msg
+# import nav_msgs.msg
+# import rosgraph
+# import rosgraph.names
 import rosnode
 import rospy
 import rospy.rostime
@@ -74,7 +74,7 @@ import rospy.rostime
 import mrta
 import mrta.msg
 
-## TODO:
+# TODO:
 # Import Task class
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
@@ -82,14 +82,17 @@ RATE = 10
 
 pp = pprint.PrettyPrinter(indent=2)
 
-def on_sigint(signal, frame):
+
+def on_sigint(signal):
     print('Caught SIGINT, shutting down...')
     sys.exit(0)
+
 
 def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
+
 
 class Auction(object):
     def __init__(self, auctioneer=None, tasks=None, auction_round=None):
@@ -120,7 +123,7 @@ class Auction(object):
                 'onaward': self.award
                 
                 # on-event handlers
-                #'onchoose_OSI': self.choose_OSI
+                # 'onchoose_OSI': self.choose_OSI
             }
         )
 
@@ -158,7 +161,7 @@ class Auction(object):
     def collect_bids(self, e):
         """
         Here, we can either wait for a time limit (deadline) to pass or,
-        kowing the size of the team and the mechanism being used, we can
+        knowing the size of the team and the mechanism being used, we can
         calculate how many bids we expect to receive before we consider
         the bid collection phase finished.
 
@@ -172,6 +175,7 @@ class Auction(object):
 
     def award(self, e):
         pass
+
 
 class AuctionOSI(Auction):
 
@@ -211,7 +215,7 @@ class AuctionOSI(Auction):
 
         # In OSI, we wait to receive as many bids as there are team members
         while len(bids) < len(self.auctioneer.team_members):
-            #time.sleep(0.2)
+            # time.sleep(0.2)
             self.auctioneer.rate.sleep()
 
         self.fsm.bids_collected(task_id=self.tasks[0].task_id)
@@ -265,6 +269,7 @@ class AuctionOSI(Auction):
         if won_task.num_robots_allocated == won_task.num_robots:
             won_task.awarded = True
 
+
 class AuctionPSI(Auction):
 
     mechanism_name = 'PSI'
@@ -310,7 +315,7 @@ class AuctionPSI(Auction):
                 for task_id in bids[robot_id]:
                     bid_count += 1
 
-            #time.sleep(0.2)
+            # time.sleep(0.2)
             self.auctioneer.rate.sleep()
 
         self.fsm.bids_collected()
@@ -367,6 +372,7 @@ class AuctionPSI(Auction):
 
             # Mark the task as awarded
             won_task.awarded = True
+
 
 class AuctionSSI(Auction):
     """ A Sequential Single-Item auction.
@@ -434,8 +440,8 @@ class AuctionSSI(Auction):
 
         # For now, award the single lowest bidder. But we may want to award the 'num_robots' lowest bidders
         # per round (i.e., bid_tuples[:num_robots] rather than bid_tuples[0] for the minimum-bid task, below)
-#        num_robots = self._get_task_by_id(bid_tuples[0][1]).num_robots
-#        winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
+        # num_robots = self._get_task_by_id(bid_tuples[0][1]).num_robots
+        # winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
         winner_ids = map(lambda entry: entry[0], bid_tuples[:1])
         winning_task_id = bid_tuples[0][1]
 
@@ -466,6 +472,7 @@ class AuctionSSI(Auction):
         # number of robots
         if won_task.num_robots_allocated == won_task.num_robots:
             won_task.awarded = True
+
 
 class AuctionRR(Auction):
 
@@ -506,7 +513,7 @@ class AuctionRR(Auction):
         rospy.loginfo("(RR) state: award")
 
         # A cycling iterator of team member names
-        #team_cycle = itertools.cycle(self.auctioneer.team_members)
+        # team_cycle = itertools.cycle(self.auctioneer.team_members)
 
         for task in self.tasks:
 
@@ -514,7 +521,7 @@ class AuctionRR(Auction):
 
                 award_msg = mrta.msg.TaskAward()
 
-                #award_msg.robot_id = team_cycle.next()
+                # award_msg.robot_id = team_cycle.next()
                 award_msg.robot_id = self.auctioneer._team_cycle.next()
 
                 task_msg = self._construct_task_msg(task)
@@ -532,6 +539,7 @@ class AuctionRR(Auction):
                 if task.num_robots_allocated == task.num_robots:
                     task.awarded = True
 
+
 class Auctioneer:
 
     def __init__(self, mechanism=None, task_file=None):
@@ -546,9 +554,11 @@ class Auctioneer:
         rospy.init_node(node_name)
 
         # Topics we wish to subscribe to
+        self.bid_sub = self.status_sub = self.new_sub = None
         self.init_subscribers()
 
         # Topics we wish to publish
+        self.experiment_pub = self.announce_pub = self.award_pub = None
         self.init_publishers()
 
         # The rate at which we'll sleep while idle
@@ -557,17 +567,20 @@ class Auctioneer:
         # A list of (node) names of robot team members.
         self.team_members = []
 
+        # A cycling iterator
+        self._team_cycle = None
+
         # A list of (node) names team members who have completed
         # all of their tasks.
         self.team_members_completed = []
 
         # We will use one mechanism per run (for now)
-        #self.mechanism = mechanism
+        # self.mechanism = mechanism
         self.mechanism = rospy.get_param('~mechanism')
 
         # Tasks are loaded from a configuration file, rather than
         # loaded dynamically (for now)
-        #self.task_file = task_file
+        # self.task_file = task_file
         self.task_file = None
         try:
             self.task_file = rospy.get_param('~task_file')
@@ -644,11 +657,11 @@ class Auctioneer:
                                         mrta.msg.TaskBid,
                                         self.on_bid_received)
 
-        self.bid_sub = rospy.Subscriber('/tasks/status',
-                                        mrta.msg.TaskStatus,
-                                        self.on_task_status)
+        self.status_sub = rospy.Subscriber('/tasks/status',
+                                           mrta.msg.TaskStatus,
+                                           self.on_task_status)
 
-        self.bid_sub = rospy.Subscriber('/tasks/new',
+        self.new_sub = rospy.Subscriber('/tasks/new',
                                         mrta.msg.SensorSweepTask,
                                         self.on_new_task)
 
@@ -674,7 +687,6 @@ class Auctioneer:
 
         # For good measure...
         time.sleep(5)
-
 
     def on_new_task(self, new_task_msg):
         rospy.loginfo("Received new task: {0}".format(pp.pformat(new_task_msg)))
@@ -734,7 +746,7 @@ class Auctioneer:
             rospy.logerr("Can't open/parse task file {0}!".format(self.task_file))
             e_type, e_value, e_traceback = sys.exc_info()
             rospy.logerr("{0}: {1}".format(e_type, e_value))
-#            rospy.logerr("{0}".format(e_traceback.format_exc()))
+            # rospy.logerr("{0}".format(e_traceback.format_exc()))
 
         rospy.loginfo("Scripted Tasks:\n{0}".format(pp.pformat(self.scripted_tasks_by_id)))
 
@@ -907,7 +919,7 @@ class Auctioneer:
                     incomplete = True
                     break
 
-            #time.sleep(0.2)
+            # time.sleep(0.2)
             self.rate.sleep()
 
         rospy.loginfo("Stopping task execution.")

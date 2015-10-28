@@ -59,15 +59,16 @@ RATE = 10
 
 # If another robot is with this distance (in meters) and field of view (in
 # radians), we're in danger of colliding with it
-#DANGER_ZONE_FOV = math.pi / 2
-DANGER_ZONE_FOV = math.pi / 2
-#DANGER_ZONE_DIST = 1.0
+# DANGER_ZONE_FOV = math.pi / 2
+DANGER_ZONE_FOV = math.pi
+# DANGER_ZONE_DIST = 1.0
 DANGER_ZONE_DIST = 0.8
 
 # For pretty-printing convenience!
 pp = pprint.PrettyPrinter(indent=2)
 
-#### Utility functions
+# Utility functions
+
 
 def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
@@ -193,7 +194,7 @@ class RobotController:
         self._path_distance_cache = {}
 
         # Keep track of potential collisions with other robots
-#        self.collisions = defaultdict(Collision)
+        # self.collisions = defaultdict(Collision)
 
         self.in_collision = False
 
@@ -214,7 +215,7 @@ class RobotController:
         # Initialize our node
         node_name = 'mrta_robot_controller'
         rospy.loginfo("Starting node '{0}'...".format(node_name))
-#        rospy.init_node(node_name, log_level=rospy.DEBUG)
+        # rospy.init_node(node_name, log_level=rospy.DEBUG)
         rospy.init_node(node_name)
 
         # The rate at which we'll sleep while idle
@@ -228,9 +229,11 @@ class RobotController:
             rospy.loginfo("We're a simulated Turtlebot!")
 
         # Topics we wish to subscribe to
+        self.announce_sub = self.award_sub = self.experiment_sub = self.amcl_pose_sub = self.status_sub = None
         self.init_subscribers()
 
         # Topics we wish to publish
+        self.amcl_echo_pub = self.bid_pub = self.task_status_pub = None
         self.init_publishers()
 
         # actionlib client; used to send goals to the navigation stack
@@ -260,8 +263,7 @@ class RobotController:
             self.glob_obs_layer_srv = "/{0}/move_base_node/global_costmap/obstacle_layer".format(self.robot_name)
 
         rospy.loginfo("Starting obstacle_layer parameter client")
-        self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv,
-                                                                        timeout=5)
+        self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv, timeout=5)
 
         # Set up client for the service that makes path plans
         rospy.loginfo("Starting 'make_plan' service client")
@@ -271,7 +273,6 @@ class RobotController:
 
         self._nav_plan_client = rospy.ServiceProxy(self.plan_srv_name,
                                                    nav_msgs.srv.GetPlan)
-
 
         # Set up client for the service that clear costmaps
         rospy.loginfo("Starting 'clear_costmaps' service client")
@@ -332,7 +333,7 @@ class RobotController:
                 'ontask_success': self.task_success,
                 'ontask_failure': self.task_failure,
                 'onshutdown': self.shutdown,
-#                'onresolve_collision': self.resolve_collision,
+                # 'onresolve_collision': self.resolve_collision,
                 'oncollision_pause': self.collision_pause,
                 'oncollision_resume': self.collision_resume
             }
@@ -378,9 +379,9 @@ class RobotController:
         # If we're a Turtlebot, subscribe to '/amcl_pose' and republish
         # on '/{self.robot_name}/amcl_pose'
         if self.is_turtlebot:
-            self.self_amcl_pose_sub = rospy.Subscriber('/amcl_pose',
-                                                       geometry_msgs.msg.PoseWithCovarianceStamped,
-                                                       self.on_tb_pose_received)
+            self.amcl_pose_sub = rospy.Subscriber('/amcl_pose',
+                                                  geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                  self.on_tb_pose_received)
 
         # '/robot_<n>/amcl_pose'
         for robot_num in range(1, 4):
@@ -406,9 +407,9 @@ class RobotController:
         rospy.loginfo('subscribed to /tasks/announce')
 
         # '/tasks/award'
-        self.announce_sub = rospy.Subscriber('/tasks/award',
-                                             mrta.msg.TaskAward,
-                                             self.won)
+        self.award_sub = rospy.Subscriber('/tasks/award',
+                                          mrta.msg.TaskAward,
+                                          self.won)
         rospy.loginfo('subscribed to /tasks/award')
 
         # '/tasks/status'

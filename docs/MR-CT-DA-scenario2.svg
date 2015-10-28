@@ -82,17 +82,17 @@
      guidetolerance="10"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:window-width="1920"
-     inkscape:window-height="1025"
+     inkscape:window-width="1152"
+     inkscape:window-height="820"
      id="namedview7359"
      showgrid="false"
-     inkscape:zoom="1.1898954"
-     inkscape:cx="426.94365"
-     inkscape:cy="305.22103"
-     inkscape:window-x="0"
-     inkscape:window-y="27"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer6"
+     inkscape:zoom="0.84138311"
+     inkscape:cx="382.23481"
+     inkscape:cy="320.88999"
+     inkscape:window-x="2035"
+     inkscape:window-y="103"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer7"
      showguides="true"
      inkscape:guide-bbox="true" />
   <g
@@ -226,10 +226,10 @@
        sodipodi:nodetypes="ccc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:6, 6;stroke-dashoffset:0;marker-end:url(#Arrow1Mend)"
-       d="m 550,290 0,-55 -250,0 0,40 -100,0 0,-40 -100,0 0,36"
+       d="m 550,290 0,-55 c -169.56541,3.4424 -298.56251,0 -450,0 l 0,36"
        id="path9242"
        inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cccccccc" />
+       sodipodi:nodetypes="cccc" />
   </g>
   <g
      inkscape:groupmode="layer"
@@ -323,7 +323,7 @@
        sodipodi:nodetypes="ccccc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 225.5,200 0,50 50,0 0,-50 z"
+       d="m 225.5,249.5 0,50 50,0 0,-50 z"
        id="path8653"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
@@ -384,17 +384,17 @@
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
        x="250.11719"
-       y="170.38097"
+       y="322.38098"
        id="text3966-79"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3968-41"
          x="250.11719"
-         y="170.38097"
+         y="322.38098"
          style="font-size:14px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace">task 1</tspan><tspan
          sodipodi:role="line"
          x="250.11719"
-         y="187.88097"
+         y="339.88098"
          style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Monospace;-inkscape-font-specification:Monospace"
          id="tspan4446-80">0s, 2R</tspan></text>
   </g>

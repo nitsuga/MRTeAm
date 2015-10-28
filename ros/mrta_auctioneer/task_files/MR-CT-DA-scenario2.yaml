@@ -12,7 +12,7 @@
   type: SENSOR_SWEEP
   location:
     x: 2.50
-    y: 3.75
+    y: 3.25
   arrival_time: 0
   num_robots: 2
   duration: 0
