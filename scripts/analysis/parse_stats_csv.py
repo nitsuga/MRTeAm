@@ -23,12 +23,12 @@ field_names = [
     'START_CONFIG',
     'MECHANISM',
     'TASK_FILE',
-#    'RUN_NUM',
-#    'ATTEMPT_NUM',
+    # 'RUN_NUM',
+    # 'ATTEMPT_NUM',
     'TOTAL_RUN_TIME',
     'DELIBERATION_TIME',
     'EXECUTION_PHASE_TIME',
-    'DOWN_TIME',
+    'NAP_TIME',
     'TOTAL_MOVEMENT_TIME',
     'TOTAL_EXECUTION_TIME',
     'TOTAL_WAITING_TIME',
@@ -63,6 +63,7 @@ ROBOT_NAMES = [ 'robot_1',
 
 pp = pprint.PrettyPrinter(indent=4)
 
+
 class Robot(object):
     def __init__(self):
         self.distance = 0.0
@@ -78,6 +79,7 @@ class Robot(object):
         # Times at which this robot paused during execution of tasks. Keys are task ids
         # and values are timestamps
         self.pause_times = defaultdict(int)
+
 
 def count_interval_times(start_event, end_event, messages):
     """
@@ -103,7 +105,7 @@ def count_interval_times(start_event, end_event, messages):
 
     for message in messages:
         event = message.__getattribute__(attr_name)
-        if  event == start_event:
+        if event == start_event:
             last_start_stamp = message.header.stamp
             continue
         elif event == end_event:
@@ -113,12 +115,13 @@ def count_interval_times(start_event, end_event, messages):
             else:
                 interval_time = message.header.stamp - last_start_stamp
                 interval_secs = interval_time.secs + (interval_time.nsecs/1000000000.)
-                #print("{0}--{1}=={2}".format(start_event, end_event, interval_secs))
+                # print("{0}--{1}=={2}".format(start_event, end_event, interval_secs))
                 interval_times += interval_secs
                 last_start_stamp = None
 
-    #print("total: {0}".format(interval_times))
+    # print("total: {0}".format(interval_times))
     return interval_times
+
 
 def parse_stats(bag_paths, output):
 
@@ -128,7 +131,7 @@ def parse_stats(bag_paths, output):
 
     dt_re = re.compile('(.*)\.bag')
 
-    for i,bag_path in enumerate(bag_paths):
+    for i, bag_path in enumerate(bag_paths):
         print("Reading {0}".format(bag_path))
 
         bag = None
@@ -171,7 +174,7 @@ def parse_stats(bag_paths, output):
                 experiment_finished = True
             exp_msgs.append(msg)
 
-        #if 'END_EXPERIMENT' not in exp_msgs:
+        # if 'END_EXPERIMENT' not in exp_msgs:
         if not experiment_finished:
             print("Experiment timed out! Skipping...")
             continue
@@ -180,27 +183,25 @@ def parse_stats(bag_paths, output):
         total_run_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_EXPERIMENT,
                                               mrta.msg.ExperimentEvent.END_EXPERIMENT,
                                               exp_msgs)
-        row_fields['TOTAL_RUN_TIME'] = total_run_time # 'TOTAL_RUN_TIME'
+        row_fields['TOTAL_RUN_TIME'] = total_run_time  # 'TOTAL_RUN_TIME'
 
 #        print('DELIBERATION_TIME:')
         delib_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
                                           mrta.msg.ExperimentEvent.END_ALLOCATION,
                                           exp_msgs)
-        row_fields['DELIBERATION_TIME'] = delib_time # 'DELIBERATION_TIME'
+        row_fields['DELIBERATION_TIME'] = delib_time  # 'DELIBERATION_TIME'
 
 #        print('EXECUTION_PHASE_TIME:')
         exec_phase_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_EXECUTION,
                                                mrta.msg.ExperimentEvent.END_EXECUTION,
                                                exp_msgs)
-        row_fields['EXECUTION_PHASE_TIME'] = exec_phase_time # 'EXECUTION_PHASE_TIME'
-
+        row_fields['EXECUTION_PHASE_TIME'] = exec_phase_time  # 'EXECUTION_PHASE_TIME'
 
         # 'Down' time??
-        down_time  = count_interval_times(mrta.msg.ExperimentEvent.END_EXECUTION,
-                                          mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
-                                          exp_msgs)
-        row_fields['DOWN_TIME'] = down_time # 'DOWN_TIME'
-
+        nap_time = count_interval_times(mrta.msg.ExperimentEvent.END_EXECUTION,
+                                         mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
+                                         exp_msgs)
+        row_fields['NAP_TIME'] = nap_time  # 'NAP_TIME'
 
         # The timestamp of the last 'END_EXECUTION' message
         exp_end_execution_stamp = None
@@ -232,8 +233,8 @@ def parse_stats(bag_paths, output):
                 if amcl_pose.position.x == 0 and amcl_pose.position.y == 0:
                     continue
 
-                #print("last_pose: {0}".format(last_pose))
-                #print("amcl_pose: {0}".format(last_pose))
+                # print("last_pose: {0}".format(last_pose))
+                # print("amcl_pose: {0}".format(last_pose))
 
                 if last_pose is None:
                     last_pose = amcl_pose
@@ -287,7 +288,6 @@ def parse_stats(bag_paths, output):
                 if status_msg.status == mrta.msg.TaskStatus.MOVING and robot.exec_phase_begin_stamp is None:
                     robot.exec_phase_begin_stamp = status_msg.header.stamp
 
-                #if status_msg.status == 'ALL_TASKS_COMPLETE':
                 if status_msg.status == mrta.msg.TaskStatus.SUCCESS or status_msg == mrta.msg.TaskStatus.FAILURE:
                     robot.exec_phase_end_stamp = status_msg.header.stamp
 
@@ -298,7 +298,7 @@ def parse_stats(bag_paths, output):
                 print("Can not determine beginning or end time of {0}'s exec phase!".format(r_name))
                 continue
 
-            #idle_time_diff = exp_msgs['END_EXECUTION'].header.stamp - robot.travel_end_time
+            # idle_time_diff = exp_msgs['END_EXECUTION'].header.stamp - robot.travel_end_time
             idle_time_diff = exp_end_execution_stamp - robot.exec_phase_end_stamp
             robot.idle_time = (idle_time_diff.secs + idle_time_diff.nsecs/1000000000.)
 
@@ -355,20 +355,20 @@ def parse_stats(bag_paths, output):
 
         row_fields['ALLOC_MSG_BYTES'] = alloc_msg_bytes          # 'ALLOC_MSGS_BYTES'
 
-#        for r_name in ROBOT_NAMES:
-#            robot = robots[r_name]
+        # for r_name in ROBOT_NAMES:
+        #     robot = robots[r_name]
 
-        for i in range(1,4):
-            r_name = 'robot_{0}'.format(i)
+        for j in range(1, 4):
+            r_name = 'robot_{0}'.format(j)
             robot = robots[r_name]
 
-            row_fields['ROBOT{0}_DISTANCE'.format(i)] = robot.distance           # 'ROBOT<n>_DISTANCE'
-            row_fields['ROBOT{0}_MOVEMENT_TIME'.format(i)] = robot.movement_time # 'ROBOT<n>_MOVEMENT_TIME'
-            row_fields['ROBOT{0}_WAITING_TIME'.format(i)] = robot.waiting_time   # 'ROBOT<n>_WAITING_TIME'
-            row_fields['ROBOT{0}_IDLE_TIME'.format(i)] = robot.idle_time         # 'ROBOT<n>_IDLE_TIME'
-            row_fields['ROBOT{0}_DELAY_TIME'.format(i)] = robot.delay_time       # 'ROBOT<n>_DELAY_TIME'
+            row_fields['ROBOT{0}_DISTANCE'.format(j)] = robot.distance           # 'ROBOT<n>_DISTANCE'
+            row_fields['ROBOT{0}_MOVEMENT_TIME'.format(j)] = robot.movement_time # 'ROBOT<n>_MOVEMENT_TIME'
+            row_fields['ROBOT{0}_WAITING_TIME'.format(j)] = robot.waiting_time   # 'ROBOT<n>_WAITING_TIME'
+            row_fields['ROBOT{0}_IDLE_TIME'.format(j)] = robot.idle_time         # 'ROBOT<n>_IDLE_TIME'
+            row_fields['ROBOT{0}_DELAY_TIME'.format(j)] = robot.delay_time       # 'ROBOT<n>_DELAY_TIME'
 
-        csv_file.writerow([ row_fields[fn] for fn in field_names ])
+        csv_file.writerow([row_fields[fn] for fn in field_names])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract summary statistics for the runs recorded in given bag files.')
@@ -386,15 +386,14 @@ if __name__ == '__main__':
     bag_files = args.bag_file
     output = args.output
 
-#    pp.pprint(bag_files)
+    # pp.pprint(bag_files)
 
     # Make one, flat list of paths to log files
     bag_paths = []
 
     for path_arg in bag_files:
         bag_paths.extend(glob.glob(path_arg))
-
-#    print("bag paths: ")
-#    pp.pprint(bag_paths)
+    # print("bag paths: ")
+    # pp.pprint(bag_paths)
 
     parse_stats(bag_paths, output)

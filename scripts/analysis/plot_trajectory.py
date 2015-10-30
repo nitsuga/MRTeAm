@@ -84,6 +84,7 @@ def read_point_configs(task_dir):
         task_file = open(task_file_path, "rb")
         target_point_configs[task_filename] = _read_points(task_file)
 
+
 def draw_arena(ctx):
     """ Given a Cairo graphics context (ctx), draw the walls of the arena """
     # Arena line properties
@@ -160,6 +161,7 @@ def draw_arena(ctx):
     # Restore the default line cap style
     ctx.set_line_cap(default_line_cap)
 
+
 def draw_start_locs(ctx, start_config):
     # Draw start locations
     for i, start_loc in enumerate(start_locations[start_config]):
@@ -177,6 +179,7 @@ def draw_start_locs(ctx, start_config):
 
     # Reset pen to black
     ctx.set_source_rgb(0, 0, 0)
+
 
 def draw_target_points(ctx, target_points):
     # Font style for printing points
@@ -210,6 +213,7 @@ def draw_target_points(ctx, target_points):
         ctx.line_to((task_x + 5) / IMG_WIDTH, (task_y - 5) / IMG_HEIGHT)
         ctx.stroke()
 
+
 def _pose_equal(pose1, pose2):
     """ True if pose1 is a different position or orientation than pose2
     :param pose1:
@@ -225,6 +229,7 @@ def _pose_equal(pose1, pose2):
         return False
 
     return True
+
 
 def draw_trajectories(ctx, run_msgs):
     # Trajectory line width
@@ -329,13 +334,30 @@ def plot_trajectory(bag_paths, task_dir):
     read_point_configs(task_dir)
 
     for bag_path in bag_paths:
-        print("Reading {0}".format(bag_path))
+        # print("Reading {0}".format(bag_path))
 
         bag = None
         try:
             bag = rosbag.Bag(bag_path)
         except:
             print("Couldn't open {0} for reading!".format(bag_path))
+            continue
+
+        run_msgs = defaultdict(list)
+        try:
+            for topic, msg, msg_time in bag.read_messages():
+                run_msgs[topic].append(msg)
+        except:
+            print("Couldn't read messages from {0}!".format(bag_path))
+            continue
+
+        experiment_finished = False
+        for msg in run_msgs['/experiment']:
+            if msg.event == mrta.msg.ExperimentEvent.END_EXPERIMENT:
+                experiment_finished = True
+
+        if not experiment_finished:
+            print("Experiment timed out! Skipping...")
             continue
 
         bag_filename = os.path.basename(bag_path)
@@ -375,11 +397,14 @@ def plot_trajectory(bag_paths, task_dir):
             continue
 
         bag_basename = bag_filename.replace('.bag', '')
-        surface.write_to_png(bag_basename + '.png')
+        bag_basename = bag_basename.replace('.yaml', '')
+        plot_filename = 'trajectory__' + bag_basename + '.png'
+        print("Writing {0}".format(plot_filename))
+        surface.write_to_png(plot_filename)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Launch a multirobot task-allocation experiment.')
+    parser = argparse.ArgumentParser(description='Plot robot trajectories for the given experiments (bags).')
 
     parser.add_argument('bag_file',
                         nargs='+',
