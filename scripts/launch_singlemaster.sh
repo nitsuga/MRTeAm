@@ -13,12 +13,9 @@
 RUN_COUNT=10
 SCRIPT_DIR=~/GIT/mrta/scripts
 
-#for map in brooklyn # smartlab
 for map in smartlab
 do
-    #for task_file in brooklyn_tasks_A.txt brooklyn_tasks_C.txt brooklyn_tasks_E.txt
-#    for task_file in tasks_A_dynamic.txt
-    for task_file in MR-CT-DA-scenario2.yaml
+    for task_file in MR-CT-DA-scenario1.yaml MR-CT-DA-scenario2.yaml
     do
 	for mechanism in OSI SSI PSI RR
 	do
@@ -26,7 +23,7 @@ do
 	    do
 		for run in `seq 1 ${RUN_COUNT}`
 		do
-		    $SCRIPT_DIR/launch_experiment_singlemaster.py ${mechanism} ${map} ${start_config} ${task_file}
+		    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng ${mechanism} ${map} ${start_config} ${task_file}
 
 		done # end "run"
 

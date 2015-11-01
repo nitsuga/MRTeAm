@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 import glob
-# import sys
+import sys
 
 
 def main():
@@ -15,7 +15,9 @@ def main():
                    'SSI': defaultdict(list),
                    'PSI': defaultdict(list)}
 
-    for timeline_file in glob.glob('*.pdf'):
+    glob_token = sys.argv[1]
+
+    for timeline_file in glob.glob('timelines/*{0}*.pdf'.format(glob_token)):
         # print("Reading {0}".format(timeline_file))
         (prefix, map, start_config, mechanism, task_file, remainder) = timeline_file.split('__')
 

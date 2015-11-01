@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 import glob
-# import sys
+import sys
 
 
 def main():
@@ -15,7 +15,9 @@ def main():
                    'SSI': defaultdict(list),
                    'PSI': defaultdict(list)}
 
-    for traj_file in glob.glob('*.png'):
+    glob_token = sys.argv[1]
+
+    for traj_file in glob.glob('trajectories/*{0}*.png'.format(glob_token)):
         file_tokens = traj_file.split('_')
         (prefix, map, start_config, mechanism, task_file, remainder) = traj_file.split('__')
 
@@ -38,12 +40,18 @@ def main():
             file_list = task_dict[task_file]
 
             for filename in sorted(file_list):
+#                 print """\\begin{{minipage}}{{0.33\\textwidth}}
+# \\centering
+# {0}
+# \\includegraphics[width=\\textwidth]{{{1}}}
+# \\vspace{{0.4cm}}
+# \\end{{minipage}}""".format(filename.replace('_','\_').replace('.png',''), filename)
+
                 print """\\begin{{minipage}}{{0.33\\textwidth}}
 \\centering
-{0}
-\\includegraphics[width=\\textwidth]{{{1}}}
+\\includegraphics[width=\\textwidth]{{{0}}}
 \\vspace{{0.4cm}}
-\\end{{minipage}}""".format(filename.replace('_','\_').replace('.png',''), filename)
+\\end{{minipage}}""".format(filename)
 
     print "\\section*{Distributed}"
     
@@ -59,13 +67,17 @@ def main():
             file_list = task_dict[task_file]
 
             for filename in sorted(file_list):
+#                 print """\\begin{{minipage}}{{0.33\\textwidth}}
+# \\centering
+# {0}
+# \\includegraphics[width=\\textwidth]{{{1}}}
+# \\vspace{{0.4cm}}
+# \\end{{minipage}} """.format(filename.replace('_','\_').replace('.png',''), filename)
                 print """\\begin{{minipage}}{{0.33\\textwidth}}
 \\centering
-{0}
-\\includegraphics[width=\\textwidth]{{{1}}}
+\\includegraphics[width=\\textwidth]{{{0}}}
 \\vspace{{0.4cm}}
-\\end{{minipage}} """.format(filename.replace('_','\_').replace('.png',''), filename)
-
+\\end{{minipage}} """.format(filename)
 
 if __name__ == '__main__':
     main()

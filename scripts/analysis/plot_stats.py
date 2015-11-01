@@ -22,8 +22,8 @@ pp = pprint.PrettyPrinter(indent=4)
 mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
 start_configs = ['clustered', 'distributed']
 
-# task_files = ['MR-CT-DA-scenario1.yaml', 'MR-CT-DA-scenario2.yaml']
-task_files = ['MR-CT-DA-scenario1.yaml']
+task_files = ['MR-CT-DA-scenario1.yaml', 'MR-CT-DA-scenario2.yaml']
+# task_files = ['MR-CT-DA-scenario2.yaml']
 
 robot_names = ['robot_1',
                'robot_2',
