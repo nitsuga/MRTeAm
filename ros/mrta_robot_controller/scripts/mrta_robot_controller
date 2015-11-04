@@ -685,8 +685,8 @@ class RobotController:
                 ## orientations in its poses.
                 # yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
                 # yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
-                #yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
-                #path_cost += yaw_delta
+                # yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
+                # path_cost += yaw_delta
 
                 from_pose = pose_stamped.pose
 
@@ -945,7 +945,6 @@ class RobotController:
         rospy.loginfo("({0}) won(): current_state=={1}".format(self.robot_name,
                                                                self.fsm.current))
 
-
     def status_received(self, status_msg):
         rospy.loginfo("({0}): status_received()".format(self.robot_name))
 
@@ -964,11 +963,9 @@ class RobotController:
                                                                      status_msg.robot_id,
                                                                      status_msg.task_id))
 
-
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
         rospy.loginfo("({0}) agenda: {1}".format(self.robot_name, pp.pformat([t.task_id for t in self.agenda])))
-
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
@@ -976,7 +973,7 @@ class RobotController:
         time.sleep(0.5)
 
         self._clear_costmaps()
-#        self._clear_costmaps()
+        # self._clear_costmaps()
 
         time.sleep(0.5)
 
@@ -1001,13 +998,12 @@ class RobotController:
 
         rospy.loginfo("({0}) dep_ordered_tasks: {1}".format(self.robot_name, pp.pformat(dep_ordered_tasks)))
 
-
         # Our next task should have no unment dependencies. The first element of the list constructed
         # above should contain only such tasks.
-#        unconstrained_task_ids = dep_ordered_tasks[0]
+        # unconstrained_task_ids = dep_ordered_tasks[0]
 
         # Our next task should have the least amount of unmet dependencies. The first element of the list constructed
-        # aboveis a list of tasks with unmet dependencies. The next element is a list of tasks with one dependency,
+        # above is a list of tasks with unmet dependencies. The next element is a list of tasks with one dependency,
         # and so on.
         least_constrained_task_ids = []
 
@@ -1035,7 +1031,7 @@ class RobotController:
 
         goal_task = None
         min_uncompleted_dist = None
-#        for task in self.agenda:
+        # for task in self.agenda:
         for task in least_constrained:
             if not task.completed:
                 if greedy_selection:
@@ -1191,7 +1187,7 @@ class RobotController:
         goal_msg.target_pose.pose.orientation.w = 0.0
 
         rospy.logdebug("({0}) sending goal: {1}".format(self.robot_name, pp.pformat(goal_msg)))
-        #self.aclient.send_goal(goal_msg, done_cb=self.goal_done_cb)
+        # self.aclient.send_goal(goal_msg, done_cb=self.goal_done_cb)
         self.aclient.send_goal(goal_msg)
 
         self.fsm.goal_sent()
@@ -1215,9 +1211,9 @@ class RobotController:
 
         self.fsm.collision_cleared()
 
-            # Duration to pause
-    #        pause_duration = 1 + random.random()
-    #        time.sleep(pause_duration)
+        # Duration to pause
+        # pause_duration = 1 + random.random()
+        # time.sleep(pause_duration)
 
     def collision_resume(self, e):
         rospy.loginfo("({0}) state: collision_resume".format(self.robot_name))
@@ -1238,12 +1234,12 @@ class RobotController:
         rospy.loginfo("({0}) state: moving".format(self.robot_name))
 
         # Wait until the goal is reached
-#        self.aclient.wait_for_result()
+        # self.aclient.wait_for_result()
 
         # The actionlib client will send a "goal reached" message, triggering
         # goal_done_cb() to change the current state. Wait here until then.
-        #while self.fsm.current == 'moving':
-        #    self.rate.sleep()
+        # while self.fsm.current == 'moving':
+        #     self.rate.sleep()
 
         rospy.loginfo("({0}) IN 'moving', state: {1}".format(self.robot_name, self.fsm.current))
 
@@ -1257,16 +1253,16 @@ class RobotController:
                 self.fsm.collision_detected()
                 return
 
-#            rospy.loginfo("({0}) aclient state==ACTIVE and NOT self.in_collision.".format(self.robot_name))
+            # rospy.loginfo("({0}) aclient state==ACTIVE and NOT self.in_collision.".format(self.robot_name))
 
             self.rate.sleep()
 
         rospy.loginfo("({0}) aclient state=={1}".format(self.robot_name, self.aclient.get_state()))
 
         # Disable the obstacle layer and clear costmaps again
-#        self._disable_obstacle_layer()
-#        self._clear_costmaps()
-#        self._clear_costmaps()
+        # self._disable_obstacle_layer()
+        # self._clear_costmaps()
+        # self._clear_costmaps()
 
         # If resolving collisions, just return here
         if self.fsm.current == 'resolve_collision':
@@ -1349,7 +1345,7 @@ class RobotController:
         # We shouldn't fail to execute any task, since execution is virtual...
         self.fsm.task_succeeded()
 
-        #self.fsm.task_failed()
+        # self.fsm.task_failed()
 
     def task_success(self, e):
         rospy.loginfo("({0}) state: task_success".format(self.robot_name))
@@ -1417,18 +1413,18 @@ class RobotController:
 
         if have_incomplete_tasks:
             self.fsm.have_incomplete_tasks()
-            #else:
+            # else:
             # The allocation and execution phases are finished.
 
             # Send a message to mark the completion of all tasks
-            #all_complete_msg = mrta.msg.TaskStatus()
-            #all_complete_msg.robot_id = self.robot_name
-            #all_complete_msg.task_id = '*'
-            #all_complete_msg.status = 'ALL_TASKS_COMPLETE'
-            #stamp(all_complete_msg)
-            #self.task_status_pub.publish(all_complete_msg)
+            # all_complete_msg = mrta.msg.TaskStatus()
+            # all_complete_msg.robot_id = self.robot_name
+            # all_complete_msg.task_id = '*'
+            # all_complete_msg.status = 'ALL_TASKS_COMPLETE'
+            # stamp(all_complete_msg)
+            # self.task_status_pub.publish(all_complete_msg)
 
-            #self.fsm.no_incomplete_tasks()
+            # self.fsm.no_incomplete_tasks()
 
     def shutdown(self, e):
         # Do any cleanup here before shutting down
@@ -1436,7 +1432,7 @@ class RobotController:
         rospy.loginfo("{0} shutting down...".format(self.robot_name))
 
         # Instead of exiting, wait to be shut down from outside
-        #sys.exit(0)
+        # sys.exit(0)
         while not rospy.is_shutdown():
             self.rate.sleep()
 

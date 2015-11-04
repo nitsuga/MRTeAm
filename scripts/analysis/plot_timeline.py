@@ -21,12 +21,13 @@ robot_names = ['robot_1',
                'robot_2',
                'robot_3']
 
-colors = {'moving': [0.0, 1.0, 0.0],        # 'green'
-          'waiting': [1.0, 0.0, 0.0],       # 'red'
-          'delay': [0.0, 0.0, 1.0],         # 'blue'
-          'idle': [0.5, 0.0, 1.0],          # violet
-          'deliberation': [0.7, 0.7, 0.7],  # grey
-          'nap': [1.0, 0.796, 0.859]}       # pink
+colors = {'moving': [0.0, 1.0, 0.0],          # 'green'
+          'waiting': [1.0, 0.0, 0.0],         # 'red'
+          'delay': [0.0, 0.0, 1.0],           # 'blue'
+          'idle': [0.5, 0.0, 1.0],            # violet
+          'deliberation': [0.7, 0.7, 0.7],    # grey
+          'nap': [1.0, 0.796, 0.859],         # pink
+          'execution': [0.0, 0.0, 0.0, 0.0]}  # transparent
 
 
 def _get_intervals(start_event, end_events, messages, label):
@@ -35,6 +36,10 @@ def _get_intervals(start_event, end_events, messages, label):
     tuples of the form (start_timestamp, end_timestamp, label).
     """
     intervals = []
+
+    # Return an empty list of intervals of messages is empty
+    if not messages:
+        return intervals
 
     # The name of a message's 'event' field depends on its class.
     attr_name = None
@@ -65,6 +70,50 @@ def _get_intervals(start_event, end_events, messages, label):
 
     # print("total: {0}".format(interval_times))
     return intervals
+
+
+def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
+
+    idle_intervals = []
+
+    # Make sure intervals are sorted
+    intervals = sorted(intervals, key=lambda x: x[0])
+    print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
+
+    # For each interval in 'exec_phase_intervals', run through 'intervals' and see if there is a
+    # gap between 'moving' or 'waiting' interval end times and the end of the execution phase interval
+
+    for exec_phase_interval in exec_phase_intervals:
+
+        exec_phase_begin_time = exec_phase_interval[0]
+        exec_phase_end_time = exec_phase_interval[1]
+
+        last_exec_interval = None
+        for interval in intervals:
+
+            # Make sure this interval falls within the given execution phase
+            interval_begin_time = interval[0]
+            interval_end_time = interval[1]
+
+            start_valid = end_valid = False
+
+            # Interval begins or ends within this exec phase interval
+            if interval_begin_time > exec_phase_begin_time and interval_begin_time < exec_phase_end_time:
+                start_valid = True
+
+            if interval_end_time > exec_phase_begin_time and interval_end_time < exec_phase_end_time:
+                end_valid = True
+
+            if start_valid or end_valid:
+                last_exec_interval = interval
+
+        print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
+        print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
+
+        if last_exec_interval and last_exec_interval[1] < exec_phase_end_time:
+            idle_intervals.append([last_exec_interval[1], exec_phase_end_time, 'idle'])
+
+    return idle_intervals
 
 
 def _normalize_times(intervals, start_time):
@@ -107,6 +156,14 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     _normalize_times(delib_intervals, exp_start_time)
     # print("delib intervals: {0}".format(pp.pformat(delib_intervals)))
 
+    # Get execution intervals
+    exec_intervals = _get_intervals(mrta.msg.ExperimentEvent.BEGIN_EXECUTION,
+                                    [mrta.msg.ExperimentEvent.END_EXECUTION],
+                                    run_msgs['/experiment'],
+                                    'execution')
+    _normalize_times(exec_intervals, exp_start_time)
+
+    # Get 'nap' intervals
     nap_intervals = _get_intervals(mrta.msg.ExperimentEvent.END_EXECUTION,
                                    [mrta.msg.ExperimentEvent.BEGIN_ALLOCATION],
                                    run_msgs['/experiment'],
@@ -122,6 +179,9 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     # top to bottom.
     y_pos = 7
     for robot_name in robot_names[::-1]:
+
+        # print("{0} messages: {1}".format(robot_name, pp.pformat(robot_msgs[robot_name])))
+
         moving_intervals = _get_intervals(mrta.msg.TaskStatus.MOVING,
                                           [mrta.msg.TaskStatus.PAUSE,
                                            mrta.msg.TaskStatus.ARRIVED,
@@ -139,7 +199,8 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
         # print("delay intervals: {0}".format(pp.pformat(delay_intervals)))
 
         waiting_intervals = _get_intervals(mrta.msg.TaskStatus.ARRIVED,
-                                           [mrta.msg.TaskStatus.BEGIN],
+                                           [mrta.msg.TaskStatus.BEGIN,
+                                            mrta.msg.ExperimentEvent.BEGIN_ALLOCATION],
                                            robot_msgs[robot_name],
                                            'waiting')
         _normalize_times(waiting_intervals, exp_start_time)
@@ -153,6 +214,12 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
         all_robot_intervals = sorted(all_robot_intervals, key=lambda x: x[0])
 
         # print("sorted {0} intervals: {1}".format(robot_name, pp.pformat(all_robot_intervals)))
+
+        # Insert idle intervals
+        idle_intervals = _get_idle_intervals(all_robot_intervals, exec_intervals, robot_name)
+        print("idle_intervals: {0}".format(pp.pformat(idle_intervals)))
+        all_robot_intervals += idle_intervals
+        all_robot_intervals = sorted(all_robot_intervals, key=lambda x: x[0])
 
         bars = ax.broken_barh([(x[0], x[1]-x[0]) for x in all_robot_intervals], (y_pos, 6),
                               facecolors=[colors[x[2]] for x in all_robot_intervals])

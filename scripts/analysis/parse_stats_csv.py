@@ -81,6 +81,100 @@ class Robot(object):
         self.pause_times = defaultdict(int)
 
 
+def _get_intervals(start_event, end_events, messages, label):
+    """
+    Search messages for all [start_event,end_event] intervals. Return them as
+    tuples of the form (start_timestamp, end_timestamp, label).
+    """
+    intervals = []
+
+    # Return an empty list of intervals of messages is empty
+    if not messages:
+        return intervals
+
+    # The name of a message's 'event' field depends on its class.
+    attr_name = None
+    sample_msg = messages[0]
+    if sample_msg.__class__.__name__ == '_mrta__ExperimentEvent':
+        attr_name = 'event'
+    elif sample_msg.__class__.__name__ == '_mrta__TaskStatus':
+        attr_name = 'status'
+    else:
+        # Should actually raise an error here
+        print('Unrecognized message class: {0}'.format(sample_msg.__class__.__name__))
+        return intervals
+
+    last_start_stamp = None
+    for message in messages:
+        event = message.__getattribute__(attr_name)
+        if event == start_event:
+            last_start_stamp = message.header.stamp.secs + (message.header.stamp.nsecs/1000000000.)
+            continue
+        elif event in end_events:
+            if not last_start_stamp:
+                print("count_interval_time(): {0} not preceded by {1}!".format(event, start_event))
+                continue
+            else:
+                end_stamp = message.header.stamp.secs + (message.header.stamp.nsecs/1000000000.)
+                intervals.append([last_start_stamp, end_stamp, label])
+                last_start_stamp = None
+
+    # print("total: {0}".format(interval_times))
+    return intervals
+
+
+def _normalize_times(intervals, start_time):
+    for i in range(len(intervals)):
+        intervals[i][0] -= start_time
+        intervals[i][1] -= start_time
+
+    return intervals
+
+
+def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
+
+    idle_intervals = []
+
+    # Make sure intervals are sorted
+    intervals = sorted(intervals, key=lambda x: x[0])
+    print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
+
+    # For each interval in 'exec_phase_intervals', run through 'intervals' and see if there is a
+    # gap between 'moving' or 'waiting' interval end times and the end of the execution phase interval
+
+    for exec_phase_interval in exec_phase_intervals:
+
+        exec_phase_begin_time = exec_phase_interval[0]
+        exec_phase_end_time = exec_phase_interval[1]
+
+        last_exec_interval = None
+        for interval in intervals:
+
+            # Make sure this interval falls within the given execution phase
+            interval_begin_time = interval[0]
+            interval_end_time = interval[1]
+
+            start_valid = end_valid = False
+
+            # Interval begins or ends within this exec phase interval
+            if interval_begin_time > exec_phase_begin_time and interval_begin_time < exec_phase_end_time:
+                start_valid = True
+
+            if interval_end_time > exec_phase_begin_time and interval_end_time < exec_phase_end_time:
+                end_valid = True
+
+            if start_valid or end_valid:
+                last_exec_interval = interval
+
+        print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
+        print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
+
+        if last_exec_interval and last_exec_interval[1] < exec_phase_end_time:
+            idle_intervals.append([last_exec_interval[1], exec_phase_end_time, 'idle'])
+
+    return idle_intervals
+
+
 def count_interval_times(start_event, end_event, messages):
     """
     Count the time in all [start_event,end_event] intervals and return the sum.
@@ -88,6 +182,10 @@ def count_interval_times(start_event, end_event, messages):
     interval_times = 0.0
 
     last_start_stamp = None
+
+    # If messages is empty, return 0
+    if not messages:
+        return interval_times
 
     # The name of a message's 'event' field depends on its class.
     attr_name = None
@@ -197,17 +295,29 @@ def parse_stats(bag_paths, output):
                                                exp_msgs)
         row_fields['EXECUTION_PHASE_TIME'] = exec_phase_time  # 'EXECUTION_PHASE_TIME'
 
-        # 'Down' time??
+        # Get execution intervals
+        exec_intervals = _get_intervals(mrta.msg.ExperimentEvent.BEGIN_EXECUTION,
+                                        [mrta.msg.ExperimentEvent.END_EXECUTION],
+                                        exp_msgs,
+                                        'execution')
+
+        # 'Nap' time
         nap_time = count_interval_times(mrta.msg.ExperimentEvent.END_EXECUTION,
-                                         mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
-                                         exp_msgs)
+                                        mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
+                                        exp_msgs)
         row_fields['NAP_TIME'] = nap_time  # 'NAP_TIME'
 
-        # The timestamp of the last 'END_EXECUTION' message
+        exp_begin_stamp = None
+        exp_begin_time = None
         exp_end_execution_stamp = None
         for msg in exp_msgs:
+            if msg.event == mrta.msg.ExperimentEvent.BEGIN_EXPERIMENT:
+                exp_begin_stamp = msg.header.stamp
+                exp_begin_time = exp_begin_stamp.secs + (exp_begin_stamp.nsecs/1000000000.)
             if msg.event == mrta.msg.ExperimentEvent.END_EXECUTION:
                 exp_end_execution_stamp = msg.header.stamp
+
+        _normalize_times(exec_intervals, exp_begin_time)
 
         total_movement_time = 0.0
         total_execution_time = 0.0
@@ -242,12 +352,6 @@ def parse_stats(bag_paths, output):
 
                 pos_delta = math.hypot(amcl_pose.position.x - last_pose.position.x,
                                        amcl_pose.position.y - last_pose.position.y)
-#                print "{0} pos_delta: from ({1},{2}) to ({3},{4}) is {5}".format(r_name,
-#                                                                                 amcl_pose.position.x,
-#                                                                                 amcl_pose.position.y,
-#                                                                                 last_pose.position.x,
-#                                                                                 last_pose.position.y,
-#                                                                                 pos_delta)
                 robot.distance += pos_delta
                 last_pose = amcl_pose
 
@@ -298,9 +402,35 @@ def parse_stats(bag_paths, output):
                 print("Can not determine beginning or end time of {0}'s exec phase!".format(r_name))
                 continue
 
-            # idle_time_diff = exp_msgs['END_EXECUTION'].header.stamp - robot.travel_end_time
-            idle_time_diff = exp_end_execution_stamp - robot.exec_phase_end_stamp
-            robot.idle_time = (idle_time_diff.secs + idle_time_diff.nsecs/1000000000.)
+            # 'moving' intervals
+            moving_intervals = _get_intervals(mrta.msg.TaskStatus.MOVING,
+                                              [mrta.msg.TaskStatus.PAUSE,
+                                               mrta.msg.TaskStatus.ARRIVED,
+                                               mrta.msg.TaskStatus.FAILURE],
+                                              r_status_msgs,
+                                              'moving')
+            _normalize_times(moving_intervals, exp_begin_time)
+
+            # 'waiting' intervals
+            waiting_intervals = _get_intervals(mrta.msg.TaskStatus.ARRIVED,
+                                               [mrta.msg.TaskStatus.BEGIN,
+                                                mrta.msg.ExperimentEvent.BEGIN_ALLOCATION],
+                                               r_status_msgs,
+                                               'waiting')
+            _normalize_times(waiting_intervals, exp_begin_time)
+
+            # idle_time_diff = exp_end_execution_stamp - robot.exec_phase_end_stamp
+            # robot.idle_time = (idle_time_diff.secs + idle_time_diff.nsecs/1000000000.)
+
+            # Count idle time(s)
+            idle_intervals = _get_idle_intervals(moving_intervals + waiting_intervals,
+                                                 exec_intervals,
+                                                 r_name)
+
+            print("idle_intervals: {0}".format(pp.pformat(idle_intervals)))
+
+            for idle_interval in idle_intervals:
+                robot.idle_time += idle_interval[1] - idle_interval[0]
 
             # Since messages may arrive out of order it's possible for the idle time
             # of the last robot to be negative. Make the minimum time 0 here.

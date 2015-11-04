@@ -22,8 +22,10 @@ exp_topics = { 'experiment': [ '/experiment' ],
 # For textwrap
 preferred_width = 80
 
+
 def usage(script):
     print("Usage: {0} <bag_file> <'experiment'|'tasks'|'bids'|'awards'|'position'>".format(script))
+
 
 def main(argv):
 
@@ -43,9 +45,9 @@ def main(argv):
         bag.close()
         sys.exit(1)
 
-    for topic,msg,t in bag.read_messages(topics=exp_topics[argv[2]]):
+    for topic, msg, t in bag.read_messages(topics=exp_topics[argv[2]]):
         print('---------------------------------------------------')
-        print("time: {0}.{1}s ".format(t.secs,t.nsecs))
+        print("time: {0}.{1}s ".format(t.secs, t.nsecs))
         print("topic: {0}".format(topic))
         print(msg)
 

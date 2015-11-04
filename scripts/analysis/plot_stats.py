@@ -22,8 +22,10 @@ pp = pprint.PrettyPrinter(indent=4)
 mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
 start_configs = ['clustered', 'distributed']
 
-task_files = ['MR-CT-DA-scenario1.yaml', 'MR-CT-DA-scenario2.yaml']
+# task_files = ['MR-CT-DA-scenario1.yaml', 'MR-CT-DA-scenario2.yaml']
 # task_files = ['MR-CT-DA-scenario2.yaml']
+task_files = ['SR-IT-DA-scenario2.yaml', 'SR-CT-DA-scenario2.yaml',
+              'MR-IT-DA-scenario2.yaml', 'MR-CT-DA-scenario2.yaml']
 
 robot_names = ['robot_1',
                'robot_2',
@@ -130,13 +132,33 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     stat2_errors = []
 
     for i, mechanism in enumerate(mechanisms):
-        sample1 = af[af.MECHANISM==mechanism][attr1_name]
-        stat1_means.append(np.mean(sample1))
-        stat1_errors.append(stats.sem(sample1))
+        sample1 = af[af.MECHANISM == mechanism][attr1_name]
 
-        sample2 = af[af.MECHANISM==mechanism][attr2_name]
-        stat2_means.append(np.mean(sample2))
-        stat2_errors.append(stats.sem(sample2))
+        sample1_mean = np.mean(sample1)
+        sample1_error = stats.sem(sample1)
+
+        if math.isnan(sample1_mean):
+            sample1_mean = 0.0
+
+        if math.isnan(sample1_error):
+            sample1_error = 0.0
+
+        stat1_means.append(sample1_mean)
+        stat1_errors.append(sample1_error)
+
+        sample2 = af[af.MECHANISM == mechanism][attr2_name]
+
+        sample2_mean = np.mean(sample2)
+        sample2_error = stats.sem(sample2)
+
+        if math.isnan(sample2_mean):
+            sample2_mean = 0.0
+
+        if math.isnan(sample2_error):
+            sample2_error = 0.0
+
+        stat2_means.append(sample2_mean)
+        stat2_errors.append(sample2_error)
 
         if plot_samples:
             # Plot sample values as red dots
