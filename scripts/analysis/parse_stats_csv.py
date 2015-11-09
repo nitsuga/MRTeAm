@@ -137,7 +137,7 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
 
     # Make sure intervals are sorted
     intervals = sorted(intervals, key=lambda x: x[0])
-    print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
+    # print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
 
     # For each interval in 'exec_phase_intervals', run through 'intervals' and see if there is a
     # gap between 'moving' or 'waiting' interval end times and the end of the execution phase interval
@@ -147,7 +147,9 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
         exec_phase_begin_time = exec_phase_interval[0]
         exec_phase_end_time = exec_phase_interval[1]
 
-        last_exec_interval = None
+        # last_exec_interval = None
+        last_exec_interval = exec_phase_interval
+
         for interval in intervals:
 
             # Make sure this interval falls within the given execution phase
@@ -166,11 +168,16 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
             if start_valid or end_valid:
                 last_exec_interval = interval
 
-        print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
-        print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
+        # print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
+        # print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
 
-        if last_exec_interval and last_exec_interval[1] < exec_phase_end_time:
-            idle_intervals.append([last_exec_interval[1], exec_phase_end_time, 'idle'])
+        if last_exec_interval and last_exec_interval[1] <= exec_phase_end_time:
+            if last_exec_interval == exec_phase_interval:
+                # print("appending [{0}, {1}, 'idle']".format(last_exec_interval[0], exec_phase_end_time))
+                idle_intervals.append([last_exec_interval[0], exec_phase_end_time, 'idle'])
+            else:
+                # print("appending [{0}, {1}, 'idle']".format(last_exec_interval[1], exec_phase_end_time))
+                idle_intervals.append([last_exec_interval[1], exec_phase_end_time, 'idle'])
 
     return idle_intervals
 
@@ -182,6 +189,7 @@ def count_interval_times(start_event, end_event, messages):
     interval_times = 0.0
 
     last_start_stamp = None
+    last_start_time = None
 
     # If messages is empty, return 0
     if not messages:
@@ -204,13 +212,20 @@ def count_interval_times(start_event, end_event, messages):
     for message in messages:
         event = message.__getattribute__(attr_name)
         if event == start_event:
+            # print("setting last_start_stamp to: {0}".format(pp.pformat(message.header.stamp)))
             last_start_stamp = message.header.stamp
+            # print("message: {0}".format(pp.pformat(message)))
+            # print("setting last_start_time to: {0}".format(pp.pformat(message.time)))
+            # last_start_stamp = message.time
             continue
         elif event == end_event:
             if not last_start_stamp:
                 print("count_interval_time(): {0} not preceded by a {1}!".format(end_event, start_event))
                 continue
             else:
+                # print("start time: {0}, end time: {1}".format(pp.pformat(last_start_stamp), pp.pformat(message.header.stamp)))
+                if message.header.stamp < last_start_stamp:
+                    print("Interval end time is earlier than its start time. Something is wrong!")
                 interval_time = message.header.stamp - last_start_stamp
                 interval_secs = interval_time.secs + (interval_time.nsecs/1000000000.)
                 # print("{0}--{1}=={2}".format(start_event, end_event, interval_secs))
@@ -259,10 +274,12 @@ def parse_stats(bag_paths, output):
         run_msgs = defaultdict(list)
 
         try:
-            for topic,msg,msg_time in bag.read_messages():
+            for topic, msg, msg_time in bag.read_messages():
+                msg.header.stamp = msg_time
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
+            print(sys.exc_info()[0])
             continue
 
         exp_msgs = []
@@ -359,7 +376,7 @@ def parse_stats(bag_paths, output):
 
             r_status_msgs = [m for m in run_msgs['/tasks/status'] if m.robot_id == r_name]
 
-#            print('{0} movement time:'.format(r_name))
+            # print('{0} movement time:'.format(r_name))
             # Movement time
             robot.movement_time = count_interval_times(mrta.msg.TaskStatus.MOVING,
                                                        mrta.msg.TaskStatus.ARRIVED,

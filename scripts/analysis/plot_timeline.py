@@ -78,7 +78,7 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
 
     # Make sure intervals are sorted
     intervals = sorted(intervals, key=lambda x: x[0])
-    print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
+    # print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
 
     # For each interval in 'exec_phase_intervals', run through 'intervals' and see if there is a
     # gap between 'moving' or 'waiting' interval end times and the end of the execution phase interval
@@ -88,7 +88,9 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
         exec_phase_begin_time = exec_phase_interval[0]
         exec_phase_end_time = exec_phase_interval[1]
 
-        last_exec_interval = None
+        # last_exec_interval = None
+        last_exec_interval = exec_phase_interval
+
         for interval in intervals:
 
             # Make sure this interval falls within the given execution phase
@@ -107,11 +109,16 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
             if start_valid or end_valid:
                 last_exec_interval = interval
 
-        print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
-        print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
+        # print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
+        # print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
 
-        if last_exec_interval and last_exec_interval[1] < exec_phase_end_time:
-            idle_intervals.append([last_exec_interval[1], exec_phase_end_time, 'idle'])
+        if last_exec_interval and last_exec_interval[1] <= exec_phase_end_time:
+            if last_exec_interval == exec_phase_interval:
+                # print("appending [{0}, {1}, 'idle']".format(last_exec_interval[0], exec_phase_end_time))
+                idle_intervals.append([last_exec_interval[0], exec_phase_end_time, 'idle'])
+            else:
+                # print("appending [{0}, {1}, 'idle']".format(last_exec_interval[1], exec_phase_end_time))
+                idle_intervals.append([last_exec_interval[1], exec_phase_end_time, 'idle'])
 
     return idle_intervals
 
@@ -180,7 +187,7 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     y_pos = 7
     for robot_name in robot_names[::-1]:
 
-        # print("{0} messages: {1}".format(robot_name, pp.pformat(robot_msgs[robot_name])))
+        print("{0} messages: {1}".format(robot_name, pp.pformat(robot_msgs[robot_name])))
 
         moving_intervals = _get_intervals(mrta.msg.TaskStatus.MOVING,
                                           [mrta.msg.TaskStatus.PAUSE,
@@ -217,7 +224,7 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
 
         # Insert idle intervals
         idle_intervals = _get_idle_intervals(all_robot_intervals, exec_intervals, robot_name)
-        print("idle_intervals: {0}".format(pp.pformat(idle_intervals)))
+        # print("idle_intervals: {0}".format(pp.pformat(idle_intervals)))
         all_robot_intervals += idle_intervals
         all_robot_intervals = sorted(all_robot_intervals, key=lambda x: x[0])
 
@@ -241,7 +248,14 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
 
 def plot_timelines(bag_paths):
 
+    # Create the './timelines' directory if it doesn't already exist
+    timeline_dir = './timelines'
+    if not os.path.exists(timeline_dir):
+        os.makedirs(timeline_dir)
+
     for bag_path in bag_paths:
+        print("Reading {0}".format(bag_path))
+
         bag = None
         try:
             bag = rosbag.Bag(bag_path)
@@ -255,6 +269,7 @@ def plot_timelines(bag_paths):
         run_msgs = defaultdict(list)
         try:
             for topic, msg, msg_time in bag.read_messages():
+                msg.header.stamp = msg_time
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
@@ -274,6 +289,7 @@ def plot_timelines(bag_paths):
 
         # print("bag_basename: {0}".format(bag_basename))
         plot_filename = 'timeline__' + bag_basename + '.pdf'
+        plot_filename = os.path.join(timeline_dir, plot_filename)
 
         task_file = task_file.replace('.txt', '')
         task_file = task_file.replace('.yaml', '')

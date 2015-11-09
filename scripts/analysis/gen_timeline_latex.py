@@ -26,12 +26,12 @@ def main():
         elif start_config == 'distributed':
             distributed[mechanism][task_file].append(timeline_file)
 
-    print "\\section*{Clustered}"
+    print "\\subsection*{Clustered}"
     
     for mechanism in clustered.keys():
         task_dict = clustered[mechanism]
 
-        print "\\subsection*{{{0}}}".format(mechanism)
+        print "\\subsubsection*{{{0}}}".format(mechanism)
 
         for task_file in sorted(task_dict.keys()):
 

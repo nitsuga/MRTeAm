@@ -15,11 +15,11 @@ SCRIPT_DIR=~/GIT/mrta/scripts
 
 for map in smartlab
 do
-    for task_file in SR-IT-DA-scenario2.yaml SR-CT-DA-scenario2.yaml MR-IT-DA-scenario2.yaml
+    for task_file in MR-IT-DA-scenario2.yaml MR-CT-DA-scenario2.yaml SR-IT-DA-scenario2.yaml SR-CT-DA-scenario2.yaml
     do
 	for mechanism in OSI SSI PSI RR
 	do
-	    for start_config in distributed clustered
+	    for start_config in clustered # distributed
 	    do
 		for run in `seq 1 ${RUN_COUNT}`
 		do

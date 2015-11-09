@@ -331,10 +331,15 @@ def draw_trajectories(ctx, run_msgs):
 
 def plot_trajectory(bag_paths, task_dir):
 
+    # Create the './trajectories' directory if it doesn't already exist
+    traj_dir = './trajectories'
+    if not os.path.exists(traj_dir):
+        os.makedirs(traj_dir)
+
     read_point_configs(task_dir)
 
     for bag_path in bag_paths:
-        # print("Reading {0}".format(bag_path))
+        print("Reading {0}".format(bag_path))
 
         bag = None
         try:
@@ -346,6 +351,7 @@ def plot_trajectory(bag_paths, task_dir):
         run_msgs = defaultdict(list)
         try:
             for topic, msg, msg_time in bag.read_messages():
+                msg.header.stamp = msg_time
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
@@ -398,7 +404,10 @@ def plot_trajectory(bag_paths, task_dir):
 
         bag_basename = bag_filename.replace('.bag', '')
         bag_basename = bag_basename.replace('.yaml', '')
+
         plot_filename = 'trajectory__' + bag_basename + '.png'
+        plot_filename = os.path.join(traj_dir, plot_filename)
+
         print("Writing {0}".format(plot_filename))
         surface.write_to_png(plot_filename)
 

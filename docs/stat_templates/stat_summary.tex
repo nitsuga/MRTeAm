@@ -14,7 +14,7 @@ right  = 2.50cm]{geometry}
 % Define a task filename here
 %\newcommand{\taskfile}{tasks_A}
 
-\title{Statistics: $TASKFILE$}
+\title{Statistics: $TASKFILE$ on `$HOSTNAME$'}
 \preauthor{}
 \author{}
 \postauthor{}
@@ -37,14 +37,14 @@ right  = 2.50cm]{geometry}
 \\[0.2cm]
 
 %% Total Run Time, Stacked (Deliberation+Execution)
-\noindent
-\begin{minipage}{0.5\textwidth}
-\includegraphics[width=\textwidth]{stacked-runtime-$TASKFILE$-clustered.pdf}
-\end{minipage}
-\begin{minipage}{0.5\textwidth}
-\includegraphics[width=\textwidth]{stacked-runtime-$TASKFILE$-distributed.pdf}
-\end{minipage}
-\\[0.2cm]
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{stacked-runtime-$TASKFILE$-clustered.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{stacked-runtime-$TASKFILE$-distributed.pdf}
+%\end{minipage}
+%\\[0.2cm]
 
 %% Deliberation Time
 \noindent
@@ -197,6 +197,9 @@ right  = 2.50cm]{geometry}
 
 \section*{Timelines}
 
+\begin{center}
+\includegraphics[width=0.6\textwidth]{timeline_legend}
+\end{center}
 \input{$TASKFILE$-timelines.tex}
 
 \end{document}
