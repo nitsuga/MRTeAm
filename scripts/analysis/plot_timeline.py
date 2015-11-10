@@ -61,7 +61,7 @@ def _get_intervals(start_event, end_events, messages, label):
             continue
         elif event in end_events:
             if not last_start_stamp:
-                print("count_interval_time(): {0} not preceded by {1}!".format(event, start_event))
+                # print("count_interval_time(): {0} not preceded by {1}!".format(event, start_event))
                 continue
             else:
                 end_stamp = message.header.stamp.secs + (message.header.stamp.nsecs/1000000000.)
@@ -137,7 +137,7 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
 
-    plt.title(plot_title)
+    # plt.title(plot_title)
     ax.set_yticklabels(robot_names[::-1])
     ax.set_xlabel('seconds')
 
@@ -187,7 +187,7 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     y_pos = 7
     for robot_name in robot_names[::-1]:
 
-        print("{0} messages: {1}".format(robot_name, pp.pformat(robot_msgs[robot_name])))
+        # print("{0} messages: {1}".format(robot_name, pp.pformat(robot_msgs[robot_name])))
 
         moving_intervals = _get_intervals(mrta.msg.TaskStatus.MOVING,
                                           [mrta.msg.TaskStatus.PAUSE,

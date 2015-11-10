@@ -1,17 +1,21 @@
 #!/usr/bin/env python
+"""gen_docs.py
 
+This is a meta-script that invokes other (plotting) scripts and makes use of a LaTeX template
+to produce a document (PDF) containing plots of performance metrics, trajectories, and timelines
+for a given experimental configuration.
+
+"""
 
 
 # Python libraries
 import argparse
-from collections import defaultdict
 import glob
 import os
 import os.path
 import pprint
 import shutil
 import subprocess
-import sys
 
 
 # Debugging
@@ -29,6 +33,7 @@ gen_timeline_script = 'gen_timeline_latex.py'
 
 template_filename = 'stat_summary.tex'
 legend_filename = 'timeline_legend.pdf'
+
 
 def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
     pp.pprint(task_file)
@@ -65,9 +70,8 @@ def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
     # 5. Replace the $TASKFILE$ and $HOSTNAME$ tokens in the template.
 
     # Read in the file
-    filedata = None
-    with open(document_filename, 'r') as file :
-      filedata = file.read()
+    with open(document_filename, 'r') as f:
+        filedata = f.read()
 
     # Replace the target string
     filedata = filedata.replace('$TASKFILE$', task_file_base)
@@ -76,8 +80,8 @@ def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
         filedata = filedata.replace('$HOSTNAME$', hostname)
 
     # Write the file out again
-    with open(document_filename, 'w') as file:
-      file.write(filedata)
+    with open(document_filename, 'w') as f:
+        f.write(filedata)
 
     # 6. Generate trajectory LaTeX source (included by the main document).
     gen_trajectory_path = os.path.join(script_dir, gen_trajectory_script)
@@ -98,7 +102,7 @@ def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Generate a PDF document with summary statistics, trajectories, and timelines for a given set of bags.')
+    parser = argparse.ArgumentParser(description='Generate a PDF document with summary statistics, trajectories, and timelines for a given experimental configuration.')
 
     parser.add_argument('-t', '--task_file',
                         type=str,
