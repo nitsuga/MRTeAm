@@ -100,10 +100,10 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
             start_valid = end_valid = False
 
             # Interval begins or ends within this exec phase interval
-            if interval_begin_time > exec_phase_begin_time and interval_begin_time < exec_phase_end_time:
+            if exec_phase_begin_time < interval_begin_time < exec_phase_end_time:
                 start_valid = True
 
-            if interval_end_time > exec_phase_begin_time and interval_end_time < exec_phase_end_time:
+            if exec_phase_begin_time < interval_end_time < exec_phase_end_time:
                 end_valid = True
 
             if start_valid or end_valid:

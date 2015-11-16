@@ -2,11 +2,7 @@
 
 # Python libraries
 from collections import defaultdict
-import glob
 import math
-import os
-import pickle
-import rosbag
 import sys
 
 # Stats/plotting libraries
@@ -88,7 +84,7 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     x_pos = np.arange(len(mechanisms))
     # Plot bars with std errors
     plt.bar(x_pos, stat_means, yerr=stat_errors, capsize=8,
-            color=[0.75,0.75,0.75], width=0.6, align='center')
+            color=[0.75, 0.75, 0.75], width=0.6, align='center')
 
     # Bar labels
     plt.tick_params(axis='x', which='major', labelsize=18)
@@ -180,7 +176,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     ymin, ymax = plt.ylim()
 
     if y_limit:
-        plt.ylim(0,y_limit)
+        plt.ylim(0, y_limit)
     else:
         plt.ylim(0, ymax)
 
@@ -284,7 +280,7 @@ def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None
                         stat_means_by_attr[robot_name][attr_name],
                         color=[x * grey_level for x in color], width=bar_width, bottom=bottoms))
 
-            bottoms = map(lambda x,y: x+y, bottoms, stat_means)
+            bottoms = map(lambda x, y: x+y, bottoms, stat_means)
             # last_means = stat_means_by_attr[robot_name][attr_name]
 
     # Bar labels
@@ -315,6 +311,13 @@ def main(argv):
     if not task_files:
         print("No task files specified!")
         sys.exit(1)
+
+    # Style?
+    # plt.style.use('bmh')
+    # plt.style.use('dark_background')
+    # plt.style.use('ggplot')
+    # plt.style.use('ggplot')
+    # plt.style.use('grayscale')
 
     # Stats for all point configs, grouped by start config { CLUSTERED, DISTRIBUTED }
     for start_config in start_configs:
@@ -411,7 +414,7 @@ def main(argv):
         # Stats by point config
         for task_file in task_files:
 
-            af = aframe[aframe.START_CONFIG == start_config][aframe.TASK_FILE==task_file]
+            af = aframe[aframe.START_CONFIG == start_config][aframe.TASK_FILE == task_file]
 
             # task_file = task_file.replace('.txt', '')
             task_file = task_file.replace('.yaml', '')
@@ -537,7 +540,7 @@ def main(argv):
                               out_filename=plot_filename)#,
                               #y_limit=6)
 
-            #### Distance travelled per robot
+            # Distance travelled per robot
             plot_title = 'Distance per Robot: "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat(af = af,
@@ -547,7 +550,7 @@ def main(argv):
                                 out_filename=plot_filename)#,
                                 #y_limit=35)
 
-            #### Stacked execution phase times per robot
+            # Stacked execution phase times per robot
             plot_title = 'Execution phase per robot: "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'execution-phase-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_stacked_per_robot_stat(af = af,
@@ -557,7 +560,7 @@ def main(argv):
                                         out_filename=plot_filename)#,
                                         #y_limit=250)
 
-            #### Movement time per robot
+            # Movement time per robot
             plot_title = 'Movement time per robot: "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'movement-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat(af = af,
@@ -567,7 +570,7 @@ def main(argv):
                                 out_filename=plot_filename)#,
                                 #y_limit=250)
             
-            #### Idle time per robot
+            # Idle time per robot
             plot_title = 'Idle time per Robot: "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'idle-time-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat( af = af,
@@ -577,7 +580,7 @@ def main(argv):
                                  out_filename=plot_filename)#,
                                  #y_limit=80)
 
-            #### Delay time per robot
+            # Delay time per robot
             plot_title = 'Delay time per Robot: "{0}", {1} start'.format(task_file, start_config)
             plot_filename = 'delay-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat( af = af,

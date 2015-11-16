@@ -6,7 +6,9 @@
       <w>amcl</w>
       <w>costmap</w>
       <w>costmaps</w>
+      <w>defaultdict</w>
       <w>fysom</w>
+      <w>ggplot</w>
       <w>koenig</w>
       <w>loginfo</w>
       <w>menlo</w>
@@ -18,6 +20,7 @@
       <w>timelines</w>
       <w>turtlebot</w>
       <w>yaml</w>
+      <w>ymin</w>
     </words>
   </dictionary>
 </component>
