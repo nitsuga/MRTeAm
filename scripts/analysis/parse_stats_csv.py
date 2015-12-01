@@ -275,7 +275,7 @@ def parse_stats(bag_paths, output):
 
         try:
             for topic, msg, msg_time in bag.read_messages():
-                msg.header.stamp = msg_time
+                # msg.header.stamp = msg_time
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
