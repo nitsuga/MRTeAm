@@ -23,6 +23,7 @@ References:
 
 # Standard Python modules
 from collections import defaultdict
+import datetime
 import math
 import pprint
 import random
@@ -440,6 +441,11 @@ class RobotController:
         self.task_status_pub = rospy.Publisher('/tasks/status',
                                                mrta.msg.TaskStatus)
         rospy.loginfo('publishing on /tasks/status')
+
+        # '/debug'
+        self.debug_pub = rospy.Publisher('/debug',
+                                         mrta.msg.Debug)
+        rospy.loginfo('publishing on /debug')
 
         # For good measure...
         time.sleep(3)
@@ -947,6 +953,16 @@ class RobotController:
 
     def status_received(self, status_msg):
         rospy.loginfo("({0}): status_received()".format(self.robot_name))
+
+        # DEBUG
+        now_ts = (datetime.datetime.now() - datetime.datetime(1970, 1, 1)).total_seconds()
+        msg_ts = status_msg.header.stamp.secs + (status_msg.header.stamp.nsecs/1000000000.)
+        msg_diff = now_ts - msg_ts
+        debug_msg = mrta.msg.Debug()
+        debug_msg.key = "status-{0}".format(self.robot_name)
+        debug_msg.value = str(msg_diff)
+        self.debug_pub.publish(debug_msg)
+        pp.pprint(debug_msg)
 
         # Update our little databse of robot statuses
         self.robot_status[status_msg.robot_id] = status_msg.status

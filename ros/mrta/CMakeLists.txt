@@ -58,6 +58,7 @@ add_message_files(
   DIRECTORY msg
   FILES
   AnnounceSensorSweep.msg
+  Debug.msg
   ExperimentEvent.msg
   Identify.msg
   SensorSweepTask.msg

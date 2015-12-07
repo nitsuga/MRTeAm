@@ -52,7 +52,7 @@ mechanisms = [ 'OSI', 'PSI', 'SSI', 'RR' ]
 
 # Topics to record with rosbag
 record_topics = [ '/experiment', '/tasks/announce', '/tasks/bid',
-                  '/tasks/award', '/tasks/status', '/tasks/new' ]
+                  '/tasks/award', '/tasks/status', '/tasks/new', '/debug' ]
 
 exp_running = False
 

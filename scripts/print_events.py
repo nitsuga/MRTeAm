@@ -2,7 +2,9 @@
 
 import rosbag
 import sys
-import textwrap
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 exp_topics = { 'experiment': [ '/experiment' ],
                'tasks': [ '/tasks/announce',
@@ -12,7 +14,8 @@ exp_topics = { 'experiment': [ '/experiment' ],
                'announcements': ['/tasks/announce'],
                'bids': ['/tasks/bid'],
                'awards': ['/tasks/award'],
-               'position': [ '/robot_3/amcl_pose']}
+               'position': [ '/robot_3/amcl_pose'],
+               'debug': [ '/debug'] }
 
 #               'position': [ '/robot_1/amcl_pose',
 #                             '/robot_2/amcl_pose',
