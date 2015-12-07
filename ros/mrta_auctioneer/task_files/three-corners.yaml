@@ -11,7 +11,7 @@
 - task_id: '1'
   type: SENSOR_SWEEP
   location:
-    x: 7.50
+    x: 0.50
     y: 5.50
   arrival_time: 0
   num_robots: 1
@@ -21,7 +21,7 @@
 - task_id: '2'
   type: SENSOR_SWEEP
   location:
-    x: 0.50
+    x: 7.50
     y: 5.50
   arrival_time: 0
   num_robots: 1

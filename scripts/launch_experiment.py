@@ -12,7 +12,8 @@ import sys
 import time
 
 # Paths to ROS binaries
-ROS_HOME = '/opt/ros/hydro'
+#ROS_HOME = '/opt/ros/hydro'
+ROS_HOME = '/opt/ros/indigo'
 #ROS_HOME = '/home/esch/opt/ros/hydro'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
@@ -21,7 +22,7 @@ ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
 # How many seconds to wait before killing all processes
 TIMEOUT_DEFAULT = 300
 # PSI can take longer than other mechanisms, with the clustered start config
-TIMEOUT_PSI = 600
+TIMEOUT_PSI = 420
 
 # Keep track of processes to terminate when done
 running_procs = []
@@ -80,6 +81,7 @@ signal.signal(signal.SIGINT, sig_handler)
 def on_exp_event(exp_event_msg):
     print("######## on_exp_event() ########")
     print(pp.pformat(exp_event_msg))
+    # if exp_event_msg.event == mrta.msg.ExperimentEvent.END_ALLOCATION:
     if exp_event_msg.event == mrta.msg.ExperimentEvent.END_EXPERIMENT:
         print("######## END_EXPERIMENT ########")
         global exp_running
