@@ -11,6 +11,7 @@ import os
 import os.path
 import pandas as pd
 import rosbag
+import sys
 
 # For debugging
 import pprint
@@ -269,10 +270,14 @@ def plot_timelines(bag_paths):
         run_msgs = defaultdict(list)
         try:
             for topic, msg, msg_time in bag.read_messages():
-                msg.header.stamp = msg_time
+                try:
+                    msg.header.stamp = msg_time
+                except AttributeError:
+                    continue
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
+            print(sys.exc_info()[:2])
             continue
 
         experiment_finished = False
