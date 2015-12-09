@@ -1,4 +1,4 @@
 mrta
 ====
 
-Experimental framework for multi-robot task allocation mechanism experiments.
+Experimental framework for investigating multi-robot task allocation mechanisms.
