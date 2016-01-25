@@ -49,10 +49,14 @@
 
   <!-- FKIE master discovery -->
   <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
-  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" />
+  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" >
+    <param name="name" value="$(arg robot_name)_master"/>
+  </node>
   
   <!-- FKIE master sync -->
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+    <rosparam param="sync_hosts">['auctioneer_master']</rosparam>
+
     <!--<rosparam param="ignore_topics">['/map', '/camera/*']</rosparam>-->
     <rosparam param="ignore_nodes">
 [
@@ -72,13 +76,6 @@
 '/*robot_state_publisher*',
 '/*turtlebot_laptop_battery*
 ']
-    </rosparam>
-    <rosparam param="sync_topics">
-      [
-      '/*/amcl_pose',
-      '/experiment',
-      '/tasks/*'
-      ]
     </rosparam>
   </node>
 
