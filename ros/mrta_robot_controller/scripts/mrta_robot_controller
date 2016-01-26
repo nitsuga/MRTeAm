@@ -256,15 +256,24 @@ class RobotController:
             self.plan_srv_name = '/move_base/NavfnROS/make_plan'
             self.cc_srv_name = '/move_base/clear_costmaps'
             self.glob_obs_layer_srv = '/move_base/global_costmap/obstacle_layer'
+            self.glob_obs_layer_enabled = '/move_base/global_costmap/obstacle_layer/enabled'
+            self.glob_static_layer_srv = '/move_base/global_costmap/static_layer'
+            self.glob_static_layer_enabled = '/move_base/global_costmap/static_layer/enabled'
         else:
             # self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
             self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)
             # self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
             self.cc_srv_name = "/{0}/move_base_node/clear_costmaps".format(self.robot_name)
             self.glob_obs_layer_srv = "/{0}/move_base_node/global_costmap/obstacle_layer".format(self.robot_name)
+            self.glob_obs_layer_enabled = '/{0}/move_base/global_costmap/obstacle_layer/enabled'.format(self.robot_name)
+            self.glob_static_layer_srv = '/{0}/move_base/global_costmap/static_layer'.format(self.robot_name)
+            self.glob_static_layer_enabled = '/{0}/move_base/global_costmap/static_layer/enabled'.format(self.robot_name)
 
         rospy.loginfo("Starting obstacle_layer parameter client")
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv, timeout=5)
+
+        rospy.loginfo("Starting static_layer parameter client")
+        self.static_layer_param_client = dynamic_reconfigure.client.Client(self.glob_static_layer_srv, timeout=5)
 
         # Set up client for the service that makes path plans
         rospy.loginfo("Starting 'make_plan' service client")
@@ -284,6 +293,9 @@ class RobotController:
 
         self._clear_costmaps_client = rospy.ServiceProxy(self.cc_srv_name,
                                                          std_srvs.srv.Empty)
+
+        self._disable_static_layer()
+        self._enable_static_layer()
 
         self._disable_obstacle_layer()
         self._clear_costmaps()
@@ -428,23 +440,28 @@ class RobotController:
         if self.is_turtlebot:
             self.amcl_echo_pub = rospy.Publisher("/{0}/amcl_pose".format(self.robot_name),
                                                  geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                 queue_size=1,
                                                  latch=True)
             rospy.loginfo("echoing /amcl_pose on /{0}/amcl_pose".format(self.robot_name))
 
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
-                                       mrta.msg.TaskBid)
+                                       mrta.msg.TaskBid,
+                                       queue_size=3)
         rospy.loginfo('publishing on /tasks/bid')
 
         # Announce task events on '/tasks/status':
         # 'BEGIN', 'PAUSE', 'RESUME', 'SUCCESS', 'FAILURE', 'ALL_TASKS_COMPLETE'
         self.task_status_pub = rospy.Publisher('/tasks/status',
-                                               mrta.msg.TaskStatus)
+                                               mrta.msg.TaskStatus,
+                                               queue_size=3)
         rospy.loginfo('publishing on /tasks/status')
 
         # '/debug'
         self.debug_pub = rospy.Publisher('/debug',
-                                         mrta.msg.Debug)
+                                         mrta.msg.Debug,
+                                         queue_size=3)
+
         rospy.loginfo('publishing on /debug')
 
         # For good measure...
@@ -531,16 +548,52 @@ class RobotController:
         return distance
 
     def _disable_obstacle_layer(self):
-        """ Disable the obstacle layer of the costmaps """
+        """ Disable the obstacle layer of the global costmap """
 
         rospy.loginfo("({0}) Disabling obstacle layer in global costmap".format(self.robot_name))
         self.obs_layer_param_client.update_configuration({'enabled': False})
 
+        # Wait until we can confirm the layer is actually enabled
+        while rospy.get_param(self.glob_obs_layer_enabled):
+            self.rate.sleep()
+
+        rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
+
     def _enable_obstacle_layer(self):
-        """ Enable the obstacle layer of the costmaps """
+        """ Enable the obstacle layer of the global costmap """
 
         rospy.loginfo("({0}) Enabling obstacle layer in global costmap".format(self.robot_name))
         self.obs_layer_param_client.update_configuration({'enabled': True})
+
+        # Wait until we can confirm the layer is actually enabled
+        while not rospy.get_param(self.glob_obs_layer_enabled):
+            self.rate.sleep()
+
+        rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
+
+    def _disable_static_layer(self):
+        """ Disable the static layer of the global costmap """
+
+        rospy.loginfo("({0}) Disabling static layer in global costmap".format(self.robot_name))
+        self.static_layer_param_client.update_configuration({'enabled': False})
+
+        # Wait until we can confirm the layer is actually enabled
+        while rospy.get_param(self.glob_static_layer_enabled):
+            self.rate.sleep()
+
+        rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
+
+    def _enable_static_layer(self):
+        """ Enable the static layer of the global costmap """
+
+        rospy.loginfo("({0}) Enabling static layer in global costmap".format(self.robot_name))
+        self.static_layer_param_client.update_configuration({'enabled': True})
+
+        # Wait until we can confirm the layer is actually enabled
+        while not rospy.get_param(self.glob_static_layer_enabled):
+            self.rate.sleep()
+
+        rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
 
     @staticmethod
     def _point_to_point_msg(point):
@@ -804,6 +857,9 @@ class RobotController:
 
         time.sleep(0.5)
 
+        self._disable_static_layer()
+        self._enable_static_layer()
+
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
             rospy.logdebug("({0}) mechanism == OSI".format(self.robot_name))
@@ -986,7 +1042,7 @@ class RobotController:
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
 
-        time.sleep(0.5)
+        # time.sleep(0.5)
 
         self._clear_costmaps()
         # self._clear_costmaps()
@@ -1172,9 +1228,12 @@ class RobotController:
     def send_goal(self, e):
         rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
 
+        self._disable_static_layer()
+        self._enable_static_layer()
+
         # Enable the global costmap's obstacle layer
         self._enable_obstacle_layer()
-        time.sleep(1.0)
+        # time.sleep(1.0)
 
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
