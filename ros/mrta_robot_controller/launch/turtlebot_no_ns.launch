@@ -19,7 +19,9 @@
     <remap from="map" to="/map" />
   
     <!-- turtlebot_bringup minimal.launch -->
-    <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
+    <include file="$(find turtlebot_bringup)/launch/minimal.launch">
+      <arg name="zeroconf" value="false" />
+    </include>
 
     <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
       <arg name="rgb_processing" value="false" />
@@ -56,6 +58,7 @@
   <!-- FKIE master sync -->
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
     <rosparam param="sync_hosts">['auctioneer_master']</rosparam>
+    <rosparam param="ignore_hosts">['robot_1','robot_1_master','robot_2','robot_2_master','robot_3','robot_3_master']</rosparam>
 
     <!--<rosparam param="ignore_topics">['/map', '/camera/*']</rosparam>-->
     <rosparam param="ignore_nodes">
