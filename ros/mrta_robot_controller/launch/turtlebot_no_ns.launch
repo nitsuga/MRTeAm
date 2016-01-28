@@ -77,8 +77,8 @@
 '/*navigation_velocity_smoother*',
 '/*navigation_safety_controller*',
 '/*robot_state_publisher*',
-'/*turtlebot_laptop_battery*
-']
+'/*turtlebot_laptop_battery*'
+]
     </rosparam>
   </node>
 

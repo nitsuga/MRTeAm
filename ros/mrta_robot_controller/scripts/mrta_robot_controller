@@ -440,7 +440,7 @@ class RobotController:
         if self.is_turtlebot:
             self.amcl_echo_pub = rospy.Publisher("/{0}/amcl_pose".format(self.robot_name),
                                                  geometry_msgs.msg.PoseWithCovarianceStamped,
-                                                 queue_size=1,
+                                                 queue_size=10,
                                                  latch=True)
             rospy.loginfo("echoing /amcl_pose on /{0}/amcl_pose".format(self.robot_name))
 

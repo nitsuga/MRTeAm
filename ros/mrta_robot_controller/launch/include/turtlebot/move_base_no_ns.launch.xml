@@ -9,7 +9,7 @@
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 
-    <param name="planner_frequency" value="0.5" />
+    <param name="planner_frequency" value="1.5" />
 
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/costmap_common_params.yaml" command="load" ns="local_costmap" />
