@@ -1,0 +1,20 @@
+clustered:
+  robot_1:
+    x: 1.5
+    y: 0.5
+  robot_2:
+    x: 0.5
+    y: 1.5
+  robot_3:
+    x: 0.5
+    y: 0.5
+distributed:
+  robot_1:
+    x: 7.5
+    y: 5.5
+  robot_2:
+    x: 0.5
+    y: 5.5
+  robot_3:
+    x: 0.5
+    y: 0.5

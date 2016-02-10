@@ -1214,7 +1214,16 @@ class RobotController:
             rospy.loginfo("({0}) BEGIN_EXECUTION: current state=={1}".format(self.robot_name,
                                                                              self.fsm.current))
 
-            # elif event_msg.event == 'END_EXPERIMENT':
+        elif event_msg.event == 'END_EXPERIMENT':
+            # clear agenda
+            self.aclient.cancel_goal()
+            del self.agenda[:]
+            self.ok_to_execute = True
+
+            # After this point, we may or may not receive a message telling us to return to
+            # our starting point. This might come in the form of a new 'task' awarded in
+            # '/tasks/award'
+
             # self.shutdown(None)
 
     # def goal_done_cb(self, term_state, result):
