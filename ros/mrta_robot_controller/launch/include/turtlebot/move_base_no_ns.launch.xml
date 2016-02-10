@@ -9,7 +9,20 @@
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 
-    <param name="planner_frequency" value="1.5" />
+    <param name="planner_frequency" value="0.5" />
+
+    <!-- How long the controller will wait (in seconds) without receiving a valid control
+         before space-clearing operations are performed. -->
+    <param name="controller_patience" value="4.0"/>
+
+    <rosparam param="recovery_behaviors">
+      [
+      {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
+      {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
+      {name: backup_recovery, type: backup_recovery/BackupRecovery},
+      {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
+      ]
+    </rosparam>
 
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/costmap_common_params.yaml" command="load" ns="local_costmap" />

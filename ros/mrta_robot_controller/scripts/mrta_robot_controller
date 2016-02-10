@@ -62,8 +62,8 @@ RATE = 10
 # radians), we're in danger of colliding with it
 # DANGER_ZONE_FOV = math.pi / 2
 DANGER_ZONE_FOV = math.pi
-# DANGER_ZONE_DIST = 1.0
-DANGER_ZONE_DIST = 0.8
+DANGER_ZONE_DIST = 1.5
+#DANGER_ZONE_DIST = 0.8
 
 # For pretty-printing convenience!
 pp = pprint.PrettyPrinter(indent=2)

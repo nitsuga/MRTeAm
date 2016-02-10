@@ -51,7 +51,14 @@
 
   <!-- FKIE master discovery -->
   <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
+<!--
   <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" >
+    <param name="name" value="$(arg robot_name)_master"/>
+  </node>
+-->
+
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen">
+    <rosparam param="robot_hosts">['tyner','tb12','tb13','tb14']</rosparam>
     <param name="name" value="$(arg robot_name)_master"/>
   </node>
   
