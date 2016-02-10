@@ -674,16 +674,19 @@ class Auctioneer:
         # Importantly, 'BEGIN_ALLOCATION', 'END_ALLOCATION', and
         # 'BEGIN_EXECUTION'.
         self.experiment_pub = rospy.Publisher('/experiment',
-                                              mrta.msg.ExperimentEvent)
+                                              mrta.msg.ExperimentEvent,
+                                              queue_size=3)
 
         # Announce tasks on '/tasks/announce'. For the moment we will only
         # announce sensor sweep tasks.
         self.announce_pub = rospy.Publisher('/tasks/announce',
-                                            mrta.msg.AnnounceSensorSweep)
+                                            mrta.msg.AnnounceSensorSweep,
+                                            queue_size=3)
 
         # Award tasks on '/tasks/award'
         self.award_pub = rospy.Publisher('/tasks/award',
-                                         mrta.msg.TaskAward)
+                                         mrta.msg.TaskAward,
+                                         queue_size=3)
 
         # For good measure...
         time.sleep(5)

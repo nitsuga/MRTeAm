@@ -39,13 +39,13 @@ def main():
 
             file_list = task_dict[task_file]
 
-            print "\\begin{center}"
+#            print "\\begin{center}"
 
             for filename in sorted(file_list):
-                print """\\includegraphics[height=9cm]{{{0}}}
+                print """\\includegraphics[height=4cm]{{{0}}}
 \\\\[1cm]""".format(filename)
 
-            print "\\end{center}"
+#            print "\\end{center}"
 
     print "\\section*{Distributed}"
     
@@ -60,13 +60,13 @@ def main():
 
             file_list = task_dict[task_file]
 
-            print "\\begin{center}"
+#            print "\\begin{center}"
 
             for filename in sorted(file_list):
-                print """\\includegraphics[height=9cm]{{{0}}}
+                print """\\includegraphics[height=4cm]{{{0}}}
 \\\\[1cm]""".format(filename)
 
-            print "\\end{center}"
+#            print "\\end{center}"
 
 if __name__ == '__main__':
     main()
