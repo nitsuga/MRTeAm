@@ -13,9 +13,13 @@
       <w>loginfo</w>
       <w>menlo</w>
       <w>mrta</w>
+      <w>multirobot</w>
       <w>navfn</w>
+      <w>proc</w>
+      <w>procs</w>
       <w>rosgraph</w>
       <w>rospy</w>
+      <w>smartlab</w>
       <w>timeline</w>
       <w>timelines</w>
       <w>turtlebot</w>

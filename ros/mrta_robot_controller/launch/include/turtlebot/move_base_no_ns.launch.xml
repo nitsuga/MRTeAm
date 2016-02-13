@@ -18,7 +18,7 @@
     <rosparam param="recovery_behaviors">
       [
       {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
-      {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
+<!--      {name: rotate_recovery, type: rotate_recovery/RotateRecovery}, -->
       {name: backup_recovery, type: backup_recovery/BackupRecovery},
       {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
       ]
