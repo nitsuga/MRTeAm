@@ -18,6 +18,7 @@ ROS_HOME = '/opt/ros/indigo'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 #ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
+ROSCORE = "{0}/bin/roscore".format(ROS_HOME)
 
 # How many seconds to wait before killing all processes
 TIMEOUT_DEFAULT = 300
@@ -28,15 +29,15 @@ TIMEOUT_PSI = 420
 running_procs = []
 
 # Robots we want to start up
-robots = [ { 'name': 'robot_1',
-             'port': '11312' },
-           { 'name': 'robot_2',
-             'port': '11313' },
-           { 'name': 'robot_3',
-             'port': '11314' } ]
+robots = [{'name': 'robot_1',
+           'port': '11312'},
+          {'name': 'robot_2',
+           'port': '11313'},
+          {'name': 'robot_3',
+           'port': '11314'}]
 
-maps = { 'brooklyn': 'brooklyn_lab.png',
-         'smartlab': 'smartlab_ugv_arena_v2.png' }
+maps = {'brooklyn': 'brooklyn_lab.png',
+        'smartlab': 'smartlab_ugv_arena_v2.png' }
 
 world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
                             'distributed': 'brooklyn_arena_3_robots_distributed.world',
@@ -94,10 +95,18 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     start_time = datetime.datetime.now()
 
+    # Start roscore
+    print('######## Launching roscore ########')
+    roscore_proc = subprocess.Popen(ROSCORE)
+    time.sleep(5)
+
+    print('######## Starting experiment_launcher node ########')
     rospy.init_node('experiment_launcher', disable_signals=True)
     rospy.Subscriber('/experiment',
                      mrta.msg.ExperimentEvent,
                      on_exp_event)
+
+    time.sleep(3)
 
     # Start rosbag
     # Record the positions (amcl_pose) of all robots
@@ -151,9 +160,10 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
             exp_running = False
 
     # Processes are terminated in reverse order of their insertion
-    # into running_procs. We add the rosbag process to the list last
-    # so that it gets terminated first.
+    # into running_procs. We add the rosbag and roscore processes to
+    # the list last so that they gets terminated first.
     running_procs.append(rosbag_proc)
+    running_procs.append(roscore_proc)
 
     # The experiment is over.
     time.sleep(10)
@@ -178,7 +188,6 @@ if __name__ == '__main__':
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
-    parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
 
     args = parser.parse_args()
 

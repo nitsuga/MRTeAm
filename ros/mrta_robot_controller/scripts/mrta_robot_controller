@@ -482,6 +482,12 @@ class RobotController:
 
         return in_agenda
 
+    def _get_task_by_id(self, task_id):
+        for task in self.agenda:
+            if task.task_id == task_id:
+                return task
+
+    @staticmethod
     def _is_reachable_distance(self, distance):
         """
         True if the distance is some 'reasonable' number (e.g. less than 10000).
@@ -1096,6 +1102,19 @@ class RobotController:
             if task.task_id in least_constrained_task_ids:
                 least_constrained.append(task)
 
+        candidate_task_ids = least_constrained
+
+        # Prioritize candidate tasks that have robot(s) arrived and waiting
+        waiting_task_ids = []
+        for c_task_id in candidate_task_ids:
+            candidate_task = self._get_task_by_id(c_task_id)
+            if 0 < self.arrived_count[c_task_id] < candidate_task.num_robots:
+                waiting_task_ids.append(c_task_id)
+
+        # Any tasks are waiting for more robots become the new list of candidates
+        if waiting_task_ids:
+            candidate_task_ids = waiting_task_ids
+
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
         # 2. ("greedy")     Choose the next closest task
@@ -1105,7 +1124,7 @@ class RobotController:
         goal_task = None
         min_uncompleted_dist = None
         # for task in self.agenda:
-        for task in least_constrained:
+        for task in candidate_task_ids:
             if not task.completed:
                 if greedy_selection:
                     from_pose = self.current_pose
