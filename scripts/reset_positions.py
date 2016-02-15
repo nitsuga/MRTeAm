@@ -14,6 +14,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 CONFIG_FILE_DEFAULT = 'reset_positions.yaml'
 award_pub = None
+experiment_pub = None
 
 
 def stamp(msg):
@@ -23,7 +24,7 @@ def stamp(msg):
 
 
 def init_node():
-    global award_pub
+    global award_pub, experiment_pub
 
     rospy.init_node('reset_positions')
 
@@ -31,13 +32,28 @@ def init_node():
                                 mrta.msg.TaskAward,
                                 queue_size=3)
 
+    experiment_pub = rospy.Publisher('/experiment',
+                                     mrta.msg.ExperimentEvent,
+                                     queue_size=3)
+
     time.sleep(3)
 
 
 def reset_positions(config_filename, start_config):
-    global award_pub
+    global award_pub, experiment_pub
 
     init_node()
+
+    time.sleep(3)
+
+    # Send a message to mark the end of the experiment
+    end_exp_msg = mrta.msg.ExperimentEvent()
+    end_exp_msg.experiment_id = 'reset'
+    end_exp_msg.event = mrta.msg.ExperimentEvent.END_EXPERIMENT
+    stamp(end_exp_msg)
+    experiment_pub.publish(end_exp_msg)
+
+    time.sleep(3)
 
     config_file = open(config_filename, 'rb')
     config = yaml.load(config_file)
