@@ -293,12 +293,12 @@ class RobotController:
         self._clear_costmaps_client = rospy.ServiceProxy(self.cc_srv_name,
                                                          std_srvs.srv.Empty)
 
-        self._disable_static_layer()
-        self._enable_static_layer()
-
         self._disable_obstacle_layer()
         self._clear_costmaps()
-        self._clear_costmaps()
+        # self._clear_costmaps()
+
+        self._disable_static_layer()
+        self._enable_static_layer()
 
         # Set up state machine.
         # See mrta/docs/robot-controller.fsm.png
@@ -580,6 +580,7 @@ class RobotController:
         while rospy.get_param(self.glob_static_layer_enabled):
             self.rate.sleep()
 
+        time.sleep(0.25)
         rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
 
     def _enable_static_layer(self):
@@ -592,6 +593,7 @@ class RobotController:
         while not rospy.get_param(self.glob_static_layer_enabled):
             self.rate.sleep()
 
+        time.sleep(0.25)
         rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
 
     @staticmethod
@@ -852,12 +854,12 @@ class RobotController:
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
         self._clear_costmaps()
-        self._clear_costmaps()
-
-        time.sleep(0.5)
+#        self._clear_costmaps()
 
         self._disable_static_layer()
         self._enable_static_layer()
+
+        time.sleep(0.5)
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
@@ -1040,11 +1042,11 @@ class RobotController:
 
         # Disable the global costmap's obstacle layer
         self._disable_obstacle_layer()
-
-        # time.sleep(0.5)
-
         self._clear_costmaps()
         # self._clear_costmaps()
+
+        self._disable_static_layer()
+        self._enable_static_layer()
 
         time.sleep(0.5)
 
@@ -1134,6 +1136,8 @@ class RobotController:
             rospy.loginfo("({0}) There are no reachable tasks. Clearing costmaps manually...".format(self.robot_name))
             self._clear_costmaps()
             self._clear_costmaps()
+            self._disable_static_layer()
+            self._enable_static_layer()
             time.sleep(1)
             self.fsm.no_reachable_tasks()
             return
@@ -1236,16 +1240,15 @@ class RobotController:
     def send_goal(self, e):
         rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
 
-        self._disable_static_layer()
-        self._enable_static_layer()
-
         # Enable the global costmap's obstacle layer
         self._enable_obstacle_layer()
-        # time.sleep(1.0)
 
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
         self._clear_costmaps()
+
+        self._disable_static_layer()
+        self._enable_static_layer()
 
         time.sleep(1.0)
 
@@ -1291,6 +1294,8 @@ class RobotController:
 
         while self.in_collision:
             self.rate.sleep()
+            if self._clear_of_other_robots():
+                self.in_collision = False
 
         self.fsm.collision_cleared()
 
