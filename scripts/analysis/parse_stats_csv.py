@@ -5,6 +5,7 @@ from collections import defaultdict
 import csv
 import glob
 import math
+import numpy as np
 import os
 import pprint
 import re
@@ -55,6 +56,7 @@ field_names = [
     'ROBOT3_WAITING_TIME',
     'ROBOT3_IDLE_TIME',
     'ROBOT3_DELAY_TIME',
+    'MEAN_MSG_TIME'
 ]
 
 ROBOT_NAMES = [ 'robot_1',
@@ -293,6 +295,11 @@ def parse_stats(bag_paths, output):
         if not experiment_finished:
             print("Experiment timed out! Skipping...")
             continue
+
+        # MEAN_MSG_TIME
+        row_fields['MEAN_MSG_TIME'] = np.mean([float(m.value) for m in run_msgs['/debug']])
+#        for debug_msg in run_msgs['/delay']:
+#            pass
 
 #        print('TOTAL_RUN_TIME:')
         total_run_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_EXPERIMENT,

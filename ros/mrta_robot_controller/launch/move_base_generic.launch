@@ -39,7 +39,7 @@
            before space-clearing operations are performed. -->
       <param name="controller_patience" value="2.0"/>
 
-      <!-- The distance away from the robot (in meters) at which obstacles will be cleated
+      <!-- The distance away from the robot (in meters) at which obstacles will be cleared
            from the costmap when attampting to clear space in the map. -->
       <param name="conservative_reset_dist" value="9.0"/>
 

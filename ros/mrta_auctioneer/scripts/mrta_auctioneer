@@ -230,7 +230,8 @@ class AuctionOSI(Auction):
         bids = self.auctioneer.bids[self.auction_round]
         bid_tuples = []
         for robot_id in bids.keys():
-            bid_tuples.append([robot_id, bids[robot_id][task_id]]) # i.e., [robot_id, bid_value]
+            if robot_id not in self.auctioneer.awarded[task_id]:
+                bid_tuples.append([robot_id, bids[robot_id][task_id]]) # i.e., [robot_id, bid_value]
 
         # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
         bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
@@ -240,6 +241,8 @@ class AuctionOSI(Auction):
         num_robots = task.num_robots
         winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
 #        winner_ids = map(lambda entry: entry[0], bid_tuples[:1])
+
+        self.auctioneer.awarded[task_id].extend(winner_ids)
 
         rospy.loginfo("winner(s) of task {0}: '{1}'".format(task_id, winner_ids))
 
@@ -334,7 +337,8 @@ class AuctionPSI(Auction):
 
             bid_tuples = []
             for robot_id in bids.keys():
-                bid_tuples.append([robot_id, bids[robot_id][task.task_id]]) # i.e., [robot_id, bid_value]
+                if robot_id not in self.auctioneer.awarded[task.task_id]:
+                    bid_tuples.append([robot_id, bids[robot_id][task.task_id]]) # i.e., [robot_id, bid_value]
 
             # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
             bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
@@ -342,6 +346,8 @@ class AuctionPSI(Auction):
             num_robots = task.num_robots
             # The top (actually lowest) num_robots bids
             winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
+
+            self.auctioneer.awarded[task.task_id].extend(winner_ids)
 
             rospy.loginfo("winner(s) of task {0}: '{1}'".format(task.task_id, winner_ids))
 
@@ -426,12 +432,13 @@ class AuctionSSI(Auction):
 
     def determine_winner(self, e):
         rospy.loginfo("(SSI) state: determine_winner")
-        
+
         bids = self.auctioneer.bids[self.auction_round]
         bid_tuples = []
         for robot_id in bids:
             for task_id in bids[robot_id]:
-                bid_tuples.append([robot_id, task_id, bids[robot_id][task_id]]) # i.e., [robot_id, task_id, bid_value]
+                if robot_id not in self.auctioneer.awarded[task_id]:
+                    bid_tuples.append([robot_id, task_id, bids[robot_id][task_id]]) # i.e., [robot_id, task_id, bid_value]
 
         # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
         bid_tuples = sorted(bid_tuples, key=lambda entry: entry[2])
@@ -444,6 +451,8 @@ class AuctionSSI(Auction):
         # winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
         winner_ids = map(lambda entry: entry[0], bid_tuples[:1])
         winning_task_id = bid_tuples[0][1]
+
+        self.auctioneer.awarded[winning_task_id].extend(winner_ids)
 
         rospy.loginfo("winner(s) of task {0}: '{1}'".format(winning_task_id, winner_ids))
 
@@ -609,6 +618,10 @@ class Auctioneer:
         # Keep track of bids, indexed by auction_round, task_id and robot_id
         self.bids = defaultdict(int)
 
+        # Keep track of which robots have been awarded which tasks
+        # task_id => list of robot_name
+        self.awarded = defaultdict(list)
+
         # Set up state machine.
         # See mrta/docs/auctioneer-fsm.png
         self.fsm = Fysom( 
@@ -674,16 +687,19 @@ class Auctioneer:
         # Importantly, 'BEGIN_ALLOCATION', 'END_ALLOCATION', and
         # 'BEGIN_EXECUTION'.
         self.experiment_pub = rospy.Publisher('/experiment',
-                                              mrta.msg.ExperimentEvent)
+                                              mrta.msg.ExperimentEvent,
+                                              queue_size=3)
 
         # Announce tasks on '/tasks/announce'. For the moment we will only
         # announce sensor sweep tasks.
         self.announce_pub = rospy.Publisher('/tasks/announce',
-                                            mrta.msg.AnnounceSensorSweep)
+                                            mrta.msg.AnnounceSensorSweep,
+                                            queue_size=3)
 
         # Award tasks on '/tasks/award'
         self.award_pub = rospy.Publisher('/tasks/award',
-                                         mrta.msg.TaskAward)
+                                         mrta.msg.TaskAward,
+                                         queue_size=3)
 
         # For good measure...
         time.sleep(5)

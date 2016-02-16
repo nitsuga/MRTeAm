@@ -34,7 +34,7 @@
     <param name="laser_model_type"          value="likelihood_field"/>
     <!-- <param name="laser_model_type" value="beam"/> -->
     <param name="laser_likelihood_max_dist" value="2.0"/>
-    <param name="update_min_d"              value="0.25"/>
+    <param name="update_min_d"              value="0.15"/>
     <param name="update_min_a"              value="0.2"/>
     <param name="odom_frame_id"             value="odom"/>
     <param name="base_frame_id"             value="base_footprint"/>

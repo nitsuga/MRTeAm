@@ -346,15 +346,17 @@ def plot_trajectory(bag_paths, task_dir):
             bag = rosbag.Bag(bag_path)
         except:
             print("Couldn't open {0} for reading!".format(bag_path))
+            print(sys.exc_info()[:2])
             continue
 
         run_msgs = defaultdict(list)
         try:
             for topic, msg, msg_time in bag.read_messages():
-                msg.header.stamp = msg_time
+                # msg.header.stamp = msg_time
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
+            print(sys.exc_info()[:2])
             continue
 
         experiment_finished = False
