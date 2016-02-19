@@ -20,7 +20,7 @@ start_configs = ['clustered', 'distributed']
 
 #point_configs = ['A','B','C','D','E']
 #task_files = ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'brooklyn_tasks_E.txt']
-task_files = ['tasks_A.txt']
+task_files = ['tasks_A_static.yaml']
 
 # stroke_colors = { 'robot_1': [0.369, 0.380, 0.773],
 #                   'robot_2': [0.043, 0.063, 0.424],
@@ -37,6 +37,7 @@ robot_names = [ 'robot_1',
 
 FILENAME_TEMPL='allocation-{0}.png'
 
+
 class Experiment(object):
     def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None):
         self.bag = bag
@@ -44,8 +45,10 @@ class Experiment(object):
         self.start_config = start_config
         self.task_file = task_file
 
+
 def usage():
     print("Usage: {0}: <path_to_bag_file(s)>".format(sys.argv[0]))
+
 
 def main(argv):
     if len(argv) < 1:
@@ -89,25 +92,25 @@ def main(argv):
     for task_file in task_files:
 
         # Set plot title
-        plt.title("Task Allocation, Task File '{0}' (Simulation)".format(task_file))
+        plt.title("Task Allocation, chadwick '{0}' ".format(task_file))
 
-        #plt.tick_params(axis='y', which='major', labelsize=10)
-        #plt.tick_params(axis='x', which='major', labelsize=8)
+        # plt.tick_params(axis='y', which='major', labelsize=10)
+        # plt.tick_params(axis='x', which='major', labelsize=8)
 
         # Position of the current allocation 'bar'
         x_pos = 0
 
-        #grid = np.random.rand(8, len(experiments), 3)
+        # grid = np.random.rand(8, len(experiments), 3)
         grid = np.random.rand(9, 80, 3)
-        #grid = np.random.rand(8, 20, 3)
+        # grid = np.random.rand(8, 20, 3)
 
         for start_config in start_configs:
             for mechanism in mechanisms:
 
                 exps = set(exp_by_start_config[start_config]).intersection(set(exp_by_mechanism[mechanism])).intersection(set(exp_by_task_file[task_file]))
 
-                #for exp in sorted(exps, key=lambda e: int(e.run_number))[0:10]:
-                #for exp in exps:
+                # for exp in sorted(exps, key=lambda e: int(e.run_number))[0:10]:
+                # for exp in exps:
                 for exp in list(exps)[0:10]:
                     print "{0}, {1}, {2}".format(start_config,
                                                  mechanism,
@@ -125,39 +128,38 @@ def main(argv):
                     #         grid[task.auction_id][x_pos] = stroke_colors[role]
 
                     run_msgs = defaultdict(list)
-                    for topic,msg,msg_time in exp.bag.read_messages('/tasks/award'):
+                    for topic, msg, msg_time in exp.bag.read_messages('/tasks/award'):
                         print "{0} won task {1}".format(msg.robot_id,msg.tasks[0].task.task_id)
-                        #grid[int(msg.tasks[0].task.task_id)-1][x_pos] = stroke_colors[msg.robot_id]
+                        # grid[int(msg.tasks[0].task.task_id)-1][x_pos] = stroke_colors[msg.robot_id]
 
                         stroke_color = stroke_colors[msg.robot_id]
                         y_pos = int(msg.tasks[0].task.task_id)-1
                         grid[y_pos][x_pos] = stroke_color
 
-                        #print "y_pos=={0}, x_pos=={1}, stroke_color=={2}".format(y_pos,
-                        #                                                         x_pos,
-                        #                                                         stroke_color)
+                        # print "y_pos=={0}, x_pos=={1}, stroke_color=={2}".format(y_pos,
+                        #                                                          x_pos,
+                        #                                                          stroke_color)
 
                     x_pos += 1
 
-
-        plt.imshow(grid[::-1], interpolation='none', extent=[0,80,0,9])
+        plt.imshow(grid[::-1], interpolation='none', extent=[0, 80, 0, 9])
         plt.axes().set_aspect(9)
 
         # Set x, y limits (range)
-        plt.ylim(0,9)
-        plt.xlim(0,80)
+        plt.ylim(0, 9)
+        plt.xlim(0, 80)
         
         # Tick locations, labels, and sizes    
         yticks = plt.getp(plt.gca(), 'yticklines')
         plt.setp(yticks, 'linewidth', 0)
-        plt.yticks([y + 0.5 for y in range(0,9)],
-                   ['Point {0}'.format(y) for y in range(1,9)])
+        plt.yticks([y + 0.5 for y in range(0, 10)],
+                   ['Task {0}'.format(y) for y in range(1, 10)])
 
         xticks = plt.getp(plt.gca(), 'xticklines')
         plt.setp(xticks, 'linewidth', 0)
-        plt.xticks([x + 5 for x in range(0,80,10)],
-                   [ 'RR-C', 'OSI-C', 'SSI-C', 'PSI-C',
-                     'RR-D', 'OSI-D', 'SSI-D', 'PSI-D'])
+        plt.xticks([x + 5 for x in range(0, 80, 10)],
+                   ['RR-C', 'OSI-C', 'SSI-C', 'PSI-C',
+                    'RR-D', 'OSI-D', 'SSI-D', 'PSI-D'])
 
         # Grid lines (manually drawn)
         for i in range(0,80):
