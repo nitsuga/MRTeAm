@@ -6,4 +6,5 @@ global_costmap:
    static_map: true
    rolling_window: false
    transform_tolerance: 0.5
-   inflation_radius: 0.4
+#   inflation_radius: 0.4
+   inflation_radius: 0.35

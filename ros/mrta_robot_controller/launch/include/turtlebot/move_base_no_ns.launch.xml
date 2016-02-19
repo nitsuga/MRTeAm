@@ -9,11 +9,11 @@
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 
-    <param name="planner_frequency" value="0.5" />
+<!--    <param name="planner_frequency" value="0.5" /> -->
 
     <!-- How long the controller will wait (in seconds) without receiving a valid control
          before space-clearing operations are performed. -->
-    <param name="controller_patience" value="4.0"/>
+<!--    <param name="controller_patience" value="4.0"/>-->
 
     <rosparam param="clearing_rotation_allowed">false</rosparam>
 
@@ -32,6 +32,8 @@
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/base_local_planner_params.yaml" command="load" />
     <rosparam file="$(find mrta_robot_controller)/param/turtlebot/move_base_params.yaml" command="load" />
+
+    <rosparam file="$(find mrta_robot_controller)/param/turtlebot/global_planner_params.yaml" command="load" ns="NavfnROS" />
 
     <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
     <remap from="odom" to="$(arg odom_topic)"/>

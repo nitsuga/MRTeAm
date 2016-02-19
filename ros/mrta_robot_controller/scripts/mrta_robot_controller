@@ -487,7 +487,6 @@ class RobotController:
             if task.task_id == task_id:
                 return task
 
-    @staticmethod
     def _is_reachable_distance(self, distance):
         """
         True if the distance is some 'reasonable' number (e.g. less than 10000).
@@ -562,6 +561,7 @@ class RobotController:
         while rospy.get_param(self.glob_obs_layer_enabled):
             self.rate.sleep()
 
+        time.sleep(0.25)
         rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
 
     def _enable_obstacle_layer(self):
@@ -574,6 +574,7 @@ class RobotController:
         while not rospy.get_param(self.glob_obs_layer_enabled):
             self.rate.sleep()
 
+        time.sleep(0.25)
         rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
 
     def _disable_static_layer(self):
@@ -1102,18 +1103,20 @@ class RobotController:
             if task.task_id in least_constrained_task_ids:
                 least_constrained.append(task)
 
-        candidate_task_ids = least_constrained
+        candidate_tasks = least_constrained
 
         # Prioritize candidate tasks that have robot(s) arrived and waiting
-        waiting_task_ids = []
-        for c_task_id in candidate_task_ids:
-            candidate_task = self._get_task_by_id(c_task_id)
-            if 0 < self.arrived_count[c_task_id] < candidate_task.num_robots:
-                waiting_task_ids.append(c_task_id)
+        waiting_tasks = []
+        for c_task in candidate_tasks:
+            rospy.loginfo("({0}): Checking {1} for waiting... ".format(self.robot_name, c_task.task_id))
+            if 0 < self.arrived_count[c_task.task_id] < c_task.num_robots:
+                waiting_tasks.append(c_task)
+
+        rospy.loginfo("({0}): waiting_tasks: {1}".format(self.robot_name, pp.pformat(waiting_tasks)))
 
         # Any tasks are waiting for more robots become the new list of candidates
-        if waiting_task_ids:
-            candidate_task_ids = waiting_task_ids
+        if waiting_tasks:
+            candidate_tasks = waiting_tasks
 
         # We have two ways to choose the next task from our agenda:
         # 1. ("non-greedy") Choose the first task that hasn't been completed yet
@@ -1124,7 +1127,7 @@ class RobotController:
         goal_task = None
         min_uncompleted_dist = None
         # for task in self.agenda:
-        for task in candidate_task_ids:
+        for task in candidate_tasks:
             if not task.completed:
                 if greedy_selection:
                     from_pose = self.current_pose
@@ -1260,11 +1263,12 @@ class RobotController:
         rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
 
         # Enable the global costmap's obstacle layer
+        self._disable_obstacle_layer()
         self._enable_obstacle_layer()
 
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
-        self._clear_costmaps()
+#        self._clear_costmaps()
 
         self._disable_static_layer()
         self._enable_static_layer()
