@@ -1,13 +1,13 @@
 clustered:
   robot_1:
     x: 1.5
-    y: 0.5
+    y: 1.7
   robot_2:
-    x: 0.5
-    y: 1.5
+    x: 0.25
+    y: 1.7
   robot_3:
-    x: 0.5
-    y: 0.5
+    x: 0.25
+    y: 0.25
 distributed:
   robot_1:
     x: 7.5
