@@ -61,7 +61,7 @@ RATE = 10
 # radians), we're in danger of colliding with it
 # DANGER_ZONE_FOV = math.pi / 2
 DANGER_ZONE_FOV = math.pi
-DANGER_ZONE_DIST = 1.5
+DANGER_ZONE_DIST = 1.2
 #DANGER_ZONE_DIST = 0.8
 
 # For pretty-printing convenience!
@@ -1080,7 +1080,7 @@ class RobotController:
 
         rospy.loginfo("({0}) dep_ordered_tasks: {1}".format(self.robot_name, pp.pformat(dep_ordered_tasks)))
 
-        # Our next task should have no unment dependencies. The first element of the list constructed
+        # Our next task should have no unmet dependencies. The first element of the list constructed
         # above should contain only such tasks.
         # unconstrained_task_ids = dep_ordered_tasks[0]
 

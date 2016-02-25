@@ -79,7 +79,13 @@ Visualization Manager:
       Class: rviz/Path
       Color: 25; 255; 0
       Enabled: true
+      Line Style: Lines
+      Line Width: 0.03
       Name: glob. plan
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
       Topic: /robot_3/move_base_node/GlobalPlanner/plan
       Value: true
     - Alpha: 1
@@ -87,7 +93,13 @@ Visualization Manager:
       Class: rviz/Path
       Color: 255; 0; 4
       Enabled: true
+      Line Style: Billboards
+      Line Width: 0.03
       Name: dwa plan
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
       Topic: /robot_3/move_base_node/DWAPlannerROS/local_plan
       Value: true
     - Alpha: 1
@@ -100,13 +112,13 @@ Visualization Manager:
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Keep: 1
       Length: 0.5
       Name: Odometry
       Position Tolerance: 0.1
       Topic: /robot_3/odom
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -141,9 +153,22 @@ Visualization Manager:
       Class: rviz/Path
       Color: 255; 0; 4
       Enabled: false
+      Line Style: Lines
+      Line Width: 0.03
       Name: TP Plan
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
       Topic: /robot_3/move_base_node/TrajectoryPlannerROS/local_plan
       Value: false
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_3/move_base_node/local_costmap/footprint
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -176,11 +201,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 147.048
+      Scale: 140.787
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 3.76037
-      Y: 3.00832
+      X: 2.34212
+      Y: 2.90183
     Saved: ~
 Window Geometry:
   Displays:

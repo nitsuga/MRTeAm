@@ -29,7 +29,7 @@
 <!--      <rosparam param="clearing_rotation_allowed">false</rosparam>-->
 
       <!-- The rate (in Hz) at which to run the global planning loop. -->
-      <param name="planner_frequency" value="1.0" />
+      <param name="planner_frequency" value="1.5" />
 
       <!-- How long the planner will wait (in seconds) in an attempt to find a valid plan
            before space-clearing operations are performed. -->
@@ -46,7 +46,7 @@
       <rosparam param="recovery_behaviors">
         [
         {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
-        {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
+        <!--{name: rotate_recovery, type: rotate_recovery/RotateRecovery},-->
         {name: backup_recovery, type: backup_recovery/BackupRecovery},
         {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
         ]
@@ -63,7 +63,7 @@
 
       <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
 
-      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" />
+      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" ns="GlobalPlanner" />
 
     </node>
 
