@@ -264,14 +264,16 @@ class RobotController:
             # self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
             self.cc_srv_name = "/{0}/move_base_node/clear_costmaps".format(self.robot_name)
             self.glob_obs_layer_srv = "/{0}/move_base_node/global_costmap/obstacle_layer".format(self.robot_name)
-            self.glob_obs_layer_enabled = '/{0}/move_base/global_costmap/obstacle_layer/enabled'.format(self.robot_name)
-            self.glob_static_layer_srv = '/{0}/move_base/global_costmap/static_layer'.format(self.robot_name)
-            self.glob_static_layer_enabled = '/{0}/move_base/global_costmap/static_layer/enabled'.format(self.robot_name)
+            self.glob_obs_layer_enabled = '/{0}/move_base_node/global_costmap/obstacle_layer/enabled'.format(self.robot_name)
+            self.glob_static_layer_srv = '/{0}/move_base_node/global_costmap/static_layer'.format(self.robot_name)
+            self.glob_static_layer_enabled = '/{0}/move_base_node/global_costmap/static_layer/enabled'.format(self.robot_name)
 
-        rospy.loginfo("Starting obstacle_layer parameter client")
+        rospy.loginfo("Starting obstacle_layer parameter client:")
+        #rospy.loginfo(self.glob_obs_layer_srv)
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv, timeout=5)
 
         rospy.loginfo("Starting static_layer parameter client")
+        #rospy.loginfo(self.glob_static_layer_srv)
         self.static_layer_param_client = dynamic_reconfigure.client.Client(self.glob_static_layer_srv, timeout=5)
 
         # Set up client for the service that makes path plans

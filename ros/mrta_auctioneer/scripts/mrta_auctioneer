@@ -272,6 +272,7 @@ class AuctionOSI(Auction):
         if won_task.num_robots_allocated == won_task.num_robots:
             won_task.awarded = True
 
+        time.sleep(0.5)
 
 class AuctionPSI(Auction):
 
@@ -481,6 +482,8 @@ class AuctionSSI(Auction):
         # number of robots
         if won_task.num_robots_allocated == won_task.num_robots:
             won_task.awarded = True
+
+        time.sleep(0.5)
 
 
 class AuctionRR(Auction):
