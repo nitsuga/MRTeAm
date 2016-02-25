@@ -1262,13 +1262,13 @@ class RobotController:
     def send_goal(self, e):
         rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
 
-        # Enable the global costmap's obstacle layer
-        self._disable_obstacle_layer()
-        self._enable_obstacle_layer()
-
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
 #        self._clear_costmaps()
+
+        # Enable the global costmap's obstacle layer
+        self._disable_obstacle_layer()
+        self._enable_obstacle_layer()
 
         self._disable_static_layer()
         self._enable_static_layer()
