@@ -48,7 +48,7 @@ def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
     # 1. Run plot_stats.py to plot statistics for the given task file
     plot_path = os.path.join(script_dir, plot_stats_script)
     print("plot_path: {0}".format(plot_path))
-    subprocess.check_call([plot_path, 'physical-stats-outliers-removed.csv', task_file], shell=False)
+    subprocess.check_call([plot_path, 'stats.csv', task_file], shell=False)
 
     # # 2. Run plot_trajectory.py to plot trajectories
     # trajectory_path = os.path.join(script_dir, trajectory_script)

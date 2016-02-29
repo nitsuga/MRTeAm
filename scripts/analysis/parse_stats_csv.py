@@ -66,6 +66,14 @@ ROBOT_NAMES = ['robot_1',
 pp = pprint.PrettyPrinter(indent=4)
 
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
 class Robot(object):
     def __init__(self):
         self.name = None
@@ -87,6 +95,7 @@ class Robot(object):
         # status messages to depopulate. At the end of a run it should be empty for each
         # robot. If not, there was a problem (e.g., status messages not recorded).
         self.tasks = []
+
 
 def _get_intervals(start_event, end_events, messages, label):
     """
@@ -166,10 +175,10 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
             start_valid = end_valid = False
 
             # Interval begins or ends within this exec phase interval
-            if interval_begin_time > exec_phase_begin_time and interval_begin_time < exec_phase_end_time:
+            if exec_phase_begin_time < interval_begin_time < exec_phase_end_time:
                 start_valid = True
 
-            if interval_end_time > exec_phase_begin_time and interval_end_time < exec_phase_end_time:
+            if exec_phase_begin_time < interval_end_time < exec_phase_end_time:
                 end_valid = True
 
             if start_valid or end_valid:
@@ -558,6 +567,11 @@ def parse_stats(bag_paths, output):
             row_fields['ROBOT{0}_WAITING_TIME'.format(j)] = robot.waiting_time   # 'ROBOT<n>_WAITING_TIME'
             row_fields['ROBOT{0}_IDLE_TIME'.format(j)] = robot.idle_time         # 'ROBOT<n>_IDLE_TIME'
             row_fields['ROBOT{0}_DELAY_TIME'.format(j)] = robot.delay_time       # 'ROBOT<n>_DELAY_TIME'
+
+        # Round float values to 6 digits of precision
+        for key in row_fields.keys():
+            if is_number(row_fields[key]):
+                row_fields[key] = round(row_fields[key], 6)
 
         csv_file.writerow([row_fields[fn] for fn in field_names])
 
