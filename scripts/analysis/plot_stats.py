@@ -55,8 +55,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    # plt.title(title)
-    # plt.ylabel(y_label)
+    plt.title(title)
+    plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
 

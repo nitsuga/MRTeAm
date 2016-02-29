@@ -59,15 +59,16 @@ field_names = [
     'MEAN_MSG_TIME'
 ]
 
-ROBOT_NAMES = [ 'robot_1',
-                'robot_2',
-                'robot_3' ]
+ROBOT_NAMES = ['robot_1',
+               'robot_2',
+               'robot_3']
 
 pp = pprint.PrettyPrinter(indent=4)
 
 
 class Robot(object):
     def __init__(self):
+        self.name = None
         self.distance = 0.0
         self.movement_time = 0.0
         self.idle_time = 0.0
@@ -82,6 +83,10 @@ class Robot(object):
         # and values are timestamps
         self.pause_times = defaultdict(int)
 
+        # We'll use award messages populate this list and 'SUCCESS' (complete) task
+        # status messages to depopulate. At the end of a run it should be empty for each
+        # robot. If not, there was a problem (e.g., status messages not recorded).
+        self.tasks = []
 
 def _get_intervals(start_event, end_events, messages, label):
     """
@@ -260,6 +265,7 @@ def parse_stats(bag_paths, output):
         bag_filename = os.path.basename(bag_path)
         row_fields['BAG_FILENAME'] = bag_filename
 
+        print("bag_filename: {0}".format(bag_filename))
         (map, start_config, mechanism, task_file, remainder) = bag_filename.split('__')
 
         # Date/time
@@ -353,10 +359,27 @@ def parse_stats(bag_paths, output):
 
         robots = {}
 
-        # per-robot stats
         for r_name in ROBOT_NAMES:
             robot = Robot()
+            robot.name = r_name
             robots[r_name] = robot
+
+        for award_msg in run_msgs['/tasks/award']:
+            robot = robots[award_msg.robot_id]
+
+            for task in award_msg.tasks:
+                # print("{0} was awarded task {1}".format(award_msg.robot_id, task.task.task_id))
+                robot.tasks.append(task.task.task_id)
+                #
+                # print("{0}'s task list: {1}".format(award_msg.robot_id, pp.pformat(robots[award_msg.robot_id].tasks)))
+
+        incomplete_tasks = False
+
+        # per-robot stats
+        for r_name in ROBOT_NAMES:
+            robot = robots[r_name]
+
+            print("{0}'s task list: {1}".format(r_name, pp.pformat(robot.tasks)))
 
             # Distance travelled
             robot.distance = 0.0
@@ -419,8 +442,16 @@ def parse_stats(bag_paths, output):
                 if status_msg.status == mrta.msg.TaskStatus.SUCCESS or status_msg == mrta.msg.TaskStatus.FAILURE:
                     robot.exec_phase_end_stamp = status_msg.header.stamp
 
+                    # On success, we should remove this task (id) from the robot's task list
+                    if status_msg.status == mrta.msg.TaskStatus.SUCCESS:
+                        robot.tasks.remove(status_msg.task_id)
+
                 if status_msg.status == mrta.msg.TaskStatus.PAUSE:
                     robot.collisions += 1
+
+            if robot.tasks:
+                print("{0} was awarded tasks {1} but there is no record of successful completion!".format(r_name, pp.pformat(robot.tasks)))
+                incomplete_tasks = True
 
             if not robot.exec_phase_begin_stamp or not robot.exec_phase_end_stamp:
                 print("Can not determine beginning or end time of {0}'s exec phase!".format(r_name))
@@ -469,9 +500,15 @@ def parse_stats(bag_paths, output):
             total_idle_time += robot.idle_time
             total_delay_time += robot.delay_time
             total_distance += robot.distance
+            print("{0} distance: {1}".format(r_name, robot.distance))
             total_collisions += robot.collisions
 
+        if incomplete_tasks:
+            print("There is no record of successful completion of one or more tasks. Skipping this run!")
+            continue
+
         print("total_collisions: {0}".format(total_collisions))
+        print("total_distance: {0}".format(total_distance))
 
         row_fields['TOTAL_MOVEMENT_TIME'] = total_movement_time   # 'TOTAL_MOVEMENT_TIME'
         row_fields['TOTAL_EXECUTION_TIME'] = total_execution_time # 'TOTAL_EXECUTION_TIME'

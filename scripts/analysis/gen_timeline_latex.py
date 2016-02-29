@@ -42,7 +42,7 @@ def main():
 #            print "\\begin{center}"
 
             for filename in sorted(file_list):
-                print """\\includegraphics[height=4cm]{{{0}}}
+                print """\\includegraphics[width=\\textwidth]{{{0}}}
 \\\\[1cm]""".format(filename)
 
 #            print "\\end{center}"
@@ -63,7 +63,7 @@ def main():
 #            print "\\begin{center}"
 
             for filename in sorted(file_list):
-                print """\\includegraphics[height=4cm]{{{0}}}
+                print """\\includegraphics[width=\\textwidth]{{{0}}}
 \\\\[1cm]""".format(filename)
 
 #            print "\\end{center}"
