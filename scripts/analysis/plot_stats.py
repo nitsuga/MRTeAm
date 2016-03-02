@@ -55,8 +55,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    plt.title(title)
-    plt.ylabel(y_label)
+    # plt.title(title)
+    # plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
 
@@ -88,8 +88,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
 
     # Bar labels
     # plt.tick_params(axis='x', which='major', labelsize=18)
-    plt.tick_params(axis='x', which='major', labelsize=24)
-    plt.tick_params(axis='y', which='major', labelsize=18)
+    plt.tick_params(axis='x', which='major', labelsize=26)
+    plt.tick_params(axis='y', which='major', labelsize=20)
 
     plt.xticks(x_pos, mechanisms)
     ymin, ymax = plt.ylim()

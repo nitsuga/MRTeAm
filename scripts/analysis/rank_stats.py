@@ -23,14 +23,23 @@ MECHANISMS = ['RR', 'OSI', 'SSI', 'PSI']
 
 START_CONFIGS = ['clustered', 'distributed']
 
-TASK_FILES = ['SR-IT-DA-scenario1.yaml',
-              'SR-CT-DA-scenario1.yaml',
+# TASK_FILES = ['SR-IT-DA-scenario1.yaml',
+#               'SR-CT-DA-scenario1.yaml',
+#               'MR-IT-DA-scenario1.yaml',
+#               'MR-CT-DA-scenario1.yaml',
+#               'SR-IT-DA-scenario2.yaml',
+#               'SR-CT-DA-scenario2.yaml',
+#               'MR-IT-DA-scenario2.yaml',
+#               'MR-CT-DA-scenario2.yaml']
+
+TASK_FILES = ['MR-CT-DA-scenario1.yaml',
+              'MR-CT-DA-scenario2.yaml',
               'MR-IT-DA-scenario1.yaml',
-              'MR-CT-DA-scenario1.yaml',
-              'SR-IT-DA-scenario2.yaml',
-              'SR-CT-DA-scenario2.yaml',
               'MR-IT-DA-scenario2.yaml',
-              'MR-CT-DA-scenario2.yaml']
+              'SR-CT-DA-scenario1.yaml',
+              'SR-CT-DA-scenario2.yaml',
+              'SR-IT-DA-scenario1.yaml',
+              'SR-IT-DA-scenario2.yaml']
 
 METRICS = ['DELIBERATION_TIME',
            'EXECUTION_PHASE_TIME',

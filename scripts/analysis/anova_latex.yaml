@@ -1,0 +1,43 @@
+- name: 'DELIBERATION_TIME'
+  caption: 'Deliberation time'
+  label: 'tab:f-delib-time'
+
+- name: 'EXECUTION_PHASE_TIME'
+  caption: 'Execution time'
+  label: 'tab:f-exec-time'
+
+- name: 'NAP_TIME'
+  caption: 'Nap time'
+  label: 'tab:f-nap-time'
+
+- name: 'TOTAL_COLLISIONS'
+  caption: 'Collisions'
+  label: 'tab:f-total-collisions'
+
+- name: 'TOTAL_DELAY_TIME'
+  caption: 'Delay time'
+  label: 'tab:f-total-delay-time'
+
+- name: 'TOTAL_DISTANCE'
+  caption: 'Distance travelled'
+  label: 'tab:f-total-distance'
+
+#- name: 'TOTAL_EXECUTION_TIME'
+#  caption: 'Execution time'
+#  label: 'tab:f-exec-time'
+
+- name: 'TOTAL_IDLE_TIME'
+  caption: 'Total idle time'
+  label: 'tab:f-total-idle-time'
+
+- name: 'TOTAL_MOVEMENT_TIME'
+  caption: 'Total movement time'
+  label: 'tab:f-total-movement-time'
+
+- name: 'TOTAL_RUN_TIME'
+  caption: 'Total tun time'
+  label: 'tab:f-total-run-time'
+
+- name: 'TOTAL_WAITING_TIME'
+  caption: 'Total waiting time'
+  label: 'tab:f-total-waiting-time'

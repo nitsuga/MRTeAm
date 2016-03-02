@@ -4,6 +4,7 @@
       <w>aclient</w>
       <w>actionlib</w>
       <w>amcl</w>
+      <w>anova</w>
       <w>costmap</w>
       <w>costmaps</w>
       <w>defaultdict</w>
