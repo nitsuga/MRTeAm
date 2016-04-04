@@ -1,5 +1,6 @@
 <launch>
   <arg name="robot_name" default="robot_1" />
+  <arg name="reallocate" default="False" />
 
   <param name="/use_sim_time" value="true"/>
 
@@ -73,7 +74,13 @@
       <param name="publish_frequency" value="5.0" />
     </node>
 
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name)" respawn="false" required="true" output="screen" />
+    <!--
+    Arguments to mrta_robot_controller:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) $(arg reallocate) False" respawn="false" required="true" output="screen" />
 
   </group>
   <!-- END ROBOT -->

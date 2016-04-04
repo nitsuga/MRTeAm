@@ -141,7 +141,7 @@ def in_danger_zone(my_pose, other_pose):
 class RobotController:
     """ Controls robot behavior. """
 
-    def __init__(self, robot_name=None, is_turtlebot=False):
+    def __init__(self, robot_name=None, reallocate=False, is_turtlebot=False):
         """
         Initialize some ROS stuff (pub/sub, actionlib client) and also
         our state machine.
@@ -159,11 +159,6 @@ class RobotController:
         print("Robot name: {0}".format(self.robot_name))
 
         self.is_turtlebot = is_turtlebot
-        if is_turtlebot:
-            self.is_turtlebot = True
-            # rospy.loginfo("We're a real Turtlebot!")
-            # else:
-            # rospy.loginfo("We're a simulated Turtlebot!")
 
         # A lock (mutex) to deal with out of order award/announce messages
         self.award_lock = Lock()
@@ -1234,6 +1229,9 @@ class RobotController:
             rospy.loginfo("({0}) BEGIN_ALLOCATION: ok_to_execute==False".format(self.robot_name))
             self.ok_to_execute = False
             self.aclient.cancel_goal()
+
+            # TODO: If REallocating tasks, remove incomplete tasks from agenda and publish
+            # an AGENDA_CLEARED TaskStatus message here
 
         elif event_msg.event == mrta.msg.ExperimentEvent.BEGIN_EXECUTION:
             rospy.loginfo("({0}) BEGIN_EXECUTION: ok_to_execute==True".format(self.robot_name))

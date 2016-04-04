@@ -591,13 +591,19 @@ class Auctioneer:
         self.mechanism = rospy.get_param('~mechanism')
 
         # Tasks are loaded from a configuration file, rather than
-        # loaded dynamically (for now)
+        # created dynamically (for now)
         # self.task_file = task_file
         self.task_file = None
         try:
             self.task_file = rospy.get_param('~task_file')
         except KeyError:
             rospy.logerr("Parameter 'task_file' has no value!")
+
+        # Do we reallocate tasks or not?
+        try:
+            self.reallocate = rospy.get_param('~reallocate')
+        except KeyError:
+            rospy.logerr("Parameter 'reallocate' has no value!")
 
         # Scripted tasks that are not necessarily 'live' at the start of the experiment
         self.scripted_tasks = []
@@ -848,11 +854,18 @@ class Auctioneer:
         stamp(begin_alloc_msg)
         self.experiment_pub.publish(begin_alloc_msg)
 
+        # TODO: If we are doing task REallocation, pause here until we receive
+        # an AGENDA_CLEARED TaskStatus message from each member of the team before
+        # moving on to allocation.
+
+
         # For now, use the single mechanism given to us as a parameter
         rospy.loginfo("  {0}".format(self.mechanism))
 
+        # TODO: For each incomplete task t, set t.awarded = False
+
         # As long as there are unallocated tasks, choose a mechanism and
-        # allocate them.
+        # allocate them. An unallocated task should be both incomplete and unawarded.
         while True:
             unallocated = []
             for task in self.tasks:

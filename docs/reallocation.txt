@@ -1,0 +1,64 @@
+Current
+-------
+
+auctioneer:
+
+  self.tasks is populated from script or timed event
+
+  while self.tasks is not empty:
+    allocate, remove from self.tasks
+
+
+robot_controller:
+
+  announce -> bid
+  win -> add to self.agenda
+
+
+
+Redistribute
+------------
+
+auctioneer:
+
+  while self.tasks HAS INCOMPLETE TASKS:
+    allocate INCOMPLETE TASKS, DO NOT REMOVE from self.tasks
+
+robot_controller:
+
+  ALLOCATION_START -> delete unfinished tasks from self.agenda, send AGENDA_CLEARED
+
+  announce -> bid
+  win -> add to self.agenda
+
+
+
+For safety
+----------
+Add an AGENDA_CLEARED type to the TaskStatus message definition. After a
+BEGIN_ALLOCATION event, auctioneer will wait to receive an AGENDA_CLEARED
+(TaskStatus) message from all team members before running the allocation.
+
+
+Things to check
+---------------
+
+1) a. Does auctioneer allocate all tasks in self.tasks? Or only imcomplete ones?
+   b. Does auctioneer remove tasks from self.tasks when they are allocated?
+
+2) Make "static/redistribute" a configurable option
+
+
+TODO
+----
+Change robot_controller arguments into parameters:
+
+  robot_name
+  reallocate
+  is_turtlebot
+
+
+
+
+
+

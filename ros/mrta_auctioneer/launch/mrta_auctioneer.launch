@@ -1,11 +1,13 @@
 <launch>
   <param name="/use_sim_time" value="true"/>
+  <arg name="reallocate" default="False" />
 
   <arg name="task_file" default="" />
 
   <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" required="true" output="screen">
     <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
+    <param name="reallocate" value="($arg reallocate)" />
   </node>
 
   <!--

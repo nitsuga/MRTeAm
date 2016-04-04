@@ -1,5 +1,6 @@
 <launch>
   <arg name="robot_name" default="robot_1" />
+  <arg name="reallocate" default="False" />
 
   <param name="/use_sim_time" value="$(arg simulation)"/>
 
@@ -49,7 +50,13 @@
     
     <include file="$(find mrta_robot_controller)/launch/include/turtlebot/move_base.launch.xml"/>
 
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name)" output="screen" />
+  <!--
+    Arguments to mrta_robot_controller:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) $(arg reallocate) True" output="screen" />
 
   </group>
   <!-- END ROBOT -->

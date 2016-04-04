@@ -2,6 +2,7 @@
   <param name="/use_sim_time" value="true"/>
 
   <arg name="nogui_flag" default="" />
+  <arg name="reallocate" default="False" />
 
 <!--  <node name="rviz" pkg="rviz" type="rviz" /> -->
 
@@ -79,7 +80,13 @@
       <param name="publish_frequency" value="5.0" />
     </node>
 
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_1" respawn="false" required="true" output="screen" />
+    <!--
+    Arguments to mrta_robot_controller:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_1 $(arg reallocate) False" respawn="false" required="true" output="screen" />
 
   </group>
   <!-- END ROBOT 1 -->
@@ -150,7 +157,13 @@
       <param name="publish_frequency" value="5.0" />
     </node>
 
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_2" respawn="false" required="true" output="screen" />
+    <!--
+    Arguments to mrta_robot_controller:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_2 $(arg reallocate) False" respawn="false" required="true" output="screen" />
 
   </group>
   <!-- END ROBOT 2 -->
@@ -221,7 +234,13 @@
       <param name="publish_frequency" value="5.0" />
     </node>
 
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_3" respawn="false" required="true" output="screen" />
+    <!--
+    Arguments to mrta_robot_controller:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_3 $(arg reallocate) False" respawn="false" required="true" output="screen" />
 
   </group>
   <!-- END ROBOT 3 -->
