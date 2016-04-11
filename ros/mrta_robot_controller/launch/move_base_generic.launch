@@ -80,7 +80,11 @@
       reallocate    - True/False: are we doing task reallocation?
       is_turtlebot  - True/False
     -->
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="$(arg robot_name) $(arg reallocate) False" respawn="false" required="true" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false" required="true" output="screen">
+      <param name="robot_name" type="str" value="$(arg robot_name)" />
+      <param name="reallocate" type="bool" value="$(arg reallocate)" />
+      <param name="is_turtlebot" type="bool" value="false" />
+    </node>
 
   </group>
   <!-- END ROBOT -->

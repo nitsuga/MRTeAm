@@ -47,18 +47,3 @@ Things to check
    b. Does auctioneer remove tasks from self.tasks when they are allocated?
 
 2) Make "static/redistribute" a configurable option
-
-
-TODO
-----
-Change robot_controller arguments into parameters:
-
-  robot_name
-  reallocate
-  is_turtlebot
-
-
-
-
-
-

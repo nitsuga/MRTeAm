@@ -86,7 +86,11 @@
       reallocate    - True/False: are we doing task reallocation?
       is_turtlebot  - True/False
     -->
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_1 $(arg reallocate) False" respawn="false" required="true" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false" required="true" output="screen">
+      <param name="robot_name" type="str" value="robot_1" />
+      <param name="reallocate" type="bool" value="$(arg reallocate)" />
+      <param name="is_turtlebot" type="bool" value="False" />
+    </node>
 
   </group>
   <!-- END ROBOT 1 -->
@@ -163,7 +167,11 @@
       reallocate    - True/False: are we doing task reallocation?
       is_turtlebot  - True/False
     -->
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_2 $(arg reallocate) False" respawn="false" required="true" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false" required="true" output="screen">
+      <param name="robot_name" type="str" value="robot_2" />
+      <param name="reallocate" type="bool" value="$(arg reallocate)" />
+      <param name="is_turtlebot" type="bool" value="False" />
+    </node>
 
   </group>
   <!-- END ROBOT 2 -->
@@ -240,7 +248,11 @@
       reallocate    - True/False: are we doing task reallocation?
       is_turtlebot  - True/False
     -->
-    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" args="robot_3 $(arg reallocate) False" respawn="false" required="true" output="screen" />
+    <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false" required="true" output="screen">
+      <param name="robot_name" type="str" value="robot_3" />
+      <param name="reallocate" type="bool" value="$(arg reallocate)" />
+      <param name="is_turtlebot" type="bool" value="False" />
+    </node>
 
   </group>
   <!-- END ROBOT 3 -->

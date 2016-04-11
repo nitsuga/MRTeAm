@@ -74,7 +74,6 @@ import rospy.rostime
 import mrta
 import mrta.msg
 
-# TODO:
 # Import Task class
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
@@ -586,6 +585,9 @@ class Auctioneer:
         # all of their tasks.
         self.team_members_completed = []
 
+        # Keep track of which team members have send an 'AGENDA_CLEARED' message
+        self.agenda_cleared = defaultdict(bool)
+
         # We will use one mechanism per run (for now)
         # self.mechanism = mechanism
         self.mechanism = rospy.get_param('~mechanism')
@@ -810,6 +812,16 @@ class Auctioneer:
 
         self.fsm.team_identified()
 
+    def team_agenda_cleared(self):
+        """
+        Only return True if all team members have sent an 'AGENDA_CLEARED' message
+        :return:
+        """
+        for team_member in self.team_members:
+            if not self.agenda_cleared[team_member]:
+                return False
+        return True
+
     def idle(self, data):
         rospy.loginfo("state: idle")
 
@@ -857,12 +869,23 @@ class Auctioneer:
         # TODO: If we are doing task REallocation, pause here until we receive
         # an AGENDA_CLEARED TaskStatus message from each member of the team before
         # moving on to allocation.
+        if self.reallocate:
+            while not self.agenda_cleared():
+                self.rate.sleep()
 
+            # It's now safe to continue, but first reset 'AGENDA_CLEARED' flag for
+            # all team members
+            for team_member in self.team_members:
+                self.agenda_cleared[team_member] = False
 
         # For now, use the single mechanism given to us as a parameter
         rospy.loginfo("  {0}".format(self.mechanism))
 
-        # TODO: For each incomplete task t, set t.awarded = False
+        # TODO: If we are REallocating, for each incomplete task t, set t.awarded = False
+        if self.reallocate:
+            for t in self.tasks:
+                if not t.completed:
+                    t.awarded = False
 
         # As long as there are unallocated tasks, choose a mechanism and
         # allocate them. An unallocated task should be both incomplete and unawarded.
@@ -934,9 +957,14 @@ class Auctioneer:
             rospy.loginfo("Received ALL_TASKS_COMPLETE from {0}".format(robot_id))
             self.team_members_completed.append(robot_id)
 
-        if status == mrta.msg.TaskStatus.SUCCESS:
+        elif status == mrta.msg.TaskStatus.SUCCESS:
             rospy.loginfo("{0} has completed task {1}".format(robot_id, task_id))
             self.tasks_by_id[task_id].completed = True
+
+        elif status == mrta.msg.TaskStatus.AGENDA_CLEARED:
+            robot_id = status_msg.robot_id
+            self.agenda_cleared[robot_id] = True
+            rospy.loginfo("{0} has send an 'AGENDA_CLEARED' message".format(robot_id))
 
     def monitor_execution(self, e):
         rospy.loginfo('state: monitor_execution')

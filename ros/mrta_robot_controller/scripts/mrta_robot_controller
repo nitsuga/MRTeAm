@@ -141,24 +141,13 @@ def in_danger_zone(my_pose, other_pose):
 class RobotController:
     """ Controls robot behavior. """
 
-    def __init__(self, robot_name=None, reallocate=False, is_turtlebot=False):
+    # def __init__(self, robot_name=None, reallocate=False, is_turtlebot=False):
+    def __init__(self):
+
         """
         Initialize some ROS stuff (pub/sub, actionlib client) and also
         our state machine.
-
-        :param string robot_name: this robot's name
-        :param bool is_turtlebot: is this a physical turtlebot?
         """
-        # Node name
-        if robot_name:
-            self.robot_name = robot_name
-        else:
-            # a random ID with dashes and underscores removed
-            self.robot_name = str(uuid.uuid1()).replace('-', '').replace('_', '')
-        # rospy.loginfo("Robot name: {0}".format(self.robot_name))
-        print("Robot name: {0}".format(self.robot_name))
-
-        self.is_turtlebot = is_turtlebot
 
         # A lock (mutex) to deal with out of order award/announce messages
         self.award_lock = Lock()
@@ -216,7 +205,17 @@ class RobotController:
         # The rate at which we'll sleep while idle
         self.rate = rospy.Rate(RATE)
 
-        rospy.loginfo("Robot name: {0}".format(self.robot_name))
+        # Robot name. If not given, pick a random string.
+        self.robot_name = rospy.get_param('~robot_name', str(uuid.uuid1()).replace('-', '').replace('_', ''))
+        rospy.loginfo("robot_name: {0}".format(self.robot_name))
+
+        # reallocate
+        self.reallocate = rospy.get_param('~reallocate', False)
+        rospy.loginfo("reallocate: {0}".format(self.reallocate))
+
+        # is_turtlebot
+        self.is_turtlebot = rospy.get_param('~is_turtlebot', False)
+        rospy.loginfo("is_turtlebot: {0}".format(self.is_turtlebot))
 
         if self.is_turtlebot:
             rospy.loginfo("We're a real Turtlebot!")
@@ -1230,8 +1229,19 @@ class RobotController:
             self.ok_to_execute = False
             self.aclient.cancel_goal()
 
-            # TODO: If REallocating tasks, remove incomplete tasks from agenda and publish
-            # an AGENDA_CLEARED TaskStatus message here
+            # If REallocating tasks, remove incomplete tasks from agenda and publish
+            # an AGENDA_CLEARED TaskStatus message.
+            if self.reallocate:
+
+                self.agenda = [t for t in self.agenda if t.completed]
+
+                # Send a message to signal that we are clearing our agenda of incomplete tasks
+                agenda_cleared_msg = mrta.msg.TaskStatus()
+                agenda_cleared_msg.robot_id = self.robot_name
+                agenda_cleared_msg.task_id = -1
+                agenda_cleared_msg.status = mrta.msg.TaskStatus.AGENDA_CLEARED
+                stamp(agenda_cleared_msg)
+                self.task_status_pub.publish(agenda_cleared_msg)
 
         elif event_msg.event == mrta.msg.ExperimentEvent.BEGIN_EXECUTION:
             rospy.loginfo("({0}) BEGIN_EXECUTION: ok_to_execute==True".format(self.robot_name))
