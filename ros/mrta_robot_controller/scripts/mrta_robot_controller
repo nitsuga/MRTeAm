@@ -838,9 +838,9 @@ class RobotController:
         self.fsm.task_won(msg=msg)
 
     @staticmethod
-    def _construct_bid_msg(task_id, robot_id, bid):
+    def _construct_bid_msg(task_ids, robot_id, bid):
         bid_msg = mrta.msg.TaskBid()
-        bid_msg.task_id = task_id
+        bid_msg.task_ids = task_ids
         bid_msg.robot_id = robot_id
         bid_msg.bid = bid
 
@@ -890,7 +890,7 @@ class RobotController:
                 task_msg.task.task_id,
                 path_cost))
 
-            bid_msg = self._construct_bid_msg(task_msg.task.task_id,
+            bid_msg = self._construct_bid_msg([task_msg.task.task_id],
                                               self.robot_name,
                                               path_cost)
             stamp(bid_msg)
@@ -914,7 +914,7 @@ class RobotController:
                     task_msg.task.task_id,
                     path_cost))
 
-                bid_msg = self._construct_bid_msg(task_msg.task.task_id,
+                bid_msg = self._construct_bid_msg([task_msg.task.task_id],
                                                   self.robot_name,
                                                   path_cost)
 
@@ -962,7 +962,7 @@ class RobotController:
                 minimum_cost,
                 minimum_cost_task_id))
 
-            bid_msg = self._construct_bid_msg(minimum_cost_task_id,
+            bid_msg = self._construct_bid_msg([minimum_cost_task_id],
                                               self.robot_name,
                                               minimum_cost)
 
@@ -970,6 +970,36 @@ class RobotController:
             rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             self.bid_pub.publish(bid_msg)
 
+        elif announce_msg.mechanism == 'CMB':
+            rospy.logdebug("({0}) mechanism == CMB".format(self.robot_name))
+
+            # Get the cumulative cost of all tasks in out agenda so far
+            (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                       self.agenda,
+                                                       greedy=True)
+
+            rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
+                                                              c_cost))
+
+            # 1. Enumerate the power set of tasks
+
+            # 2. Find the cost of each subset (bundle). For each:
+
+            # 3. Publish a bid
+
+            #
+            # rospy.loginfo("({0}) minimum_cost={1} to task {2}".format(
+            #     self.robot_name,
+            #     minimum_cost,
+            #     minimum_cost_task_id))
+            #
+            # bid_msg = self._construct_bid_msg([minimum_cost_task_id],
+            #                                   self.robot_name,
+            #                                   minimum_cost)
+            #
+            # stamp(bid_msg)
+            # rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+            # self.bid_pub.publish(bid_msg)
         else:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
 
