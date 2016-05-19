@@ -24,6 +24,7 @@ References:
 # Standard Python modules
 from collections import defaultdict
 import datetime
+from itertools import chain, combinations
 import math
 import pprint
 import sys
@@ -75,6 +76,19 @@ def stamp(msg):
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
 
+
+def powerset(iterable):
+    """
+    powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
+
+    Shamelessly taken from:
+      https://docs.python.org/2/library/itertools.html#recipes
+
+    :param iterable:
+    :return:
+    """
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 def in_danger_zone(my_pose, other_pose):
     """
@@ -874,7 +888,7 @@ class RobotController:
             # task, we'll adjust the value down.
             path_cost = float(sys.maxint)
             if not self._is_task_id_in_agenda(task_msg.task.task_id):
-                # Get the cumulative cost of all tasks in out agenda so far
+                # Get the cumulative cost of all tasks in our agenda so far
                 (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
                                                            self.agenda,
                                                            greedy=True)
@@ -925,7 +939,7 @@ class RobotController:
         elif announce_msg.mechanism == 'SSI':
             rospy.logdebug("({0}) mechanism == SSI".format(self.robot_name))
 
-            # Get the cumulative cost of all tasks in out agenda so far
+            # Get the cumulative cost of all tasks in our agenda so far
             (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
                                                        self.agenda,
                                                        greedy=True)
@@ -973,33 +987,59 @@ class RobotController:
         elif announce_msg.mechanism == 'CMB':
             rospy.logdebug("({0}) mechanism == CMB".format(self.robot_name))
 
-            # Get the cumulative cost of all tasks in out agenda so far
-            (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
-                                                       self.agenda,
-                                                       greedy=True)
+            # Get the base cumulative cost of all tasks in our agenda so far
+            (base_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                          self.agenda,
+                                                          greedy=True)
 
-            rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
-                                                              c_cost))
+            rospy.loginfo("({0}) base cumulative cost: {1}".format(self.robot_name,
+                                                                   base_cost))
 
             # 1. Enumerate the power set of tasks
+            task_pset = powerset(announce_msg.tasks)
 
             # 2. Find the cost of each subset (bundle). For each:
+            for bundle in task_pset:
 
-            # 3. Publish a bid
+                temp_agenda = []
 
-            #
-            # rospy.loginfo("({0}) minimum_cost={1} to task {2}".format(
-            #     self.robot_name,
-            #     minimum_cost,
-            #     minimum_cost_task_id))
-            #
-            # bid_msg = self._construct_bid_msg([minimum_cost_task_id],
-            #                                   self.robot_name,
-            #                                   minimum_cost)
-            #
-            # stamp(bid_msg)
-            # rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
-            # self.bid_pub.publish(bid_msg)
+                bundle_task_ids = [t.task.task_id for t in bundle]
+
+                # 2a. Construct an mrta.SensorSweepTask object for each task in bundle
+                for task_msg in bundle:
+                    new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
+                                                    float(task_msg.location.x),
+                                                    float(task_msg.location.y),
+                                                    0.0, # z
+                                                    int(task_msg.task.num_robots),
+                                                    float(task_msg.task.duration),
+                                                    task_msg.task.depends)
+
+                    temp_agenda.append(new_task)
+
+                # 2b. Determine the cost of a tour of all tasks in
+                #     self.agenda (our existing tasks) + temp_agenda (this bundle
+                #     of announced tasks)
+                (hypothetical_cost, nil) = self._cumulative_cost(self.current_pose,
+                                                                 self.agenda + temp_agenda,
+                                                                 greedy=True)
+
+                marginal_cost = hypothetical_cost - base_cost
+
+                # 3. Publish a bid
+
+                rospy.loginfo("({0}) marginal cost={1} to tasks {2}".format(
+                    self.robot_name,
+                    marginal_cost,
+                    bundle_task_ids))
+
+                bid_msg = self._construct_bid_msg(bundle_task_ids,
+                                                  self.robot_name,
+                                                  marginal_cost)
+
+                stamp(bid_msg)
+                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+                self.bid_pub.publish(bid_msg)
         else:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
 

@@ -63,6 +63,7 @@ from fysom import Fysom
 # import actionlib
 from collections import defaultdict
 # import geometry_msgs.msg
+from itertools import chain, combinations
 # import move_base_msgs.msg
 # import nav_msgs.msg
 # import rosgraph
@@ -91,6 +92,19 @@ def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
+
+def powerset(iterable):
+    """
+    powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
+
+    Shamelessly taken from:
+      https://docs.python.org/2/library/itertools.html#recipes
+
+    :param iterable:
+    :return:
+    """
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 class Auction(object):
@@ -573,6 +587,10 @@ class AuctionCMB(Auction):
         super(AuctionPSI, self).__init__(auctioneer, tasks, auction_round)
 
     def _construct_announcement_msg(self):
+        """
+        We announce all tasks in a single set, as in PSI
+        :return: An mrta.msg.AnnounceSensorSweep message
+        """
         announce_msg = mrta.msg.AnnounceSensorSweep()
         announce_msg.mechanism = self.mechanism_name
 
@@ -602,12 +620,27 @@ class AuctionCMB(Auction):
 
         bids = self.auctioneer.bids[self.auction_round]
 
-        # In PSI, the number of bids we expect to receive is [#tasks]*[team size]
+        ## Exhaustive enumeration method, which should be replaced
+
+        # The number of ways to partition the set of tasks is a Bell number:
+        #   https://en.wikipedia.org/wiki/Partition_of_a_set#Counting_partitions
+        # which is multiplied bu the number of team members. We know the values
+        # of the first several Bell numbers:
+        #   https://en.wikipedia.org/wiki/Bell_number
+
+        BELL = [1, 2, 5, 15, 52, 203, 877, 4140, 21147]
+
+        # Sanity check
+        if len(self.task) > len(BELL):
+            rospy.loginfo("({0}) too many tasks!!! Exiting...".format(self.mechanism_name))
+            return
+
         bid_count = 0
-        while bid_count < len(self.tasks) * len(self.auctioneer.team_members):
+        expected_count = BELL[len(self.tasks)-1] * len(self.auctioneer.team_members)
+        while bid_count < expected_count:
             bid_count = 0
             for robot_id in bids:
-                for task_id in bids[robot_id]:
+                for task_tuple in bids[robot_id]:
                     bid_count += 1
 
             # time.sleep(0.2)
