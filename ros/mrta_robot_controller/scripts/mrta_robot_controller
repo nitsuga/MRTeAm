@@ -1015,7 +1015,9 @@ class RobotController:
                                                     float(task_msg.task.duration),
                                                     task_msg.task.depends)
 
-                    temp_agenda.append(new_task)
+                    # Only consider tasks we haven't already been awarded
+                    if not self._is_task_id_in_agenda(task_msg.task.task_id):
+                        temp_agenda.append(new_task)
 
                 # 2b. Determine the cost of a tour of all tasks in
                 #     self.agenda (our existing tasks) + temp_agenda (this bundle

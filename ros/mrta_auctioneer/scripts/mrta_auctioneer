@@ -46,6 +46,7 @@ Eric Schneider <eric.schneider@liverpool.ac.uk>
 from collections import defaultdict
 import itertools
 import os
+from partitionsets import ordered_set, partition
 import pprint
 import re
 from sets import Set
@@ -234,7 +235,7 @@ class AuctionOSI(Auction):
         self.fsm.bids_collected(task_id=self.tasks[0].task_id)
 
     def determine_winner(self, e):
-        rospy.loginfo("({0}) state: determin_winner".format(self.mechanism_name))
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
 
         # The id and task that we are assigning in this round
         task_id = e.task_id
@@ -346,7 +347,7 @@ class AuctionPSI(Auction):
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        rospy.loginfo("({0}) state: determin_winner".format(self.mechanism_name))
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
         
         bids = self.auctioneer.bids[self.auction_round]
 
@@ -454,7 +455,7 @@ class AuctionSSI(Auction):
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        rospy.loginfo("({0}) state: determin_winner".format(self.mechanism_name))
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
 
         bids = self.auctioneer.bids[self.auction_round]
         bid_tuples = []
@@ -540,7 +541,7 @@ class AuctionRR(Auction):
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        rospy.loginfo("({0}) state: determin_winner".format(self.mechanism_name))
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
         rospy.loginfo("..skipping!")
 
         self.fsm.winner_determined()
@@ -585,6 +586,29 @@ class AuctionCMB(Auction):
 
     def __init__(self, auctioneer=None, tasks=None, auction_round=None):
         super(AuctionPSI, self).__init__(auctioneer, tasks, auction_round)
+
+    def _min_bid_for_round(self, tasks, round):
+        """
+        Return the minimum bid (value) and robot_id for a given set of tasks
+        :param tasks: a *set* of task_ids
+        :param round: search bids from this auction round
+        :return: a tuple of <minimum bid>, <minimum bid robot_id>
+        """
+        min_bid = None
+        min_robot_id = None
+
+        bids = self.auctioneer.bids[round]
+
+        for robot_id in bids.keys():
+            # Get the robot's bid for the given tasks. If there is none,
+            # default to a 'very large' value (as in mrta.RobotController.bid())
+            bid_value = bids[robot_id].get(robot_id, float(sys.maxint))
+
+            if min_bid is None or bid_value < min_bid:
+                min_bid = bid_value
+                min_robot_id = robot_id
+
+        return min_bid, min_robot_id
 
     def _construct_announcement_msg(self):
         """
@@ -649,61 +673,63 @@ class AuctionCMB(Auction):
         self.fsm.bids_collected()
 
     def determine_winner(self, e):
-        rospy.loginfo("({0}) state: determin_winner".format(self.mechanism_name))
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
 
-        bids = self.auctioneer.bids[self.auction_round]
+        # 1. Create an orderset set of the tasks
+        tasks_oset = ordered_set.OrderedSet(self.tasks)
 
-        rospy.logdebug("bids:\n{0}".format(pp.pformat(bids)))
+        # 2. Get a list of all possible partitions of the set
+        t_partitions = partition.Partition(tasks_oset)
 
-        # We'll determine the winner of and send an award message for each task
-        task_winners = defaultdict(list) # task_winners[task_id] = [winner_ids]
+        # 3. For each partition, find the min-cost combination of bids
+        min_cost = float(sys.maxint)   # A 'very large' value, to start with
+        min_cost_partition  = None     # A dict of (task set) => ([bid_value, robot_id])
 
-        for task in self.tasks:
+        for t_partition in t_partitions:
 
-            bid_tuples = []
-            for robot_id in bids.keys():
-                if robot_id not in self.auctioneer.awarded[task.task_id]:
-                    # task_id below is a 1-tuple. see Auctinoeer.on_bid_received()
-                    bid_tuples.append([robot_id, bids[robot_id][(task.task_id)]]) # i.e., [robot_id, bid_value]
+            mincost_dict =  defaultdict(list)
 
-            # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
-            bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
+            # Each partition is a list of lists (of tasks)
+            for t_list in t_partition:
+                t_set = set(t_list)
 
-            num_robots = task.num_robots
-            # The top (actually lowest) num_robots bids
-            winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
+                min_bid, min_robot_id = self._min_bid_for_round(t_set, self.auction_round)
 
-            self.auctioneer.awarded[task.task_id].extend(winner_ids)
+                mincost_dict[t_set] = [min_bid, min_robot_id]
 
-            rospy.loginfo("winner(s) of task {0}: '{1}'".format(task.task_id, winner_ids))
+            partition_cost = sum(v[1] for v in mincost_dict.values())
 
-            task_winners[task.task_id] = winner_ids
+            if not min_cost_partition or partition_cost < min_cost:
+                min_cost_partition = mincost_dict
 
-        self.fsm.winner_determined(task_winners=task_winners)
+        # Done?
+        self.fsm.winner_determined(min_cost_partition=min_cost_partition)
 
     def award(self, e):
         """ Construct and send an award message for each winner. """
         rospy.loginfo("({0}) state: award".format(self.mechanism_name))
 
-        task_winners = e.task_winners
+        min_cost_partition = e.min_cost_partition
 
-        for task_id in task_winners:
-            won_task = self._get_task_by_id(task_id)
+        for t_subset in min_cost_partition.keys():
+            # t_subset is a *set* of task_ids
+            [bid_value, robot_id] = min_cost_partition[t_subset]
 
-            for winner_id in task_winners[task_id]:
+            award_msg = mrta.msg.TaskAward()
+            award_msg.robot_id = robot_id
 
-                award_msg = mrta.msg.TaskAward()
-                award_msg.robot_id = winner_id
+            for task_id in t_subset:
+                won_task = self._get_task_by_id(task_id)
 
-                task_msg = self._construct_task_msg(won_task)
-                award_msg.tasks.append(task_msg)
+                won_task.num_robots_allocated += 1
+                if won_task.num_robots_allocated == won_task.num_robots:
+                    won_task.awarded = True
 
-                self.auctioneer.award_pub.publish(award_msg)
+                award_msg.tasks.append(self._construct_task_msg(won_task))
 
-                rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
+            self.auctioneer.award_pub.publish(award_msg)
 
-            # Mark the task as awarded
-            won_task.awarded = True
+            rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
 
 
 class Auctioneer:
