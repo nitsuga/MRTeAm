@@ -15,7 +15,7 @@ from scipy import stats
 pp = pprint.PrettyPrinter(indent=4)
 
 # Some global constants
-mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
+mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'CMB']
 start_configs = ['clustered', 'distributed']
 
 # task_files = ['SR-IT-DA-scenario2.yaml', 'SR-CT-DA-scenario2.yaml',
@@ -55,8 +55,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    # plt.title(title)
-    # plt.ylabel(y_label)
+    plt.title(title)
+    plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
 
@@ -530,8 +530,8 @@ def main(argv):
                               attr_name='TOTAL_DISTANCE',
                               title=plot_title,
                               y_label='meters',
-                              out_filename=plot_filename,
-                              y_limit=80)
+                              out_filename=plot_filename)
+                              # y_limit=80)
 
             # Near Collisions
             plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)

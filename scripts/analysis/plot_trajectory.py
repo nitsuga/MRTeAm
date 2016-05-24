@@ -304,7 +304,8 @@ def draw_trajectories(ctx, run_msgs):
 #             print('pose_elapsed_secs: {0}'.format(pose_elapsed_secs))
 #             print('move_total_secs: {0}'.format(move_total_secs))
 
-            alpha = pose_elapsed_secs / move_total_secs
+            # alpha = pose_elapsed_secs / move_total_secs
+            alpha = 1.0
 
             # print('alpha: {0}'.format(alpha))
             ctx.set_source_rgba(stroke_color[0], stroke_color[1], stroke_color[2], alpha)

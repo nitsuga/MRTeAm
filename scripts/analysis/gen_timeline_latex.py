@@ -9,11 +9,13 @@ def main():
     clustered = {'RR': defaultdict(list),
                  'OSI': defaultdict(list),
                  'SSI': defaultdict(list),
-                 'PSI': defaultdict(list)}
+                 'PSI': defaultdict(list),
+                 'CMB': defaultdict(list)}
     distributed = {'RR': defaultdict(list),
                    'OSI': defaultdict(list),
                    'SSI': defaultdict(list),
-                   'PSI': defaultdict(list)}
+                   'PSI': defaultdict(list),
+                   'CMB': defaultdict(list)}
 
     glob_token = sys.argv[1]
 

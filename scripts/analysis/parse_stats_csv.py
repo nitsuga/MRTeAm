@@ -453,6 +453,7 @@ def parse_stats(bag_paths, output):
 
                     # On success, we should remove this task (id) from the robot's task list
                     if status_msg.status == mrta.msg.TaskStatus.SUCCESS:
+                        print "Removing task {0}".format(status_msg.task_id)
                         robot.tasks.remove(status_msg.task_id)
 
                 if status_msg.status == mrta.msg.TaskStatus.PAUSE:
