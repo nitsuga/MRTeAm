@@ -530,8 +530,8 @@ def main(argv):
                               attr_name='TOTAL_DISTANCE',
                               title=plot_title,
                               y_label='meters',
-                              out_filename=plot_filename)
-#                               y_limit=50)
+                              out_filename=plot_filename,
+                              y_limit=80)
 
             # Near Collisions
             plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)

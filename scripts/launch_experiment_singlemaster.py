@@ -27,36 +27,37 @@ TIMEOUT_PSI = 420
 running_procs = []
 
 # Robots we want to start up
-robots = [ { 'name': 'robot_1',
-             'port': '11312' },
-           { 'name': 'robot_2',
-             'port': '11313' },
-           { 'name': 'robot_3',
-             'port': '11314' } ]
+robots = [{'name': 'robot_1',
+           'port': '11312'},
+          {'name': 'robot_2',
+           'port': '11313'},
+          {'name': 'robot_3',
+           'port': '11314'}]
 
-maps = { 'brooklyn': 'brooklyn_lab.png',
-         'smartlab': 'smartlab_ugv_arena_v2.png' }
+maps = {'brooklyn': 'brooklyn_lab.png',
+        'smartlab': 'smartlab_ugv_arena_v2.png'}
 
-world_files = { 'brooklyn': { 'clustered': 'brooklyn_arena_3_robots_clustered.world',
-                              'distributed': 'brooklyn_arena_3_robots_distributed.world',
-                              'distributed_A': ''},
-                'smartlab': { 'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
-                              'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
-                              'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'} }
+world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
+                            'distributed': 'brooklyn_arena_3_robots_distributed.world',
+                            'distributed_A': ''},
+               'smartlab': {'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
+                            'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
+                            'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'}}
 
 
-mechanisms = [ 'OSI', 'PSI', 'SSI', 'RR' ]
+mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'CMB']
 
-#task_files = [ 'brooklyn_tasks_A.txt',
-#               'tasks_A.txt' ]
+# task_files = [ 'brooklyn_tasks_A.txt',
+#                'tasks_A.txt' ]
 
 # Topics to record with rosbag
-record_topics = [ '/experiment', '/tasks/announce', '/tasks/bid',
-                  '/tasks/award', '/tasks/status', '/tasks/new', '/debug' ]
+record_topics = ['/experiment', '/tasks/announce', '/tasks/bid',
+                 '/tasks/award', '/tasks/status', '/tasks/new', '/debug']
 
 exp_running = False
 
 pp = pprint.PrettyPrinter(indent=2)
+
 
 def kill_procs():
     for proc in reversed(running_procs):
@@ -68,8 +69,9 @@ def kill_procs():
             print("Error: {0}".format(sys.exc_info()[0]))
         time.sleep(2)
 
-# Terminate all child processes when we get a SIGINT
+
 def sig_handler(sig, frame):
+    """ Terminate all child processes when we get a SIGINT """
     if sig == signal.SIGINT:
         kill_procs()
         print("Shutting down...")
@@ -77,14 +79,15 @@ def sig_handler(sig, frame):
 
 signal.signal(signal.SIGINT, sig_handler)          
 
+
 def on_exp_event(exp_event_msg):
     print("######## on_exp_event() ########")
     print(pp.pformat(exp_event_msg))
     if exp_event_msg.event == mrta.msg.ExperimentEvent.END_EXPERIMENT:
-    #if exp_event_msg.event == 'END_ALLOCATION':
         print("######## END_EXPERIMENT ########")
         global exp_running
         exp_running = False
+
 
 def launch_experiment(mechanism, map_file, world_file, task_file, args):
     global exp_running
@@ -100,12 +103,17 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     nogui_flag = None
     if args.nogui:
-      nogui_flag = '-g'
+        nogui_flag = '-g'
+
+    reallocate_flag = 'false'
+    if args.reallocate:
+        reallocate_flag = 'true'
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
                                   main_launchfile,
                                   "nogui_flag:={0}".format(nogui_flag),
+                                  "reallocate:={0}".format(reallocate_flag),
                                   "map_file:={0}".format(map_file),
                                   "world_file:={0}".format(world_file),
                                   "task_file:={0}".format(task_file),
@@ -172,18 +180,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Launch a multirobot task-allocation experiment.')
 
     parser.add_argument('mechanism',
-                        choices=['OSI','PSI','SSI','RR'],
+                        choices=['OSI', 'PSI', 'SSI', 'RR', 'CMB'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
-                        choices=['brooklyn','smartlab'],
+                        choices=['brooklyn', 'smartlab'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
-                        choices=['clustered','distributed','distributed_A'],
+                        choices=['clustered', 'distributed', 'distributed_A'],
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
-    parser.add_argument("-ng","--nogui", help="Disable the Stage GUI", action="store_true")
-
+    parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
+    parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
 
     args = parser.parse_args()
 

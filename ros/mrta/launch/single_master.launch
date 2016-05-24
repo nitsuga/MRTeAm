@@ -2,7 +2,7 @@
   <param name="/use_sim_time" value="true"/>
 
   <arg name="nogui_flag" default="" />
-  <arg name="reallocate" default="False" />
+  <arg name="reallocate" default="false" />
 
 <!--  <node name="rviz" pkg="rviz" type="rviz" /> -->
 
@@ -260,6 +260,7 @@
   <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" required="true" output="screen">
     <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
+    <param name="reallocate" value="$(arg reallocate)" />
   </node>
 
 </launch>

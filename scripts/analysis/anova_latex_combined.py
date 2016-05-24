@@ -19,11 +19,12 @@ metrics_config_file = os.path.join(get_script_path(), 'anova_latex.yaml')
 output_dir = 'formatted'
 
 table_header = """
-{{\centering
-\\begin{{table}}[h]
-{{\small
-\\begin{{tabularx}}{{\\textwidth}}{{|XrX|XrX||XrX|XrX|}}
-\multicolumn{{6}}{{|X||}}{{Physical}}   & \multicolumn{{6}}{{X|}}{{Simulation}} \\\\
+%{{\centering
+%\\begin{{table}}[h]
+%{{\small
+%\\begin{{tabularx}}{{\\textwidth}}{{|XrX|XrX||XrX|XrX|}}
+%\multicolumn{{6}}{{|X||}}{{Physical}}   & \multicolumn{{6}}{{X|}}{{Simulation}} \\\\
+\multicolumn{{12}}{{c}}{{(a) {2}}} \\\\
 \hline
  & $F(3,{0})$ & $p$ & & $F(3,{0})$ & $p$ & & $F(3,{1})$ & $p$ & & $F(3,{1})$ & $p$ \\\\
 \hline
@@ -79,12 +80,19 @@ for metric in metrics:
                 print("Can't find ANOVA values in input! Aborting.")
                 sys.exit(1)
 
-            values.extend([match.group(1), match.group(2)])
+            f_ratio = match.group(1)
+            p_value = match.group(2)
+            if p_value == '0.950':
+                p_value = '\\textbf{0.950}'
+
+            # values.extend([match.group(1), match.group(2)])
+            values.extend([f_ratio, p_value])
 
     print "len(values): {0}".format(len(values))
     print "values: {0}".format(values)
 
-    output_text = table_header.format(dof1, dof2) + table_body.format(*values) + table_footer.format(metric_caption, metric_label)
+    # output_text = table_header.format(dof1, dof2) + table_body.format(*values) + table_footer.format(metric_caption, metric_label)
+    output_text = table_header.format(dof1, dof2, metric_caption) + table_body.format(*values)
 
     out_file = open(os.path.join(output_dir, "{0}-f.txt".format(metric_name)), 'wb')
     out_file.write(output_text)

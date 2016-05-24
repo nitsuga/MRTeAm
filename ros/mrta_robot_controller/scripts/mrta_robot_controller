@@ -90,6 +90,7 @@ def powerset(iterable):
     s = list(iterable)
     return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
+
 def in_danger_zone(my_pose, other_pose):
     """
     Determine whether or not another robot is in my path, i.e., whether or not
@@ -456,7 +457,7 @@ class RobotController:
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
                                        mrta.msg.TaskBid,
-                                       queue_size=3)
+                                       queue_size=100)
         rospy.loginfo('publishing on /tasks/bid')
 
         # Announce task events on '/tasks/status':
@@ -537,14 +538,14 @@ class RobotController:
         # First check the cache
         if sg_key in self._path_distance_cache and self._is_reachable_distance(self._path_distance_cache[sg_key]):
             distance = self._path_distance_cache[sg_key]
-            rospy.loginfo("  CACHE HIT (sg), distance=={0}".format(distance))
+            rospy.logdebug("  CACHE HIT (sg), distance=={0}".format(distance))
         elif gs_key in self._path_distance_cache and self._is_reachable_distance(self._path_distance_cache[gs_key]):
             distance = self._path_distance_cache[gs_key]
-            rospy.loginfo("  CACHE HIT (gs), distance=={0}".format(distance))
+            rospy.logdebug("  CACHE HIT (gs), distance=={0}".format(distance))
 
         # Otherwise call the planner to find the distance
         else:
-            rospy.loginfo("  CACHE MISS, LOOKING UP...")
+            rospy.logdebug("  CACHE MISS, LOOKING UP...")
 
             distance = self._lookup_path_cost(start, goal)
 
@@ -552,8 +553,7 @@ class RobotController:
             self._path_distance_cache[sg_key] = distance
             self._path_distance_cache[gs_key] = distance
 
-
-        rospy.loginfo("({0}): get_path_cost: ({1},{2})->({3},{4}) == {5}".format(
+        rospy.logdebug("({0}): get_path_cost: ({1},{2})->({3},{4}) == {5}".format(
             self.robot_name,
             start.position.x, start.position.y,
             goal.position.x, goal.position.y,
@@ -772,7 +772,7 @@ class RobotController:
         if path_cost == 0.0:
             path_cost = float(sys.maxint)
 
-        rospy.loginfo("({0}) Path cost from ({1},{2}) to ({3},{4}) is {5}".format(
+        rospy.logdebug("({0}) Path cost from ({1},{2}) to ({3},{4}) is {5}".format(
             self.robot_name,
             start.position.x, start.position.y,
             goal.position.x, goal.position.y,
@@ -997,15 +997,22 @@ class RobotController:
 
             # 1. Enumerate the power set of tasks
             task_pset = powerset(announce_msg.tasks)
+            # rospy.loginfo("({0}) task_pset has length {1}".format(self.robot_name, len(task_pset)))
 
+            bid_count = 0
             # 2. Find the cost of each subset (bundle). For each:
             for bundle in task_pset:
+                bundle_task_ids = [t.task.task_id for t in bundle]
+
+                # Can this ever happen?
+                if not bundle_task_ids:
+                    rospy.loginfo("bundle_task_ids is empty!")
+                    continue
 
                 temp_agenda = []
 
-                bundle_task_ids = [t.task.task_id for t in bundle]
-
                 # 2a. Construct an mrta.SensorSweepTask object for each task in bundle
+                task_in_agenda = False
                 for task_msg in bundle:
                     new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
                                                     float(task_msg.location.x),
@@ -1015,22 +1022,27 @@ class RobotController:
                                                     float(task_msg.task.duration),
                                                     task_msg.task.depends)
 
-                    # Only consider tasks we haven't already been awarded
-                    if not self._is_task_id_in_agenda(task_msg.task.task_id):
+                    if self._is_task_id_in_agenda(task_msg.task.task_id):
+                        task_in_agenda = True
+                    else:
                         temp_agenda.append(new_task)
 
                 # 2b. Determine the cost of a tour of all tasks in
                 #     self.agenda (our existing tasks) + temp_agenda (this bundle
-                #     of announced tasks)
-                (hypothetical_cost, nil) = self._cumulative_cost(self.current_pose,
-                                                                 self.agenda + temp_agenda,
-                                                                 greedy=True)
+                #     of announced tasks). If any of the tasks in the bundle under
+                #     consideration are already in our agenda, return a 'very large'
+                #     (effectively infinite) bid value
+                marginal_cost = float(sys.maxint)
 
-                marginal_cost = hypothetical_cost - base_cost
+                if not task_in_agenda:
+                    (hypothetical_cost, nil) = self._cumulative_cost(self.current_pose,
+                                                                     self.agenda + temp_agenda,
+                                                                     greedy=True)
+
+                    marginal_cost = hypothetical_cost - base_cost
 
                 # 3. Publish a bid
-
-                rospy.loginfo("({0}) marginal cost={1} to tasks {2}".format(
+                rospy.logdebug("({0}) marginal cost={1} to tasks {2}".format(
                     self.robot_name,
                     marginal_cost,
                     bundle_task_ids))
@@ -1041,7 +1053,11 @@ class RobotController:
 
                 stamp(bid_msg)
                 rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+
+                bid_count += 1
+                rospy.logdebug("({0}) publishing bid #{1}".format(self.robot_name, bid_count))
                 self.bid_pub.publish(bid_msg)
+                # self.rate.sleep()
         else:
             rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
 
@@ -1310,7 +1326,7 @@ class RobotController:
                 # Send a message to signal that we are clearing our agenda of incomplete tasks
                 agenda_cleared_msg = mrta.msg.TaskStatus()
                 agenda_cleared_msg.robot_id = self.robot_name
-                agenda_cleared_msg.task_id = -1
+                agenda_cleared_msg.task_id = '-1'
                 agenda_cleared_msg.status = mrta.msg.TaskStatus.AGENDA_CLEARED
                 stamp(agenda_cleared_msg)
                 self.task_status_pub.publish(agenda_cleared_msg)
