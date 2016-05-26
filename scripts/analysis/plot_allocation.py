@@ -42,11 +42,12 @@ pp = pprint.PrettyPrinter(indent=4)
 
 
 class Experiment(object):
-    def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None):
+    def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None, remainder=None):
         self.bag = bag
         self.mechanism = mechanism
         self.start_config = start_config
         self.task_file = task_file
+        self.remainder = remainder
 
 
 def usage():
@@ -90,7 +91,7 @@ def main(argv):
                                                                                                    task_file,
                                                                                                    remainder)
 
-        exp = Experiment(bag, mechanism, start_config, task_file)
+        exp = Experiment(bag, mechanism, start_config, task_file, remainder)
 
         exp_by_mechanism[mechanism].append(exp)
         exp_by_start_config[start_config].append(exp)
@@ -124,9 +125,10 @@ def main(argv):
                 # for exp in sorted(exps, key=lambda e: int(e.run_number))[0:10]:
                 # for exp in exps:
                 for exp in list(exps)[0:10]:
-                    print "{0}, {1}, {2}".format(start_config,
+                    print "{0}, {1}, {2}, {3}".format(start_config,
                                                  mechanism,
-                                                 task_file)
+                                                 task_file,
+                                                 exp.remainder)
 
                     # For each robot
                     # for role in sorted(exp.roles.keys()):

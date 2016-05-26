@@ -597,7 +597,7 @@ class RobotController:
         while rospy.get_param(self.glob_static_layer_enabled):
             self.rate.sleep()
 
-        # time.sleep(0.25)
+        time.sleep(0.25)
         rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
 
     def _enable_static_layer(self):
@@ -610,7 +610,7 @@ class RobotController:
         while not rospy.get_param(self.glob_static_layer_enabled):
             self.rate.sleep()
 
-        # time.sleep(0.25)
+        time.sleep(0.25)
         rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
 
     @staticmethod
@@ -1313,9 +1313,9 @@ class RobotController:
             self._disable_static_layer()
             self._enable_static_layer()
 
-            # time.sleep(0.5)
+            time.sleep(0.5)
 
-            # If REallocating tasks, remove incomplete tasks from agenda and publish
+            # If RE-allocating tasks, remove incomplete tasks from agenda and publish
             # an AGENDA_CLEARED TaskStatus message.
             if self.reallocate:
 
