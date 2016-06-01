@@ -579,14 +579,15 @@ class AuctionRR(Auction):
                     task.awarded = True
 
 
-class AuctionCMB(Auction):
+class AuctionSUM(Auction):
     """
-    A combinatorial auction
+    A combinatorial auction that minimizes the maximum sum of travel distances
+    for the team as a whole.
     """
-    mechanism_name = 'CMB'
+    mechanism_name = 'SUM'
 
     def __init__(self, auctioneer=None, tasks=None, auction_round=None):
-        super(AuctionCMB, self).__init__(auctioneer, tasks, auction_round)
+        super(AuctionSUM, self).__init__(auctioneer, tasks, auction_round)
 
     def _min_bid_for_round(self, tasks, round):
         """
@@ -649,35 +650,18 @@ class AuctionCMB(Auction):
 
         bids = self.auctioneer.bids[self.auction_round]
 
-        # Exhaustive enumeration method (to be replaced?)
-        # The number of ways to partition the set of tasks is a Bell number:
-        #   https://en.wikipedia.org/wiki/Partition_of_a_set#Counting_partitions
-        # which is multiplied bu the number of team members. We know the values
-        # of the first several Bell numbers:
-        #   https://en.wikipedia.org/wiki/Bell_number
-
-        BELL = [1, 2, 5, 15, 52, 203, 877, 4140, 21147]
-
-        # Sanity check
-        if len(self.tasks) > len(BELL):
-            rospy.loginfo("({0}) too many tasks!!! Exiting...".format(self.mechanism_name))
-            return
+        # For n tasks and m robots, the number of bids we expect to receive is:
+        #  (2^n - 1) * m
+        #  (|the powerset of tasks| minus the empty set) * m
+        expected_count = (2 ** len(self.tasks) - 1) * len(self.auctioneer.team_members)
 
         bid_count = 0
-        # expected_count = BELL[len(self.tasks)-1] * len(self.auctioneer.team_members)
-
-        # The order of the power set of the tasks * the number of team members
-        expected_count = (2 ** len(self.tasks)) * len(self.auctioneer.team_members)
-        # We don't care about the empty sets
-        expected_count -= len(self.auctioneer.team_members)
-
         while bid_count < expected_count:
             bid_count = 0
             for robot_id in bids:
                 for task_tuple in bids[robot_id]:
                     bid_count += 1
 
-            # time.sleep(0.2)
             rospy.loginfo('Received [{0}/{1}] bids...'.format(bid_count, expected_count))
             self.auctioneer.rate.sleep()
 
@@ -710,6 +694,164 @@ class AuctionCMB(Auction):
                 mincost_dict[t_tuple] = [min_bid, min_robot_id]
 
             partition_cost = sum(v[0] for v in mincost_dict.values())
+
+            if not min_cost_partition or partition_cost < min_cost:
+                min_cost = partition_cost
+                min_cost_partition = mincost_dict
+                assn_str = ["{0} => {1} ".format(t, mincost_dict[t][1]) for t in mincost_dict]
+                rospy.loginfo("min_cost_partition: {0} for {1}".format(partition_cost,
+                                                                       assn_str))
+
+        # Done?
+        self.fsm.winner_determined(min_cost_partition=min_cost_partition)
+
+    def award(self, e):
+        """ Construct and send an award message for each winner. """
+        rospy.loginfo("({0}) state: award".format(self.mechanism_name))
+
+        min_cost_partition = e.min_cost_partition
+
+        for t_subset in min_cost_partition.keys():
+            # t_subset is a *tuple* of task_ids
+            [bid_value, robot_id] = min_cost_partition[t_subset]
+
+            award_msg = mrta.msg.TaskAward()
+            award_msg.robot_id = robot_id
+
+            for task_id in t_subset:
+                won_task = self._get_task_by_id(task_id)
+
+                won_task.num_robots_allocated += 1
+                if won_task.num_robots_allocated == won_task.num_robots:
+                    won_task.awarded = True
+
+                award_msg.tasks.append(self._construct_task_msg(won_task))
+
+            self.auctioneer.award_pub.publish(award_msg)
+
+            rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
+            time.sleep(1)
+
+
+class AuctionMAX(Auction):
+    """
+    A combinatorial auction that minimizes the maximum travel distance of any
+    single robot on the team.
+    """
+    mechanism_name = 'MAX'
+
+    def __init__(self, auctioneer=None, tasks=None, auction_round=None):
+        super(AuctionMAX, self).__init__(auctioneer, tasks, auction_round)
+
+    def _min_bid_for_round(self, tasks, round):
+        """
+        Return the minimum bid (value) and robot_id for a given set of tasks
+        :param tasks: a *tuple* of task_ids
+        :param round: search bids from this auction round
+        :return: a tuple of <minimum bid>, <minimum bid robot_id>
+        """
+        min_bid = None
+        min_robot_id = None
+
+        bids = self.auctioneer.bids[round]
+
+        for robot_id in bids.keys():
+            # Get the robot's bid for the given tasks. If there is none,
+            # default to a 'very large' value (as in mrta.RobotController.bid())
+            bid_value = bids[robot_id].get(tasks, float(sys.maxint))
+
+            if min_bid is None or bid_value < min_bid:
+                min_bid = bid_value
+                min_robot_id = robot_id
+
+        # rospy.loginfo("({0}) min_bid for {1}: {2} by {3}".format(self.mechanism_name,
+        #                                                          pp.pformat(tasks),
+        #                                                          min_bid,
+        #                                                          min_robot_id))
+        return min_bid, min_robot_id
+
+    def _construct_announcement_msg(self):
+        """
+        We announce all tasks in a single set, as in PSI
+        :return: An mrta.msg.AnnounceSensorSweep message
+        """
+        announce_msg = mrta.msg.AnnounceSensorSweep()
+        announce_msg.mechanism = self.mechanism_name
+
+        # Announce all messages at once
+        for task in self.tasks:
+            announce_msg.tasks.append(self._construct_task_msg(task))
+
+        return announce_msg
+
+    def announce(self, e):
+        rospy.loginfo("({0}) state: announce".format(self.mechanism_name))
+
+        while not self.auctioneer.team_members:
+            rospy.logdebug("..waiting for team to be non-empty")
+            time.sleep(1)
+
+        announcement_msg = self._construct_announcement_msg()
+        stamp(announcement_msg)
+        self.auctioneer.announce_pub.publish(announcement_msg)
+
+        rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
+
+        self.fsm.announced()
+
+    def collect_bids(self, e):
+        rospy.loginfo("({0}) state: collect_bids".format(self.mechanism_name))
+
+        bids = self.auctioneer.bids[self.auction_round]
+
+        # For n tasks and m robots, the number of bids we expect to receive is:
+        #  (2^n - 1) * m
+        #  (|the powerset of tasks| minus the empty set) * m
+        expected_count = (2 ** len(self.tasks) - 1) * len(self.auctioneer.team_members)
+
+        bid_count = 0
+        while bid_count < expected_count:
+            bid_count = 0
+            for robot_id in bids:
+                for task_tuple in bids[robot_id]:
+                    bid_count += 1
+
+            rospy.loginfo('Received [{0}/{1}] bids...'.format(bid_count, expected_count))
+            self.auctioneer.rate.sleep()
+
+        self.fsm.bids_collected()
+
+    def determine_winner(self, e):
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
+
+        # 1. Create an OrderedSet set of task_ids
+        tasks_oset = ordered_set.OrderedSet([t.task_id for t in self.tasks])
+
+        # 2. Get a list of all possible partitions of the set
+        t_partitions = partition.Partition(tasks_oset)
+
+        # 3. For each partition, find the min-cost combination of bids
+        min_cost = float(sys.maxint)   # A 'very large' value, to start with
+        min_cost_partition = None     # A dict of (task set) => ([bid_value, robot_id])
+
+        for t_partition in t_partitions:
+
+            mincost_dict = defaultdict(list)
+
+            robot_cost = defaultdict(float)
+
+            # Each partition is a list of lists (of tasks)
+            for t_list in t_partition:
+                t_tuple = tuple(t_list)
+                # rospy.loginfo("({0}) t_set: {1}".format(self.mechanism_name, pp.pformat(t_tuple)))
+
+                min_bid, min_robot_id = self._min_bid_for_round(t_tuple, self.auction_round)
+
+                mincost_dict[t_tuple] = [min_bid, min_robot_id]
+                robot_cost[min_robot_id] += min_bid
+
+            # partition_cost = sum(v[0] for v in mincost_dict.values())
+            partition_cost = max(robot_cost.values())
 
             if not min_cost_partition or partition_cost < min_cost:
                 min_cost = partition_cost
@@ -1109,8 +1251,10 @@ class Auctioneer:
                 auction_ssi = AuctionSSI(self, unallocated, self.auction_round)
             elif self.mechanism == 'RR':
                 auction_rr = AuctionRR(self, unallocated, self.auction_round)
-            elif self.mechanism == 'CMB':
-                auction_cmb = AuctionCMB(self, unallocated, self.auction_round)
+            elif self.mechanism == 'SUM':
+                auction_sum = AuctionSUM(self, unallocated, self.auction_round)
+            elif self.mechanism == 'MAX':
+                auction_max = AuctionMAX(self, unallocated, self.auction_round)
 
         # An auction runs when it is instantiated (above).
         # At this point, we can (safely?) consider all previously unallocated

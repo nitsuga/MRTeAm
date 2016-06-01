@@ -45,7 +45,7 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'}}
 
 
-mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'CMB']
+mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
 # task_files = [ 'brooklyn_tasks_A.txt',
 #                'tasks_A.txt' ]
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Launch a multirobot task-allocation experiment.')
 
     parser.add_argument('mechanism',
-                        choices=['OSI', 'PSI', 'SSI', 'RR', 'CMB'],
+                        choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
                         choices=['brooklyn', 'smartlab'],

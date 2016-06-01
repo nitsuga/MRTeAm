@@ -211,6 +211,10 @@ class RobotController:
         # Unless true, we may only bid on tasks but NOT begin executing tasks
         self.ok_to_execute = False
 
+        # Use this flag to prevent bidding (or other costmap-dependent actions)
+        # while we're clearing costmaps
+        self._clearing_costmaps = False
+
         # Initialize our node
         node_name = 'mrta_robot_controller'
         rospy.loginfo("Starting node '{0}'...".format(node_name))
@@ -278,11 +282,11 @@ class RobotController:
             self.glob_static_layer_enabled = '/{0}/move_base_node/global_costmap/static_layer/enabled'.format(self.robot_name)
 
         rospy.loginfo("Starting obstacle_layer parameter client:")
-        #rospy.loginfo(self.glob_obs_layer_srv)
+        # rospy.loginfo(self.glob_obs_layer_srv)
         self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv, timeout=5)
 
         rospy.loginfo("Starting static_layer parameter client")
-        #rospy.loginfo(self.glob_static_layer_srv)
+        # rospy.loginfo(self.glob_static_layer_srv)
         self.static_layer_param_client = dynamic_reconfigure.client.Client(self.glob_static_layer_srv, timeout=5)
 
         # Set up client for the service that makes path plans
@@ -304,12 +308,16 @@ class RobotController:
         self._clear_costmaps_client = rospy.ServiceProxy(self.cc_srv_name,
                                                          std_srvs.srv.Empty)
 
+        self._clearing_costmaps = True
+
         self._disable_obstacle_layer()
         self._clear_costmaps()
         # self._clear_costmaps()
 
         self._disable_static_layer()
         self._enable_static_layer()
+
+        self._clearing_costmaps = False
 
         # Set up state machine.
         # See mrta/docs/robot-controller.fsm.png
@@ -867,6 +875,19 @@ class RobotController:
                                                          pp.pformat(announce_msg)))
         self.award_lock.acquire()
 
+        while self._clearing_costmaps:
+            # rospy.loginfo("{0}: clearing costmaps...".format(self.robot_name))
+            self.rate.sleep()
+
+        # Disable the global costmap's obstacle layer
+        # self._disable_obstacle_layer()
+        # self._clear_costmaps()
+        #
+        # self._disable_static_layer()
+        # self._enable_static_layer()
+        #
+        # time.sleep(0.5)
+
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
             rospy.logdebug("({0}) mechanism == OSI".format(self.robot_name))
@@ -973,8 +994,8 @@ class RobotController:
             rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             self.bid_pub.publish(bid_msg)
 
-        elif announce_msg.mechanism == 'CMB':
-            rospy.logdebug("({0}) mechanism == CMB".format(self.robot_name))
+        elif announce_msg.mechanism == 'SUM' or announce_msg.mechanism == 'MAX':
+            rospy.logdebug("({0}) mechanism == SUM".format(self.robot_name))
 
             # Get the base cumulative cost of all tasks in our agenda so far
             (base_cost, bid_from) = self._cumulative_cost(self.current_pose,
@@ -1306,6 +1327,9 @@ class RobotController:
             self.ok_to_execute = False
             self.aclient.cancel_goal()
 
+            # Prevent bidding while we're clearing costmaps
+            self._clearing_costmaps = True
+
             # Disable the global costmap's obstacle layer
             self._disable_obstacle_layer()
             self._clear_costmaps()
@@ -1313,7 +1337,8 @@ class RobotController:
             self._disable_static_layer()
             self._enable_static_layer()
 
-            time.sleep(0.5)
+            time.sleep(1.0)
+            self._clearing_costmaps = False
 
             # If RE-allocating tasks, remove incomplete tasks from agenda and publish
             # an AGENDA_CLEARED TaskStatus message.
