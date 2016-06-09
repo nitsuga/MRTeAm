@@ -52,7 +52,7 @@ import re
 from sets import Set
 import signal
 import sys
-from threading import Timer
+from threading import Timer, Lock
 import time
 import uuid
 import yaml
@@ -246,7 +246,7 @@ class AuctionOSI(Auction):
         for robot_id in bids.keys():
             if robot_id not in self.auctioneer.awarded[task_id]:
                 # task_id below is a 1-tuple. see Auctioneer.on_bid_received()
-                bid_tuples.append([robot_id, bids[robot_id][tuple(task_id)]]) # i.e., [robot_id, bid_value]
+                bid_tuples.append([robot_id, bids[robot_id][tuple([task_id])]]) # i.e., [robot_id, bid_value]
 
         # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
         bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
@@ -363,7 +363,7 @@ class AuctionPSI(Auction):
             for robot_id in bids.keys():
                 if robot_id not in self.auctioneer.awarded[task.task_id]:
                     # task_id below is a 1-tuple. see Auctioneer.on_bid_received()
-                    bid_tuples.append([robot_id, bids[robot_id][tuple(task.task_id)]]) # i.e., [robot_id, bid_value]
+                    bid_tuples.append([robot_id, bids[robot_id][tuple([task.task_id])]]) # i.e., [robot_id, bid_value]
 
             # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
             bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
@@ -657,10 +657,15 @@ class AuctionSUM(Auction):
 
         bid_count = 0
         while bid_count < expected_count:
-            bid_count = 0
-            for robot_id in bids:
-                for task_tuple in bids[robot_id]:
-                    bid_count += 1
+            self.auctioneer.bids_lock.acquire()
+
+            try:
+                bid_count = 0
+                for robot_id in bids:
+                    for task_tuple in bids[robot_id]:
+                        bid_count += 1
+            finally:
+                self.auctioneer.bids_lock.release()
 
             rospy.loginfo('Received [{0}/{1}] bids...'.format(bid_count, expected_count))
             self.auctioneer.rate.sleep()
@@ -811,10 +816,15 @@ class AuctionMAX(Auction):
 
         bid_count = 0
         while bid_count < expected_count:
-            bid_count = 0
-            for robot_id in bids:
-                for task_tuple in bids[robot_id]:
-                    bid_count += 1
+            self.auctioneer.bids_lock.acquire()
+
+            try:
+                bid_count = 0
+                for robot_id in bids:
+                    for task_tuple in bids[robot_id]:
+                        bid_count += 1
+            finally:
+                self.auctioneer.bids_lock.release()
 
             rospy.loginfo('Received [{0}/{1}] bids...'.format(bid_count, expected_count))
             self.auctioneer.rate.sleep()
@@ -914,6 +924,10 @@ class Auctioneer:
 
         # The rate at which we'll sleep while idle
         self.rate = rospy.Rate(RATE)
+
+        # A lock (mutex) to prevent the data structure that stores bids
+        # from being read and written to at the same time
+        self.bids_lock = Lock()
 
         # A list of (node) names of robot team members.
         self.team_members = []
@@ -1052,7 +1066,7 @@ class Auctioneer:
         # Award tasks on '/tasks/award'
         self.award_pub = rospy.Publisher('/tasks/award',
                                          mrta.msg.TaskAward,
-                                         queue_size=3)
+                                         queue_size=10)
 
         # For good measure...
         time.sleep(5)
@@ -1283,6 +1297,8 @@ class Auctioneer:
         robot_id = bid_msg.robot_id
         bid = bid_msg.bid
 
+        self.bids_lock.acquire()
+
         round_bids = self.bids[self.auction_round]
         
         if not round_bids[robot_id]:
@@ -1290,6 +1306,8 @@ class Auctioneer:
 
         # task_ids here is a *tuple* because a list can't be used as a dict key
         round_bids[robot_id][tuple(task_ids)] = float(bid)
+
+        self.bids_lock.release()
 
         rospy.loginfo("{0} bid {1} for task {2} in auction round {3}".format(
             robot_id, bid, task_ids, self.auction_round))

@@ -10,12 +10,14 @@ def main():
                  'OSI': defaultdict(list),
                  'SSI': defaultdict(list),
                  'PSI': defaultdict(list),
-                 'CMB': defaultdict(list)}
+                 'SUM': defaultdict(list),
+                 'MAX': defaultdict(list)}
     distributed = {'RR': defaultdict(list),
                    'OSI': defaultdict(list),
                    'SSI': defaultdict(list),
                    'PSI': defaultdict(list),
-                   'CMB': defaultdict(list)}
+                   'SUM': defaultdict(list),
+                   'MAX': defaultdict(list)}
 
     glob_token = sys.argv[1]
 

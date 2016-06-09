@@ -62,7 +62,7 @@ pp = pprint.PrettyPrinter(indent=2)
 def kill_procs():
     for proc in reversed(running_procs):
         try:
-            #proc.terminate()
+            # proc.terminate()
             proc.send_signal(signal.SIGINT)
             proc.wait()
         except:

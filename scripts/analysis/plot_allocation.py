@@ -14,7 +14,7 @@ import pprint
 from scipy import stats
 
 # Some global constants
-mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'CMB']
+mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'SUM', 'MAX']
 
 start_configs = ['clustered', 'distributed']
 #start_configs = ['distributed']
@@ -110,9 +110,12 @@ def main(argv):
         # Position of the current allocation 'bar'
         x_pos = 0
 
+        grid_width = len(mechanisms) * 20
+        grid_height = 8
+
         # grid = np.random.rand(8, len(experiments), 3)
         #grid = np.random.rand(9, 80, 3)
-        grid = np.random.rand(8, 100, 3)
+        grid = np.random.rand(grid_height, grid_width, 3)
 
         for start_config in start_configs:
             print "start_config: {0}".format(start_config)
@@ -157,33 +160,37 @@ def main(argv):
 
                     x_pos += 1
 
-        plt.imshow(grid[::-1], interpolation='none', extent=[0, 100, 0, 8])
+        plt.imshow(grid[::-1], interpolation='none', extent=[0, grid_width, 0, grid_height])
         plt.axes().set_aspect(9)
 
         # Set x, y limits (range)
-        plt.ylim(0, 8)
-        plt.xlim(0, 100)
+        plt.ylim(0, grid_height)
+        plt.xlim(0, grid_width)
         
         # Tick locations, labels, and sizes    
         yticks = plt.getp(plt.gca(), 'yticklines')
         plt.setp(yticks, 'linewidth', 0)
-        plt.yticks([y + 0.5 for y in range(0, 9)],
-                   ['Task {0}'.format(y) for y in range(1, 9)])
+        plt.yticks([y + 0.5 for y in range(0, (grid_height+1))],
+                   ['Task {0}'.format(y) for y in range(1, (grid_height+1))])
 
         xticks = plt.getp(plt.gca(), 'xticklines')
         plt.setp(xticks, 'linewidth', 0)
-        plt.xticks([x + 5 for x in range(0, 100, 10)],
-                   ['RR-C', 'OSI-C', 'SSI-C', 'PSI-C', 'CMB-C',
-                    'RR-D', 'OSI-D', 'SSI-D', 'PSI-D', 'CMB-D'])
+        plt.xticks([x + 5 for x in range(0, grid_width, 10)],
+                   ['RR-C', 'OSI-C', 'SSI-C', 'PSI-C', 'SUM-C', 'MAX-C',
+                    'RR-D', 'OSI-D', 'SSI-D', 'PSI-D', 'SUM-D', 'MAX-D'])
+
+        # Change the font size of minor ticks label
+        plt.tick_params(axis='x', which='major', labelsize=10)
+
 
         # Grid lines (manually drawn)
-        for i in range(0, 100):
+        for i in range(0, grid_width):
             plt.axvline(x=i, color='k', linewidth=0.1, solid_capstyle='butt')
 
-        for i in range(0, 100, 10):
+        for i in range(0, grid_width, 10):
             plt.axvline(x=i, color='k', linewidth=0.5, solid_capstyle='butt')
 
-        for i in range(9):
+        for i in range(grid_height+1):
             plt.axhline(y=i, color='k', linewidth=0.5, solid_capstyle='butt')
 
         # Legend: robot colors

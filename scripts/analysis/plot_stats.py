@@ -15,7 +15,7 @@ from scipy import stats
 pp = pprint.PrettyPrinter(indent=4)
 
 # Some global constants
-mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'CMB']
+mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'SUM', 'MAX']
 start_configs = ['clustered', 'distributed']
 
 # task_files = ['SR-IT-DA-scenario2.yaml', 'SR-CT-DA-scenario2.yaml',
