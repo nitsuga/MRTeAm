@@ -713,6 +713,7 @@ class AuctionSUM(Auction):
                 min_cost = partition_cost
                 min_cost_partition = mincost_dict
                 rospy.loginfo("min partition cost: {0}".format(partition_cost))
+                rospy.loginfo("assignment: {0}".format(assn_str))
 
         # Done?
         self.fsm.winner_determined(min_cost_partition=min_cost_partition)
@@ -881,6 +882,7 @@ class AuctionMAX(Auction):
                 min_cost = partition_cost
                 min_cost_partition = mincost_dict
                 rospy.loginfo("min partition cost: {0}".format(partition_cost))
+                rospy.loginfo("assignment: {0}".format(assn_str))
 
         # Done?
         self.fsm.winner_determined(min_cost_partition=min_cost_partition)
@@ -1321,7 +1323,7 @@ class Auctioneer:
 
         self.bids_lock.release()
 
-        rospy.loginfo("{0} bid {1} for task {2} in auction round {3}".format(
+        rospy.logdebug("{0} bid {1} for task {2} in auction round {3}".format(
             robot_id, bid, task_ids, self.auction_round))
 
     def on_task_status(self, status_msg):
