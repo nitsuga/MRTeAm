@@ -10,14 +10,15 @@
 
 #export ROS_OS_OVERRIDE=rhel
 
-RUN_COUNT=30
+RUN_COUNT=15
 SCRIPT_DIR=~/GIT/mrta/scripts
 
 for map in smartlab
 do
-    for task_file in three-corners.yaml
+    for task_file in SR-IT-SA-scenario3.yaml
     do
-	for mechanism in RR
+	for mechanism in OSI SSI PSI RR SUM MAX
+#        for mechanism in RR
 	do
 	    for start_config in clustered distributed
 	    do
