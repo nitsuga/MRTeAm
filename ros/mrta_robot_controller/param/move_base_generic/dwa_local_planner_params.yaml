@@ -3,7 +3,7 @@ DWAPlannerROS:
 # Robot Configuration Parameters
   max_vel_x: 0.3  # 0.55
 #  min_vel_x: 0.02  # 0.0
-  min_vel_x: 0.0  # 0.0
+  min_vel_x: 0.02  # 0.0
 
   max_vel_y: 0.0  # diff drive robot
   min_vel_y: 0.0  # diff drive robot
@@ -41,7 +41,7 @@ DWAPlannerROS:
 #  occdist_scale: 1.0            # 0.01   - weighting for how much the controller should avoid obstacles
   occdist_scale: 0.005           # 0.01   - weighting for how much the controller should avoid obstacles
 #  forward_point_distance: 0.0875 # 0.325  - how far along to place an additional scoring point
-  forward_point_distance: 0.05 # 0.325  - how far along to place an additional scoring point
+  forward_point_distance: 0.15 # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
   scaling_speed: 0.2           # 0.25   - absolute velocity at which to start scaling the robot's footprint
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
