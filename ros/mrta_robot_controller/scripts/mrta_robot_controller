@@ -1149,7 +1149,7 @@ class RobotController:
         self._disable_static_layer()
         self._enable_static_layer()
 
-        time.sleep(0.5)
+        time.sleep(0.75)
 
         # task_deps is a directed graph. Nodes represent tasks and edges represent
         # (ordering) dependencies. The format is

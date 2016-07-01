@@ -184,24 +184,24 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 0; 255; 0
-      Max Intensity: 1.525
+      Max Intensity: 1.2
       Min Color: 255; 255; 255
-      Min Intensity: 0.1125
+      Min Intensity: 0.275
       Name: DWA Traj. Cloud
       Position Transformer: XYZ
-      Queue Size: 5
+      Queue Size: 1
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 2
       Size (m): 0.02
-      Style: Flat Squares
+      Style: Points
       Topic: /robot_1/move_base_node/DWAPlannerROS/trajectory_cloud
-      Unreliable: false
+      Unreliable: true
       Use Fixed Frame: true
-      Use rainbow: false
-      Value: false
+      Use rainbow: true
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -214,10 +214,10 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
-      Max Color: 255; 0; 4
-      Max Intensity: 43.725
+      Max Color: 0; 0; 0
+      Max Intensity: 77.65
       Min Color: 255; 255; 255
       Min Intensity: 0
       Name: DWA Cost Cloud
@@ -231,7 +231,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -264,7 +264,7 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 150.703
+      Scale: 87.7918
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
       X: 4.06254
@@ -286,5 +286,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1680
-  X: 385
-  Y: 216
+  X: 581
+  Y: 268
