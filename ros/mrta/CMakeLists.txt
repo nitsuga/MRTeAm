@@ -150,6 +150,11 @@ add_library(mrta_obstacle_layer
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
+catkin_install_python(PROGRAMS
+  scripts/mrta_master_relay
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 ## Mark executables and/or libraries for installation
 # install(TARGETS multirobot_common multirobot_common_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

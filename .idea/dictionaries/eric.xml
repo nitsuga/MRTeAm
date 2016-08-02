@@ -24,8 +24,10 @@
       <w>proc</w>
       <w>procs</w>
       <w>pset</w>
+      <w>respawn</w>
       <w>rosbag</w>
       <w>rosgraph</w>
+      <w>rosparam</w>
       <w>rospy</w>
       <w>smartlab</w>
       <w>timeline</w>

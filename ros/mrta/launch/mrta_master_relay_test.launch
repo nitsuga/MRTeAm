@@ -1,0 +1,22 @@
+<launch>
+    <arg name="master_bridge_host" default="localhost" />
+    <arg name="master_bridge_port" default="5672" />
+
+    <node pkg="mrta" type="mrta_master_relay" name="mrta_master_relay" output="screen" respawn="false" required="true">
+        <param name="master_bridge_host" value="$(arg master_bridge_host)" />
+        <param name="master_bridge_port" value="$(arg master_bridge_port)" />
+
+        <!-- The list of topics we want to mirror -->
+        <rosparam param="topics">
+        [
+          '/experiment',
+          '/tasks/announce',
+          '/tasks/bid',
+          '/tasks/award',
+          '/tasks/status',
+          '/tasks/new',
+          '/debug'
+        ]
+        </rosparam>
+    </node>
+</launch>

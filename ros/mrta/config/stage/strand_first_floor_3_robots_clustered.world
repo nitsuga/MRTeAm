@@ -1,0 +1,36 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+resolution 0.02
+
+#interval_sim 100  # simulation timestep in milliseconds
+interval_sim 50
+interval_real 50
+
+window
+( 
+  size [ 600.000 1200.000 ] 
+  center [ 9.9 21.69 ]
+#  rotate [ 30 -15 ]
+
+  scale 95.0
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "strand_first_floor"
+  bitmap "../maps/map-strand-first-floor-v1.png"
+  size [18.8 43.38 2]
+#  size [9.9 21.69 2.5]
+  pose [ 9.35 21.69 0 0 ]
+#  origin [-9.9 -21.69 0 0]
+)
+
+# Our robots
+
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+turtlebot ( pose [ 1.55 1.5 0 40.06 ] color "red" )	# "robot_1", "sw room, upper right"
+turtlebot ( pose [ 0.5 1.5 0 31.48 ] color "green" )	# "robot_2", "sw room, upper left"
+turtlebot ( pose [ 0.5 0.5 0 41.48 ] color "blue" )	# "robot_3", "sw room, lower left"

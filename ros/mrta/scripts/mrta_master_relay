@@ -1,0 +1,141 @@
+#!/usr/bin/env python
+
+# Python modules
+import sys
+import time
+import uuid
+
+# AMQP modules
+import pika
+
+# ROS modules
+import geometry_msgs.msg
+import rospy
+
+# mrta modules
+import mrta
+import mrta.msg
+
+# We'll sleep 1/RATE seconds in every pass of the idle loop.
+RATE = 10
+
+# Base node name. We'll add a unique suffix to this.
+NODE_BASE = 'mrta_master_relay'
+
+# Use this to separate fields in a relayed message header
+HEADER_DELIMITER = '####'
+
+# Bridge channel name. All relayed messages are published to/consumed from this
+# 'super queue'
+queue_name = 'mrta_bridge'
+
+# Map of topics to message classes
+topic_types = {'/robot_1/amcl_pose': geometry_msgs.msg.PoseWithCovarianceStamped,
+               '/robot_2/amcl_pose': geometry_msgs.msg.PoseWithCovarianceStamped,
+               '/robot_3/amcl_pose': geometry_msgs.msg.PoseWithCovarianceStamped,
+               '/experiment': mrta.msg.ExperimentEvent,
+               '/tasks/announce': mrta.msg.AnnounceSensorSweep,
+               '/tasks/bid': mrta.msg.TaskBid,
+               '/tasks/award': mrta.msg.TaskAward,
+               '/tasks/status': mrta.msg.TaskStatus,
+               '/tasks/new': mrta.msg.SensorSweepTask,
+               '/debug': mrta.msg.Debug}
+
+# Some globals that we reference in functions below
+connection = None
+channel = None
+node_name = None
+
+
+def connect(host, port):
+    global connection, channel, queue_name
+
+    # A blocking connection
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=host, port=port))
+
+    channel = connection.channel()
+    channel.queue_declare(queue=queue_name)
+
+
+def disconnect():
+    global connection
+    connection.close()
+
+
+def publish_to_bridge(message, topic):
+    global channel, queue_name
+
+    # The message we relay is composed of the following:
+    # <node_name><HEADER_DELIMITER><topic><HEADER_DELIMITER><message>
+
+    relay_message = "{0}{1}{2}{3}{4}".format(node_name, HEADER_DELIMITER, topic, HEADER_DELIMITER, message)
+
+    channel.basic_publish(exchange='',
+                          routing_key=queue_name,
+                          body=relay_message)
+
+
+def init_subscribers(mirror_topics):
+
+    # For each topic we want to mirror, call publish_to_bridge whenever we
+    # receive a local message on that topic
+    for mirror_topic in mirror_topics:
+        rospy.Subscriber(name=mirror_topic,
+                         data_class=topic_types[mirror_topic],
+                         callback=publish_to_bridge,
+                         callback_args=mirror_topic)
+
+
+def init(args=None):
+
+    global node_name
+
+    # Generate a unique prefix for our node name
+    unique_prefix = str(uuid.uuid1()).replace('-', '').replace('_', '')
+    node_name = "{0}_{1}".format(NODE_BASE, unique_prefix)
+
+    try:
+        # Start the node
+        print('######## {0} starting ########'.format(node_name))
+        rospy.loginfo("Starting node '{0}'...".format(node_name))
+        rospy.init_node(node_name)
+
+        # Set our rate
+        rate = rospy.Rate(RATE)
+
+        # RabbitMQ server hostname
+        bridge_host = rospy.get_param('~master_bridge_host', 'localhost')
+
+        # RabbitMQ server port
+        bridge_port = rospy.get_param('~master_bridge_port', '5672')
+
+        # Topics to mirror
+        mirror_topics = rospy.get_param('~topics', [])
+
+        print "bridge: {0}:{1}".format(bridge_host, bridge_port)
+        print "mirror topics: {0}".format(mirror_topics)
+
+        # Connect to the bridge
+        connect(bridge_host, bridge_port)
+
+        # Subscribe to local topics and relay them
+        init_subscribers(mirror_topics)
+
+        while not rospy.is_shutdown():
+            rate.sleep()
+
+    except rospy.ROSInterruptException:
+        pass
+
+    finally:
+        print "Disconnecting from bridge..."
+        disconnect()
+
+    print('######## {0} exiting ########'.format(node_name))
+
+
+if __name__ == '__main__':
+    argv = rospy.myargv(argv=sys.argv[1:])
+    # print "arguments: {0}".format(argv)
+    init(*argv)
+    # print("rc final state: {0}".format(rc.fsm.current))
