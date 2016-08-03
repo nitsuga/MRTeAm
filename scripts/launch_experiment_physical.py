@@ -130,7 +130,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     # Launch the auctioneer
     print('######## Launching auctioneer ########')
     auc_pkg = 'mrta_auctioneer'
-    auc_launchfile = 'mrta_auctioneer_physical.launch'
+    auc_launchfile = 'mrta_auctioneer_physical_fkie.launch'
     auc_port = '11315'
     mechanism = mechanism
     task_file = task_file

@@ -1,0 +1,115 @@
+<launch>
+    <arg name="robot_name" default="robot_1" />
+    <arg name="reallocate" default="False" />
+
+    <arg name="master_bridge_host" default="localhost" />
+    <arg name="master_bridge_port" default="5672" />
+
+    <param name="/use_sim_time" value="true"/>
+
+    <!-- Map server -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" />
+<!--  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file)" /> -->
+
+    <!-- BEGIN ROBOT -->
+    <group ns="$(arg robot_name)">
+        <param name="tf_prefix" value="$(arg robot_name)" />
+
+        <node pkg="move_base" type="move_base" name="move_base_node" output="screen" respawn="false" required="true">
+            <remap from="map" to="/map" />
+
+            <param name="controller_frequency" value="5.0" />
+            <param name="shutdown_costmaps" value="false" />
+
+            <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+
+            <!--
+            <param name="hrteam_map_filename" value="$(find hrteam_planner)/map-11jan12.conf" />
+            <param name="base_global_planner" value="hrteam_planner/HRTeamPlanner" />
+            -->
+
+            <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+
+<!--      <rosparam param="clearing_rotation_allowed">false</rosparam>-->
+
+            <!-- The rate (in Hz) at which to run the global planning loop. -->
+            <param name="planner_frequency" value="1.5" />
+
+            <!-- How long the planner will wait (in seconds) in an attempt to find a valid plan
+                 before space-clearing operations are performed. -->
+            <param name="planner_patience" value="2.0"/>
+
+            <!-- How long the controller will wait (in seconds) without receiving a valid control
+                 before space-clearing operations are performed. -->
+            <param name="controller_patience" value="2.0"/>
+
+            <!-- The distance away from the robot (in meters) at which obstacles will be cleared
+                 from the costmap when attampting to clear space in the map. -->
+            <param name="conservative_reset_dist" value="9.0"/>
+
+            <rosparam param="recovery_behaviors">
+            [
+            {name: conservative_clear, type: clear_costmap_recovery/ClearCostmapRecovery},
+            <!--{name: rotate_recovery, type: rotate_recovery/RotateRecovery},-->
+            {name: backup_recovery, type: backup_recovery/BackupRecovery},
+            {name: aggressive_clear, type: clear_costmap_recovery/ClearCostmapRecovery}
+            ]
+            </rosparam>
+
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" />
+
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
+
+<!--      <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/base_local_planner_params.yaml" command="load" />-->
+
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" ns="GlobalPlanner" />
+        </node>
+
+        <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
+          <param name="odom_frame_id" value="$(arg robot_name)/odom" />
+          <param name="base_frame_id" value="$(arg robot_name)/base_link" />
+          <param name="publish_frequency" value="5.0" />
+        </node>
+
+        <!--
+        Arguments to mrta_robot_controller:
+          robot_name    - e.g. "robot_1"
+          reallocate    - True/False: are we doing task reallocation?
+          is_turtlebot  - True/False
+        -->
+        <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false" required="true" output="screen">
+            <param name="robot_name" type="str" value="$(arg robot_name)" />
+            <param name="reallocate" type="bool" value="$(arg reallocate)" />
+            <param name="is_turtlebot" type="bool" value="false" />
+        </node>
+
+    </group>
+    <!-- END ROBOT -->
+
+    <!-- Master Bridge (RabbitMQ) relay -->
+    <node pkg="mrta" type="mrta_master_relay" name="mrta_master_relay" output="screen" respawn="false" required="true">
+        <param name="master_bridge_host" value="$(arg master_bridge_host)" />
+        <param name="master_bridge_port" value="$(arg master_bridge_port)" />
+
+        <!-- The list of topics we want to mirror -->
+        <rosparam param="topics">
+        [
+          '/robot_1/amcl_pose',
+          '/robot_2/amcl_pose',
+          '/robot_3/amcl_pose',
+          '/experiment',
+          '/tasks/announce',
+          '/tasks/bid',
+          '/tasks/award',
+          '/tasks/status',
+          '/tasks/new',
+          '/debug'
+        ]
+        </rosparam>
+    </node>
+
+</launch>

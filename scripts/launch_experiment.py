@@ -96,7 +96,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     # Launch the "main" roscore on port 11311 : stage_ros and map_server
     print('######## Launching Stage ########')
     main_pkg = 'mrta'
-    main_launchfile = 'stage_3_robots.launch'
+    # main_launchfile = 'stage_3_robots_fkie.launch'
+    main_launchfile = 'stage_3_robots_rmq.launch'
 
     nogui_flag = None
     if args.nogui:
@@ -136,7 +137,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     # Launch the robots
     robot_pkg = 'mrta_robot_controller'
-    robot_launchfile = 'move_base_generic.launch'
+    # robot_launchfile = 'move_base_generic_fkie.launch'
+    robot_launchfile = 'move_base_generic_rmq.launch'
     for robot in robots:
         print("######## Launching {0} ########".format(robot['name']))
         robot_proc = subprocess.Popen([ROSLAUNCH,
@@ -151,7 +153,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     # Launch the auctioneer
     print('######## Launching auctioneer ########')
     auc_pkg = 'mrta_auctioneer'
-    auc_launchfile = 'mrta_auctioneer.launch'
+    # auc_launchfile = 'mrta_auctioneer_fkie.launch'
+    auc_launchfile = 'mrta_auctioneer_rmq.launch'
     auc_port = '11315'
     mechanism = mechanism
     task_file = task_file

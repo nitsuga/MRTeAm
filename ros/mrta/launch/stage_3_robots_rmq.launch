@@ -1,7 +1,21 @@
 <launch>
+    <param name="/use_sim_time" value="true"/>
+
+    <arg name="nogui_flag" default="" />
+
     <arg name="master_bridge_host" default="localhost" />
     <arg name="master_bridge_port" default="5672" />
 
+
+    <!-- Map server -->
+    <!--<node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" respawn="false" />-->
+
+    <!-- Stage -->
+    <node pkg="stage_ros" type="stageros" name="stageros" args="$(arg nogui_flag) $(find mrta)/config/stage/$(arg world_file)" required="true" respawn="false" >
+        <param name="base_watchdog_timeout" value="0.2"/>
+    </node>
+
+    <!-- Master Bridge (RabbitMQ) relay -->
     <node pkg="mrta" type="mrta_master_relay" name="mrta_master_relay" output="screen" respawn="false" required="true">
         <param name="master_bridge_host" value="$(arg master_bridge_host)" />
         <param name="master_bridge_port" value="$(arg master_bridge_port)" />
@@ -22,4 +36,5 @@
         ]
         </rosparam>
     </node>
+
 </launch>

@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
 # Python modules
+from collections import defaultdict
+import cPickle
 import sys
 import time
+import traceback
 import uuid
+import yaml
 
 # AMQP modules
 import pika
@@ -25,9 +29,9 @@ NODE_BASE = 'mrta_master_relay'
 # Use this to separate fields in a relayed message header
 HEADER_DELIMITER = '####'
 
-# Bridge channel name. All relayed messages are published to/consumed from this
-# 'super queue'
-queue_name = 'mrta_bridge'
+# Exchange name. All relayed messages are published to/consumed from this
+exchange_name = 'mrta_bridge'
+queue_name = None
 
 # Map of topics to message classes
 topic_types = {'/robot_1/amcl_pose': geometry_msgs.msg.PoseWithCovarianceStamped,
@@ -41,54 +45,113 @@ topic_types = {'/robot_1/amcl_pose': geometry_msgs.msg.PoseWithCovarianceStamped
                '/tasks/new': mrta.msg.SensorSweepTask,
                '/debug': mrta.msg.Debug}
 
+robot_names = ['robot_1', 'robot_2', 'robot_3']
+
+
 # Some globals that we reference in functions below
 connection = None
 channel = None
 node_name = None
 
+# topic (string) => rospy.Publisher object
+publishers = defaultdict(str)
+
 
 def connect(host, port):
-    global connection, channel, queue_name
+    """ Connect to the bridge (RabbitMQ) """
+    global connection, channel, exchange_name, queue_name
 
     # A blocking connection
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=host, port=port))
 
     channel = connection.channel()
-    channel.queue_declare(queue=queue_name)
+    channel.exchange_declare(exchange=exchange_name, type='fanout')
+
+
+    # channel.queue_declare(queue=queue_name)
+    result = channel.queue_declare(exclusive=True)
+    queue_name = result.method.queue
+
+    channel.queue_bind(exchange=exchange_name,
+                       queue=queue_name)
 
 
 def disconnect():
+    """ Disconnect from the bridge (RabbitMQ) """
     global connection
     connection.close()
 
 
 def publish_to_bridge(message, topic):
-    global channel, queue_name
+    """ Publish a message to the bridge (RabbitMQ) """
+    global channel, exchange_name
 
     # The message we relay is composed of the following:
     # <node_name><HEADER_DELIMITER><topic><HEADER_DELIMITER><message>
 
-    relay_message = "{0}{1}{2}{3}{4}".format(node_name, HEADER_DELIMITER, topic, HEADER_DELIMITER, message)
+    pickled_msg = cPickle.dumps(message)
 
-    channel.basic_publish(exchange='',
-                          routing_key=queue_name,
+    relay_message = "{0}{1}{2}{3}{4}".format(node_name, HEADER_DELIMITER, topic, HEADER_DELIMITER, pickled_msg)
+
+    # print "Publishing message from {0} to topic {1}".format(node_name, topic)
+
+    channel.basic_publish(exchange=exchange_name,
+                          routing_key='',
                           body=relay_message)
 
 
 def init_subscribers(mirror_topics):
+    """ Initialize subscriber callbacks for local messages (from roscore) """
 
     # For each topic we want to mirror, call publish_to_bridge whenever we
     # receive a local message on that topic
     for mirror_topic in mirror_topics:
+        print "Subscribing to {0}".format(mirror_topic)
         rospy.Subscriber(name=mirror_topic,
                          data_class=topic_types[mirror_topic],
                          callback=publish_to_bridge,
                          callback_args=mirror_topic)
 
 
-def init(args=None):
+def init_publishers(mirror_topics):
+    """ Initialize publisher objects for local messages (to roscore) """
 
-    global node_name
+    global publishers
+
+    for topic in mirror_topics:
+        publishers[topic] = rospy.Publisher(topic,
+                                            topic_types[topic],
+                                            queue_size=5)
+
+def on_bridge_message(channel, method_frame, header_frame, body):
+    """ Called when a message from the bridge (RabbitMQ) is received ("consumed") """
+    global node_name, publishers
+
+    try:
+        (sender, topic, pickled_msg) = body.split(HEADER_DELIMITER)
+
+        # We don't want to loop if the message was originally sent by us
+        if sender == node_name:
+            return
+
+        # print "Message from {0} on topic {1}".format(sender, topic)
+
+        # Unpickle the message
+        message = cPickle.loads(pickled_msg)
+
+        # Get a handle to a local (ROS) publisher
+        publisher = publishers[topic]
+        publisher.publish(message)
+
+    except Exception:
+        exc_info = sys.exc_info()
+        rospy.loginfo("Error on receiving message from bridge: {0}, {1}".format(exc_info[0], exc_info[1]))
+        traceback.print_exc()
+
+
+def init(args=None):
+    """ Start the show """
+    global node_name, queue_name
 
     # Generate a unique prefix for our node name
     unique_prefix = str(uuid.uuid1()).replace('-', '').replace('_', '')
@@ -115,19 +178,29 @@ def init(args=None):
         print "bridge: {0}:{1}".format(bridge_host, bridge_port)
         print "mirror topics: {0}".format(mirror_topics)
 
-        # Connect to the bridge
-        connect(bridge_host, bridge_port)
-
         # Subscribe to local topics and relay them
         init_subscribers(mirror_topics)
 
-        while not rospy.is_shutdown():
-            rate.sleep()
+        # Republish messages from the bridge to local topics
+        init_publishers(mirror_topics)
+
+        # Connect to the bridge
+        connect(bridge_host, bridge_port)
+
+        channel.basic_consume(on_bridge_message,
+                              queue=queue_name,
+                              no_ack=True)
+
+        channel.start_consuming()
+
+        # while not rospy.is_shutdown():
+        #     rate.sleep()
 
     except rospy.ROSInterruptException:
         pass
 
     finally:
+        channel.stop_consuming()
         print "Disconnecting from bridge..."
         disconnect()
 

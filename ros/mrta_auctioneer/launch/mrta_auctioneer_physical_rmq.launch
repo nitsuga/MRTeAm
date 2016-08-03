@@ -2,6 +2,14 @@
     <arg name="master_bridge_host" default="localhost" />
     <arg name="master_bridge_port" default="5672" />
 
+    <param name="/use_sim_time" value="true"/>
+
+    <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" output="screen">
+        <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
+        <param name="mechanism" value="$(arg mechanism)" />
+    </node>
+
+    <!-- Master Bridge (RabbitMQ) relay -->
     <node pkg="mrta" type="mrta_master_relay" name="mrta_master_relay" output="screen" respawn="false" required="true">
         <param name="master_bridge_host" value="$(arg master_bridge_host)" />
         <param name="master_bridge_port" value="$(arg master_bridge_port)" />

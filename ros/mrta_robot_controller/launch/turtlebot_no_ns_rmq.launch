@@ -1,0 +1,88 @@
+<launch>
+    <arg name="robot_name" default="robot_1" />
+    <arg name="reallocate" default="False" />
+
+    <arg name="master_bridge_host" default="localhost" />
+    <arg name="master_bridge_port" default="5672" />
+
+    <param name="/use_sim_time" value="$(arg simulation)"/>
+
+    <arg name="base"       default="$(optenv TURTLEBOT_BASE kobuki)"/>  <!-- create, rhoomba -->
+    <arg name="battery"    default="$(optenv TURTLEBOT_BATTERY /sys/class/power_supply/BAT0)"/>  <!-- /proc/acpi/battery/BAT0 in 2.6 or earlier kernels-->
+    <arg name="stacks"     default="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
+    <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
+    <arg name="simulation" default="$(optenv TURTLEBOT_SIMULATION false)"/>
+
+    <arg name="map_file" default="$(find mrta)/config/maps/smartlab_ugv_arena.yaml"/>
+
+    <!-- Map server -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
+        <param name="frame_id" value="/map" />
+    </node>
+
+    <remap from="map" to="/map" />
+  
+    <!-- turtlebot_bringup minimal.launch -->
+    <include file="$(find turtlebot_bringup)/launch/minimal.launch">
+        <arg name="zeroconf" value="false" />
+    </include>
+
+    <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
+        <arg name="rgb_processing" value="false" />
+        <arg name="depth_registration" value="false" />
+        <arg name="depth_processing" value="false" />
+    
+        <!-- We must specify an absolute topic name because if not it will be prefixed by "$(arg camera)".
+	         Probably is a bug in the nodelet manager: https://github.com/ros/nodelet_core/issues/7 -->
+        <arg name="scan_topic" value="/scan" />
+    </include>
+
+    <arg name="initial_pose_x" default="0.0"/>
+    <arg name="initial_pose_y" default="0.0"/>
+    <arg name="initial_pose_a" default="0.0"/>
+
+    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/amcl_no_ns.launch.xml">
+        <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
+        <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
+        <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
+    </include>
+    
+    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/move_base_no_ns.launch.xml"/>
+
+    <!--
+    Arguments to mrta_robot_controller:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+    <node name="mrta_robot_controller_$(arg robot_name)" pkg="mrta_robot_controller" type="mrta_robot_controller" output="screen">
+        <param name="robot_name" type="str" value="$(arg robot_name)" />
+        <param name="reallocate" type="bool" value="$(arg reallocate)" />
+        <param name="is_turtlebot" type="bool" value="True" />
+    </node>
+
+    <!-- END ROBOT -->
+
+    <!-- Master Bridge (RabbitMQ) relay -->
+    <node pkg="mrta" type="mrta_master_relay" name="mrta_master_relay" output="screen" respawn="false" required="true">
+        <param name="master_bridge_host" value="$(arg master_bridge_host)" />
+        <param name="master_bridge_port" value="$(arg master_bridge_port)" />
+
+        <!-- The list of topics we want to mirror -->
+        <rosparam param="topics">
+        [
+          '/robot_1/amcl_pose',
+          '/robot_2/amcl_pose',
+          '/robot_3/amcl_pose',
+          '/experiment',
+          '/tasks/announce',
+          '/tasks/bid',
+          '/tasks/award',
+          '/tasks/status',
+          '/tasks/new',
+          '/debug'
+        ]
+        </rosparam>
+    </node>
+
+</launch>
