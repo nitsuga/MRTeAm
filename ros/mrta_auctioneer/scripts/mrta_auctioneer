@@ -57,6 +57,9 @@ import time
 import uuid
 import yaml
 
+# igraph library
+import igraph
+
 # Fysom state machine
 from fysom import Fysom
 
@@ -960,6 +963,10 @@ class Auctioneer:
         # self.mechanism = mechanism
         self.mechanism = rospy.get_param('~mechanism')
 
+        # Should we choose a mechanism as runtime (as opposed to using
+        # self.mechanism all the time)?
+        self.dynamic_mechanism = rospy.get_param('~dynamic_mechanism', False)
+
         # Tasks are loaded from a configuration file, rather than
         # created dynamically (for now)
         # self.task_file = task_file
@@ -1223,6 +1230,44 @@ class Auctioneer:
         else:
             self.fsm.all_scripted_tasks_complete()
 
+    def choose_dynamic_mechanism(self, unallocated):
+        """ Decide which mechanism to use given a list of unallocated tasks.
+
+        Our first go at this will use ideas from facility-location to choose
+        between SSI and PSI.
+
+        :param unallocated: a list of as-yet unallocated tasks
+        :return: "OSI", "PSI", "SSI", "RR", "SUM", "MAX"
+        """
+        dynamic_mechanism = "PSI"
+
+        # 1. Build a complete graph of unallocated tasks.
+        #    Use the global planner to find a path between each pair of tasks
+
+        # Create a graph. Vertices will be tasks.
+        task_graph = igraph.Graph()
+        task_graph.add_vertices([t.task_id for t in unallocated])
+
+        # Add an edge between every pair of vertices
+        for pair in combinations([t.task_id for t in unallocated], 2):
+            source_id = pair[0]
+            target_id = pair[1]
+
+            source = self.tasks_by_id[source_id]
+            target = self.tasks_by_id[target_id]
+
+
+        # 2. We need to get rid of cycles in teh graph. Turn it into a
+        # (minimum-spanning) tree
+
+        # 3. Find ideal facility locations (p-medians) in the tree.
+        # p = number of robot team members
+
+        # 4. If The team (average, max?) distance to the facility locations
+        # is greater than ?, choose SSI. Otherwise, choose PSI.
+
+        return dynamic_mechanism
+
     def choose_mechanism(self, e):
         rospy.loginfo("state: choose_mechanism")
 
@@ -1271,17 +1316,24 @@ class Auctioneer:
             self.auction_round += 1
             self.bids[self.auction_round] = defaultdict(str)
 
-            if self.mechanism == 'OSI':
+            # Use one particular mechanism by default, defined in a startup parameter
+            mechanism = self.mechanism
+
+            # If we're choosing a mechanism a runtime
+            if self.dynamic_mechanism:
+                mechanism = self.choose_dynamic_mechanism(unallocated)
+
+            if mechanism == 'OSI':
                 auction_osi = AuctionOSI(self, unallocated, self.auction_round)
-            elif self.mechanism == 'PSI':
+            elif mechanism == 'PSI':
                 auction_psi = AuctionPSI(self, unallocated, self.auction_round)
-            elif self.mechanism == 'SSI':
+            elif mechanism == 'SSI':
                 auction_ssi = AuctionSSI(self, unallocated, self.auction_round)
-            elif self.mechanism == 'RR':
+            elif mechanism == 'RR':
                 auction_rr = AuctionRR(self, unallocated, self.auction_round)
-            elif self.mechanism == 'SUM':
+            elif mechanism == 'SUM':
                 auction_sum = AuctionSUM(self, unallocated, self.auction_round)
-            elif self.mechanism == 'MAX':
+            elif mechanism == 'MAX':
                 auction_max = AuctionMAX(self, unallocated, self.auction_round)
 
         # An auction runs when it is instantiated (above).

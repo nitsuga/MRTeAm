@@ -15,6 +15,7 @@ class Point:
         self.y = y
         self.z = z
 
+
 class Task(object):
 
     def __init__(self, _task_id='1', _type=None, _num_robots=1, _duration=0, _depends=[]):
