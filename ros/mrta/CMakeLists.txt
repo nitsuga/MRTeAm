@@ -126,15 +126,20 @@ add_library(mrta_obstacle_layer
 
 ## Declare a cpp executable
 # add_executable(multirobot_common_node src/multirobot_common_node.cpp)
+#add_executable(mrta_planner_service src/mrta_planner_service/mrta_planner_service.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(multirobot_common_node multirobot_common_generate_messages_cpp)
+#add_dependencies(mrta_planner_service gencpp nav_core)
+
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(multirobot_common_node
 #   ${catkin_LIBRARIES}
 # )
+#target_link_libraries(mrta_planner_service ${catkin_LIBRARIES})
+
 
 #############
 ## Install ##

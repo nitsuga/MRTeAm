@@ -4,6 +4,44 @@
 
     <param name="/use_sim_time" value="true"/>
 
+    <arg name="reallocate" default="False" />
+    <arg name="dummy_robot_name" default="robot_0" />
+
+    <!-- BEGIN Dummy Robot -->
+    <group ns="$(arg dummy_robot_name)">
+        <param name="tf_prefix" value="$(arg dummy_robot_name)" />
+
+        <node pkg="move_base" type="move_base" name="move_base_node" output="screen" respawn="false" required="true">
+            <remap from="map" to="/map" />
+
+            <param name="controller_frequency" value="0.1" />
+            <param name="shutdown_costmaps" value="false" />
+
+            <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+            <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+
+            <param name="planner_frequency" value="0" />
+
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" />
+
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="global_costmap" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/costmap_common_params.yaml" command="load" ns="local_costmap" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/local_costmap_params.yaml" command="load" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_costmap_params.yaml" command="load" />
+
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/dwa_local_planner_params.yaml" command="load" />
+            <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml" command="load" ns="GlobalPlanner" />
+
+        </node>
+
+        <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
+            <param name="odom_frame_id" value="$(arg dummy_robot_name)/odom" />
+            <param name="base_frame_id" value="$(arg dummy_robot_name)/base_link" />
+            <param name="publish_frequency" value="5.0" />
+        </node>
+    </group>
+    <!-- END Dummy Robot -->
+
     <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" output="screen">
         <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
         <param name="mechanism" value="$(arg mechanism)" />

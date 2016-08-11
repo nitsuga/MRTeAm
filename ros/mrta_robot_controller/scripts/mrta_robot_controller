@@ -292,7 +292,7 @@ class RobotController:
         # Set up client for the service that makes path plans
         rospy.loginfo("Starting 'make_plan' service client")
         rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
-        rospy.wait_for_service(self.cc_srv_name)
+        rospy.wait_for_service(self.plan_srv_name)
         rospy.logdebug("Service {0} ready.".format(self.plan_srv_name))
 
         self._nav_plan_client = rospy.ServiceProxy(self.plan_srv_name,

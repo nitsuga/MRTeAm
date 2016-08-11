@@ -78,6 +78,7 @@ def sig_handler(sig, frame):
 
 signal.signal(signal.SIGINT, sig_handler)          
 
+
 def on_exp_event(exp_event_msg):
     print("######## on_exp_event() ########")
     print(pp.pformat(exp_event_msg))
@@ -86,6 +87,7 @@ def on_exp_event(exp_event_msg):
         print("######## END_EXPERIMENT ########")
         global exp_running
         exp_running = False
+
 
 def launch_experiment(mechanism, map_file, world_file, task_file, args):
     global exp_running
@@ -96,8 +98,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     # Launch the "main" roscore on port 11311 : stage_ros and map_server
     print('######## Launching Stage ########')
     main_pkg = 'mrta'
-    # main_launchfile = 'stage_3_robots_fkie.launch'
-    main_launchfile = 'stage_3_robots_rmq.launch'
+    main_launchfile = 'stage_3_robots_fkie.launch'
+    # main_launchfile = 'stage_3_robots_rmq.launch'
 
     nogui_flag = None
     if args.nogui:
@@ -137,8 +139,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     # Launch the robots
     robot_pkg = 'mrta_robot_controller'
-    # robot_launchfile = 'move_base_generic_fkie.launch'
-    robot_launchfile = 'move_base_generic_rmq.launch'
+    robot_launchfile = 'move_base_generic_fkie.launch'
+    #robot_launchfile = 'move_base_generic_rmq.launch'
     for robot in robots:
         print("######## Launching {0} ########".format(robot['name']))
         robot_proc = subprocess.Popen([ROSLAUNCH,
@@ -153,8 +155,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     # Launch the auctioneer
     print('######## Launching auctioneer ########')
     auc_pkg = 'mrta_auctioneer'
-    # auc_launchfile = 'mrta_auctioneer_fkie.launch'
-    auc_launchfile = 'mrta_auctioneer_rmq.launch'
+    auc_launchfile = 'mrta_auctioneer_fkie.launch'
+    # auc_launchfile = 'mrta_auctioneer_rmq.launch'
     auc_port = '11315'
     mechanism = mechanism
     task_file = task_file
@@ -163,7 +165,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                  auc_launchfile,
                                  '-p', auc_port,
                                  "mechanism:={0}".format(mechanism),
-                                 "task_file:={0}".format(task_file)])
+                                 "task_file:={0}".format(task_file),
+                                 "map_file:={0}".format(map_file)])
 
     running_procs.append(auc_proc)
 

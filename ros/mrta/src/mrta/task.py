@@ -46,6 +46,7 @@ class Task(object):
         # Has the task been completed?
         self.completed = False
 
+
 class SensorSweepTask(Task):
 
     def __init__(self, _task_id='1', x=0.0, y=0.0, z=0.0, _num_robots=1, _duration=0, _depends=[]):

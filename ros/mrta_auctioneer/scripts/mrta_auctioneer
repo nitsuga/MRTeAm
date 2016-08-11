@@ -76,10 +76,12 @@ import rosnode
 import rospy
 import rospy.rostime
 
+# MRTeAm-specific stuff
 import mrta
 import mrta.msg
 
-# Import Task class
+import mrta.mrta_planner_proxy
+
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 10
@@ -96,6 +98,7 @@ def stamp(msg):
     """ Set the timestamp of a message to the current wall-clock time."""
     rospy.rostime.switch_to_wallclock()
     msg.header.stamp = rospy.rostime.get_rostime()
+
 
 def powerset(iterable):
     """
@@ -984,6 +987,11 @@ class Auctioneer:
 
         rospy.loginfo("self.reallocate == {0}".format(self.reallocate))
 
+        # Start up a planner proxy
+        dummy_robot_name = rospy.get_param('~dummy_robot_name', "robot_0")
+        rospy.loginfo("Auctioneer: Starting PlannerProxy")
+        self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
+
         # Scripted tasks that are not necessarily 'live' at the start of the experiment
         self.scripted_tasks = []
         self.scripted_tasks_by_id = {}
@@ -1239,7 +1247,8 @@ class Auctioneer:
         :param unallocated: a list of as-yet unallocated tasks
         :return: "OSI", "PSI", "SSI", "RR", "SUM", "MAX"
         """
-        dynamic_mechanism = "PSI"
+        rospy.loginfo("Auctioneer: Choosing mechanism dynamically")
+        dynamic_mechanism = "SSI"
 
         # 1. Build a complete graph of unallocated tasks.
         #    Use the global planner to find a path between each pair of tasks
@@ -1248,6 +1257,7 @@ class Auctioneer:
         task_graph = igraph.Graph()
         task_graph.add_vertices([t.task_id for t in unallocated])
 
+        distances = []
         # Add an edge between every pair of vertices
         for pair in combinations([t.task_id for t in unallocated], 2):
             source_id = pair[0]
@@ -1256,12 +1266,43 @@ class Auctioneer:
             source = self.tasks_by_id[source_id]
             target = self.tasks_by_id[target_id]
 
+            source_point = source.location
+            source_pose = self.planner_proxy._point_to_pose(source_point)
 
-        # 2. We need to get rid of cycles in teh graph. Turn it into a
+            target_point = target.location
+            target_pose = self.planner_proxy._point_to_pose(target_point)
+
+            distance = self.planner_proxy.get_path_cost(source_pose, target_pose)
+
+            rospy.loginfo("Auctioneer: distance from task {0} ({1},{2}) to task {3} ({4},{5}) is {6}".format(source_id,
+                                                                                                             source_point.x,
+                                                                                                             source_point.y,
+                                                                                                             target_id,
+                                                                                                             target_point.x,
+                                                                                                             target_point.y,
+                                                                                                             distance))
+            print task_graph
+
+            # Add the edge from source to target to task_graph
+            task_graph.add_edge(source_id, target_id)
+
+            distances.append(distance)
+
+        # Add the distance to task_graph's EdgeSeq
+        task_graph.es['distance'] = distances
+
+        rospy.loginfo("Auctioneer: task_graph: {0}, distances: {1}".format(task_graph.summary(),
+                                                                           task_graph.es['distance']))
+
+        # 2. We need to get rid of cycles in the graph. Turn it into a
         # (minimum-spanning) tree
+        task_graph_mst = task_graph.spanning_tree(weights=task_graph.es['distance'])
+        rospy.loginfo("Auctioneer: task_graph_mst: {0}, distances: {1}".format(task_graph_mst.summary(),
+                                                                               task_graph_mst.es['distance']))
+        print task_graph_mst
 
         # 3. Find ideal facility locations (p-medians) in the tree.
-        # p = number of robot team members
+        # p = number of robot team members? 1?
 
         # 4. If The team (average, max?) distance to the facility locations
         # is greater than ?, choose SSI. Otherwise, choose PSI.
