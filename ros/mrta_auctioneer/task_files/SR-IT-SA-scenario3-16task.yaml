@@ -51,7 +51,7 @@
 - task_id: '5'
   type: SENSOR_SWEEP
   location:
-    x: 4.75
+    x: 4.9
     y: 3.00
   arrival_time: 0
   num_robots: 1
@@ -61,7 +61,7 @@
 - task_id: '6'
   type: SENSOR_SWEEP
   location:
-    x: 7.00
+    x: 7.25
     y: 1.30
   arrival_time: 0
   num_robots: 1
@@ -91,8 +91,8 @@
 - task_id: '9'
   type: SENSOR_SWEEP
   location:
-    x: 0.5
-    y: 3.75
+    x: 0.4
+    y: 3.7
   arrival_time: 0
   num_robots: 1
   duration: 0
@@ -101,8 +101,8 @@
 - task_id: '10'
   type: SENSOR_SWEEP
   location:
-    x: 0.5
-    y: 2.5
+    x: 0.6
+    y: 2.6
   arrival_time: 0
   num_robots: 1
   duration: 0
@@ -121,7 +121,7 @@
 - task_id: '12'
   type: SENSOR_SWEEP
   location:
-    x: 7.5
+    x: 7.2
     y: 2.5
   arrival_time: 0
   num_robots: 1

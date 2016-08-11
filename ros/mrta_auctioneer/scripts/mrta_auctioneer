@@ -66,7 +66,7 @@ from fysom import Fysom
 # ROS modules
 # import actionlib
 from collections import defaultdict
-# import geometry_msgs.msg
+import geometry_msgs.msg
 from itertools import chain, combinations
 # import move_base_msgs.msg
 # import nav_msgs.msg
@@ -81,6 +81,10 @@ import mrta
 import mrta.msg
 
 import mrta.mrta_planner_proxy
+
+# p-median -finding libraries
+from p_median import pmed_greedy
+from p_median import teitz_bart
 
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
@@ -294,7 +298,6 @@ class AuctionOSI(Auction):
             won_task.awarded = True
 
         time.sleep(0.5)
-
 
 class AuctionPSI(Auction):
     """ A Parallel Single-Item auction.
@@ -952,6 +955,10 @@ class Auctioneer:
         # A list of (node) names of robot team members.
         self.team_members = []
 
+        # Keep track of team members' positions
+        self.team_poses = defaultdict(geometry_msgs.msg.Pose)
+        self.amcl_pose_subs = {}
+
         # A cycling iterator
         self._team_cycle = None
 
@@ -1074,6 +1081,10 @@ class Auctioneer:
                                         mrta.msg.SensorSweepTask,
                                         self.on_new_task)
 
+        # Note: we also subscribe to team member positions in
+        # identify_team(). We'd do it here, but can't until the
+        # team has been identified.
+
         # For good measure...
         time.sleep(3)
 
@@ -1170,6 +1181,16 @@ class Auctioneer:
 
         self.fsm.tasks_loaded()
 
+    def on_teammate_pose_received(self, amcl_pose_msg, r_name):
+        rospy.logdebug("(Auctioneer) on_teammate_pose_received ({0})".format(r_name))
+
+        # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
+        # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as
+        # geometry_msgs/Pose
+        other_pose = amcl_pose_msg.pose.pose
+        self.team_poses[r_name] = other_pose
+        rospy.logdebug("(Auctioneer) {0} is now at {1}".format(r_name, pp.pformat(other_pose)))
+
     def identify_team(self, data):
         rospy.loginfo("Identifying team...")
 
@@ -1193,6 +1214,16 @@ class Auctioneer:
 
         self._team_cycle = itertools.cycle(self.team_members)
         
+        # Subscribe to and keep track of team members' positions
+        # '/robot_<n>/amcl_pose'
+        for team_member in self.team_members:
+
+            self.amcl_pose_subs[team_member] = rospy.Subscriber(
+                "/{0}/amcl_pose".format(team_member),
+                geometry_msgs.msg.PoseWithCovarianceStamped,
+                self.on_teammate_pose_received, callback_args=team_member)
+            rospy.loginfo("subscribed to /{0}/amcl_pose".format(team_member))
+
         rospy.loginfo("Team members: {0}".format(self.team_members))
 
         self.fsm.team_identified()
@@ -1238,6 +1269,27 @@ class Auctioneer:
         else:
             self.fsm.all_scripted_tasks_complete()
 
+    def p_medians_greedy(self, matrix, p):
+        pass
+
+    def find_p_medians(self, matrix, p):
+        """
+        Find p medians, given a distance-weighted adjacency matrix
+        :param matrix: a distance-weighted adjacency matrix
+        :param p: the number of medians to find
+        :return: a set of ids of median
+        """
+        p_medians = []
+
+        # Greedy
+        return self.p_medians_greedy(matrix, p)
+
+        # Teitz-Bart
+
+
+        return p_medians
+
+
     def choose_dynamic_mechanism(self, unallocated):
         """ Decide which mechanism to use given a list of unallocated tasks.
 
@@ -1248,7 +1300,12 @@ class Auctioneer:
         :return: "OSI", "PSI", "SSI", "RR", "SUM", "MAX"
         """
         rospy.loginfo("Auctioneer: Choosing mechanism dynamically")
-        dynamic_mechanism = "SSI"
+        dynamic_mechanism = "PSI"
+
+        # Return early with the default mechanism if the set of tasks is less
+        # than a certain amount
+        if len(unallocated) <= 2:
+            return dynamic_mechanism
 
         # 1. Build a complete graph of unallocated tasks.
         #    Use the global planner to find a path between each pair of tasks
@@ -1257,19 +1314,27 @@ class Auctioneer:
         task_graph = igraph.Graph()
         task_graph.add_vertices([t.task_id for t in unallocated])
 
-        distances = []
+        # Turn on weighting
+        task_graph.es['weight'] = 1.0
+
         # Add an edge between every pair of vertices
         for pair in combinations([t.task_id for t in unallocated], 2):
+            # The task ids of the source and target
             source_id = pair[0]
             target_id = pair[1]
 
+            # The actual Task objects of the source and target
             source = self.tasks_by_id[source_id]
             target = self.tasks_by_id[target_id]
 
+            # A mrta.Point instance
             source_point = source.location
+            # A geometry_msgs.msg.Pose instance
             source_pose = self.planner_proxy._point_to_pose(source_point)
 
+            # A mrta.Point instance
             target_point = target.location
+            # A geometry_msgs.msg.Pose instance
             target_pose = self.planner_proxy._point_to_pose(target_point)
 
             distance = self.planner_proxy.get_path_cost(source_pose, target_pose)
@@ -1284,28 +1349,94 @@ class Auctioneer:
             print task_graph
 
             # Add the edge from source to target to task_graph
-            task_graph.add_edge(source_id, target_id)
-
-            distances.append(distance)
-
-        # Add the distance to task_graph's EdgeSeq
-        task_graph.es['distance'] = distances
+            #task_graph.add_edge(source_id, target_id)
+            task_graph[source_id, target_id] = distance
 
         rospy.loginfo("Auctioneer: task_graph: {0}, distances: {1}".format(task_graph.summary(),
-                                                                           task_graph.es['distance']))
+                                                                           task_graph.es['weight']))
+
+        # Get a distance-weighted adjacency matrix
+        dist_matrix = task_graph.get_adjacency(type=2, attribute='weight').data
+        rospy.loginfo("Distance-weighted adjacency matrix: {0}".format(pp.pformat(dist_matrix)))
 
         # 2. We need to get rid of cycles in the graph. Turn it into a
         # (minimum-spanning) tree
-        task_graph_mst = task_graph.spanning_tree(weights=task_graph.es['distance'])
+        task_graph_mst = task_graph.spanning_tree(weights=task_graph.es['weight'])
         rospy.loginfo("Auctioneer: task_graph_mst: {0}, distances: {1}".format(task_graph_mst.summary(),
-                                                                               task_graph_mst.es['distance']))
-        print task_graph_mst
+                                                                               task_graph_mst.es['weight']))
+        #print task_graph_mst
 
         # 3. Find ideal facility locations (p-medians) in the tree.
-        # p = number of robot team members? 1?
+
+        # Let's start with a simple (but maybe not optimal) greedy algorithm
+        p = 3
+        median_vertex_ids = pmed_greedy(dist_matrix, p)
+
+        median_task_ids = [task_graph.vs[v_id]['name'] for v_id in median_vertex_ids]
+        median_tasks = [self.tasks_by_id[t_id] for t_id in median_task_ids]
 
         # 4. If The team (average, max?) distance to the facility locations
         # is greater than ?, choose SSI. Otherwise, choose PSI.
+
+        team_distance_to_medians = defaultdict(float)
+
+        # Assign each team member to the median closest to it. We'll assign medians to
+        # team members in a 1-1 correspondence, so we'll need candidate lists
+
+        median_task_candidates = median_tasks[:]
+        team_member_candidates = self.team_members[:]
+
+        while median_task_candidates and team_member_candidates:
+
+            min_distance_to_median = None
+            min_median_task = None
+            min_team_member = None
+
+            for team_member_candidate in team_member_candidates:
+                # A geometry_msgs.msg.Pose instance
+                member_pose = self.team_poses[team_member_candidate]
+
+                for median_task_candidate in median_task_candidates:
+                    median_candidate_point = median_task_candidate.location
+                    # A geometry_msgs.msg.Pose instance
+                    median_candidate_pose = self.planner_proxy._point_to_pose(median_candidate_point)
+
+                    distance = self.planner_proxy.get_path_cost(member_pose, median_candidate_pose)
+
+                    if not min_distance_to_median or distance < min_distance_to_median:
+                        min_distance_to_median = distance
+                        min_median_task = median_task_candidate
+                        min_team_member = team_member_candidate
+
+            rospy.loginfo("Auctioneer: {0}'s distance to its nearest median (task {1}) == {2}".format(min_team_member,
+                                                                                                      min_median_task.task_id,
+                                                                                                      min_distance_to_median))
+
+            team_distance_to_medians[min_team_member] = min_distance_to_median
+
+            median_task_candidates.remove(min_median_task)
+            team_member_candidates.remove(min_team_member)
+
+
+        total_dist_to_medians = 0.0
+        avg_dist_to_medians = 0.0
+
+        for team_member in team_distance_to_medians:
+            total_dist_to_medians += team_distance_to_medians[team_member]
+
+        avg_dist_to_medians = total_dist_to_medians / len(team_distance_to_medians) * 1.0
+
+        rospy.loginfo("Total distance to medians: {0}, Average distance to medians: {1}".format(total_dist_to_medians,
+                                                                                                avg_dist_to_medians))
+
+        # So what criteria do we use to decide? Min/max/average distance? Compare those
+        # to some property of the graph like diameter?
+
+        # This is just a test!
+        if avg_dist_to_medians < 5.0:
+            dynamic_mechanism = 'PSI'
+        else:
+            dynamic_mechanism = 'SSI'
 
         return dynamic_mechanism
 
@@ -1357,12 +1488,29 @@ class Auctioneer:
             self.auction_round += 1
             self.bids[self.auction_round] = defaultdict(str)
 
+            # Send a message to mark the beginning of the mechanism-choosing phase of
+            # the experiment
+            begin_choose_msg = mrta.msg.ExperimentEvent()
+            begin_choose_msg.experiment_id = self.experiment_id
+            begin_choose_msg.event = mrta.msg.ExperimentEvent.BEGIN_CHOOSE_MECHANISM
+            stamp(begin_choose_msg)
+            self.experiment_pub.publish(begin_choose_msg)
+
             # Use one particular mechanism by default, defined in a startup parameter
             mechanism = self.mechanism
 
             # If we're choosing a mechanism a runtime
             if self.dynamic_mechanism:
                 mechanism = self.choose_dynamic_mechanism(unallocated)
+                rospy.loginfo("Auctioneer: Mechanism {0} chosen".format(mechanism))
+
+            # Send a message to mark the end of the mechanism-choosing phase of
+            # the experiment
+            begin_choose_msg = mrta.msg.ExperimentEvent()
+            begin_choose_msg.experiment_id = self.experiment_id
+            begin_choose_msg.event = mrta.msg.ExperimentEvent.END_CHOOSE_MECHANISM
+            stamp(begin_choose_msg)
+            self.experiment_pub.publish(begin_choose_msg)
 
             if mechanism == 'OSI':
                 auction_osi = AuctionOSI(self, unallocated, self.auction_round)

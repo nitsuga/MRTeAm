@@ -298,7 +298,7 @@
     <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
     <param name="reallocate" value="$(arg reallocate)" />
-    <param name="dynamic_mechanism" value="True" />
+    <param name="dynamic_mechanism" value="False" />
     <param name="dummy_robot_name" value="$(arg dummy_robot_name)" />
   </node>
 
