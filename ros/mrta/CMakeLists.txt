@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   amcl
   fake_localization
   geometry_msgs
-  gmapping
   map_server
   message_generation
   move_base
