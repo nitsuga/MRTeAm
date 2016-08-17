@@ -10,7 +10,7 @@
 
 #export ROS_OS_OVERRIDE=rhel
 
-RUN_COUNT=100
+RUN_COUNT=50
 SCRIPT_DIR=~/GIT/mrta/scripts
 
 
@@ -18,6 +18,6 @@ for run in `seq 1 ${RUN_COUNT}`
 do
     for mechanism in SSI PSI OSI
     do
-	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng ${mechanism} smartlab random SR-IT-SA-scenario3-16task.yaml
-	done # end "run"
-done # end "mechanism"
+	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng -dm ${mechanism} smartlab random SR-IT-SA-scenario3-16task.yaml
+	done # end "mechanism"
+done # end "run"
