@@ -118,7 +118,10 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     # If we're doing random start poses, generate them first
     if args.start_config == 'random':
-        os.remove(random_start_poses.DEFAULT_TMP_FILE)
+        try:
+            os.remove(random_start_poses.DEFAULT_TMP_FILE)
+        except OSError:
+            pass
         random_start_poses.generate_and_write( "{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file) )
 
     main_proc = subprocess.Popen([ROSLAUNCH,
