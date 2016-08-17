@@ -13,22 +13,11 @@
 RUN_COUNT=100
 SCRIPT_DIR=~/GIT/mrta/scripts
 
-for map in smartlab
+
+for run in `seq 1 ${RUN_COUNT}`
 do
-#    for task_file in MR-IT-DA-scenario1.yaml MR-CT-DA-scenario1.yaml SR-IT-DA-scenario1.yaml SR-CT-DA-scenario1.yaml
-    for task_file in SR-IT-SA-scenario3-16task.yaml
+    for mechanism in SSI PSI
     do
-	for mechanism in SSI PSI
-	do
-
-		for run in `seq 1 ${RUN_COUNT}`
-		do
-		    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng ${mechanism} ${map} random ${task_file}
-
-		done # end "run"
-
-	done # end "mechanism"
-
-    done # end "task_file"
-
-done # end "map"
+	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng ${mechanism} smartlab random SR-IT-SA-scenario3-16task.yaml
+	done # end "run"
+done # end "mechanism"

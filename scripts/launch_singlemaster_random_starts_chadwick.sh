@@ -14,13 +14,10 @@ RUN_COUNT=20
 SCRIPT_DIR=~/GIT/mrta/scripts
 
 
-for mechanism in SSI PSI
+for run in `seq 1 ${RUN_COUNT}`
 do
-
-	for run in `seq 1 ${RUN_COUNT}`
-	do
+    for mechanism in SSI PSI
+    do
 	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng ${mechanism} smartlab random SR-IT-SA-scenario3-16task.yaml
-
-	done # end "run"
-
-done # end "mechanism"
+	done # end "mechanism"
+done # end "run"
