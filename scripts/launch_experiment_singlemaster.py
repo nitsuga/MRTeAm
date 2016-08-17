@@ -4,12 +4,17 @@ import argparse
 import datetime
 import mrta
 import mrta.msg
+import os
 import pprint
+import rospkg
 import rospy
 import signal
 import subprocess
 import sys
 import time
+
+# Our random start pose functions
+import random_start_poses
 
 # Paths to ROS binaries
 ROS_HOME = '/opt/ros/indigo'
@@ -42,7 +47,7 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'distributed_A': ''},
                'smartlab': {'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
                             'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
-                            'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'}}
+                            'random': 'smartlab_ugv_arena_3_robots_random_starts.world'}}
 
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
@@ -90,6 +95,8 @@ def on_exp_event(exp_event_msg):
 
 
 def launch_experiment(mechanism, map_file, world_file, task_file, args):
+    rospack = rospkg.RosPack()
+
     global exp_running
     exp_running = True
 
@@ -108,6 +115,10 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     reallocate_flag = 'false'
     if args.reallocate:
         reallocate_flag = 'true'
+
+    # If we're doing random start poses, generate them first
+    if args.start_config == 'random':
+        random_start_poses.generate_and_write( "{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file) )
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
@@ -175,6 +186,11 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     del running_procs[:]
     time.sleep(10)
 
+    # If we did a random start, clean up after ourselves
+    if args.start_config == 'random':
+        os.remove(random_start_poses.DEFAULT_TMP_FILE)
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Launch a multirobot task-allocation experiment.')
@@ -186,12 +202,13 @@ if __name__ == '__main__':
                         choices=['brooklyn', 'smartlab'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
-                        choices=['clustered', 'distributed', 'distributed_A'],
+                        choices=['clustered', 'distributed', 'random'],
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
     parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
     parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
+
 
     args = parser.parse_args()
 

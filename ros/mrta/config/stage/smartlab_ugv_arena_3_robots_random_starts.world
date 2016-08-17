@@ -1,0 +1,34 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+resolution 0.02
+
+#interval_sim 100  # simulation timestep in milliseconds
+interval_sim 50
+interval_real 50
+
+window
+( 
+  size [ 1024.000 768.000 ] 
+  center [ 4.00 3.0 ]
+#  rotate [ 30 -15 ]
+
+  scale 95.0
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "smartlab_ugv_arena"
+  bitmap "../maps/smartlab_ugv_arena_v2.png"
+  size [8.0 6.0 0.75]
+  pose [ 4.0 3.0 0 0 ]
+)
+
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+
+# Our robots, randomly placed. We expect this file to have been generated
+# externally before running. If it's not there, the run will fail!
+include "/tmp/robot_random_starts.inc"
+
