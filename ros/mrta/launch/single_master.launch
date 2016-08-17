@@ -4,6 +4,9 @@
   <arg name="nogui_flag" default="" />
   <arg name="reallocate" default="false" />
 
+  <arg name="dynamic_mechanism" default="false" />
+
+
   <arg name="dummy_robot_name" default="robot_0" />
 
 <!--  <node name="rviz" pkg="rviz" type="rviz" /> -->
@@ -298,7 +301,7 @@
     <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
     <param name="reallocate" value="$(arg reallocate)" />
-    <param name="dynamic_mechanism" value="False" />
+    <param name="dynamic_mechanism" value="$(arg dynamic_mechanism)" />
     <param name="dummy_robot_name" value="$(arg dummy_robot_name)" />
   </node>
 

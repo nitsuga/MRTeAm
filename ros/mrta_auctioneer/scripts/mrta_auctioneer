@@ -1108,6 +1108,11 @@ class Auctioneer:
                                          mrta.msg.TaskAward,
                                          queue_size=10)
 
+        # '/debug'
+        self.debug_pub = rospy.Publisher('/debug',
+                                         mrta.msg.Debug,
+                                         queue_size=3)
+
         # For good measure...
         time.sleep(5)
 
@@ -1375,6 +1380,12 @@ class Auctioneer:
         median_task_ids = [task_graph.vs[v_id]['name'] for v_id in median_vertex_ids]
         median_tasks = [self.tasks_by_id[t_id] for t_id in median_task_ids]
 
+        debug_msg = mrta.msg.Debug()
+        debug_msg.key = 'auctioneer-median-ids'
+        debug_msg.value = "median task ids: [{0}]".format(','.join(median_task_ids))
+        self.debug_pub.publish(debug_msg)
+
+
         # 4. If The team (average, max?) distance to the facility locations
         # is greater than ?, choose SSI. Otherwise, choose PSI.
 
@@ -1411,6 +1422,13 @@ class Auctioneer:
             rospy.loginfo("Auctioneer: {0}'s distance to its nearest median (task {1}) == {2}".format(min_team_member,
                                                                                                       min_median_task.task_id,
                                                                                                       min_distance_to_median))
+
+            debug_msg = mrta.msg.Debug()
+            debug_msg.key = 'auctioneer-median-distance'
+            debug_msg.value = "robot [{0}] distance to its nearest median task [{1}] == [{2}]".format(min_team_member,
+                                                                                                      min_median_task.task_id,
+                                                                                                      min_distance_to_median)
+            self.debug_pub.publish(debug_msg)
 
             team_distance_to_medians[min_team_member] = min_distance_to_median
 
@@ -1501,7 +1519,7 @@ class Auctioneer:
 
             # If we're choosing a mechanism a runtime
             if self.dynamic_mechanism:
-                mechanism = self.choose_dynamic_mechanism(unallocated)
+                mechanism2 = self.choose_dynamic_mechanism(unallocated)
                 rospy.loginfo("Auctioneer: Mechanism {0} chosen".format(mechanism))
 
             # Send a message to mark the end of the mechanism-choosing phase of
