@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-s', '--robot_size',
                         help='(Square) robot footprint in cm/pixels',
-                        default=50)
+                        default=70)
 
     parser.add_argument('-o', '--output_file',
                         help='Name of the Stage .inc file to write robot poses.',

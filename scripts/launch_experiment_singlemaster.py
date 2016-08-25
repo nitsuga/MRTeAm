@@ -120,14 +120,15 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     if args.dynamic_mechanism:
         dynamic_mechanism_flag = 'true'
 
-    # If we're doing random start poses, generate them first
-    if args.start_config == 'random':
-
+    # If we're doing random start poses, generate them first,
+    # but ONLY if we're not "reusing" previously-generated start poses
+    if args.start_config == 'random' and not args.reuse_starts:
+        print "Generating a new set of random start locations..."
         try:
             os.remove(random_start_poses.DEFAULT_TMP_FILE)
         except OSError:
             pass
-        random_start_poses.generate_and_write( "{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file) )
+        random_start_poses.generate_and_write("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
@@ -197,7 +198,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     time.sleep(10)
 
     # If we did a random start, clean up after ourselves
-    if args.start_config == 'random':
+    if args.start_config == 'random' and not args.reuse_starts:
         os.remove(random_start_poses.DEFAULT_TMP_FILE)
 
 
@@ -219,7 +220,9 @@ if __name__ == '__main__':
     parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
     parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
     parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
-
+    parser.add_argument("-rs", "--reuse_starts",
+                        help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_start_poses.DEFAULT_TMP_FILE),
+                        action="store_true")
 
     args = parser.parse_args()
 
