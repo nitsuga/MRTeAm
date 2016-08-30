@@ -15,6 +15,7 @@ import re
 import rosbag
 import rospkg
 import sys
+import traceback
 import yaml
 
 # For debugging
@@ -36,7 +37,8 @@ start_locations = {'clustered': ((155.0, 150.0),
                                  (50.0, 50.0)),
                    'distributed': ((750.0, 550.0),
                                    (50.0, 550.0),
-                                   (50.0, 50.0))}
+                                   (50.0, 50.0)),
+                   'random': []}
 
 target_point_configs = {}
 
@@ -72,6 +74,7 @@ def _read_points(task_file):
             points.append([float(x) * 100., float(y) * 100.])
 
     return points
+
 
 def read_point_configs(task_dir):
 
@@ -162,7 +165,22 @@ def draw_arena(ctx):
     ctx.set_line_cap(default_line_cap)
 
 
-def draw_start_locs(ctx, start_config):
+def draw_start_locs(ctx, start_config, run_msgs):
+
+    # If start poses were random, we need to read through pose messages
+    # to find them
+    if start_config == 'random':
+        # Clear the list of start locations
+        del start_locations['random'][:]
+        for r_name in robot_names:
+            # Get the first pose for each robot
+            amcl_msg = run_msgs['/{0}/amcl_pose'.format(r_name)][0]
+            amcl_pose = amcl_msg.pose.pose
+
+            # Append a 2-element set to the start_locations['random'] dict entry
+            start_locations['random'].append((float(amcl_pose.position.x * 100.0),
+                                              float(amcl_pose.position.y * 100.0)))
+
     # Draw start locations
     for i, start_loc in enumerate(start_locations[start_config]):
         start_loc_x = start_loc[0]
@@ -172,9 +190,10 @@ def draw_start_locs(ctx, start_config):
         stroke_color = stroke_colors["robot_%d" % (i + 1)]
 
         ctx.set_source_rgb(stroke_color[0], stroke_color[1], stroke_color[2])
-        ctx.rectangle((start_loc_x - 6) / IMG_WIDTH,
-                      (start_loc_y - 6) / IMG_HEIGHT,
-                      12. / IMG_WIDTH, 12. / IMG_HEIGHT)
+        ctx.set_line_width((3. / IMG_WIDTH))
+        ctx.rectangle((start_loc_x - 10) / IMG_WIDTH,
+                      (start_loc_y - 10) / IMG_HEIGHT,
+                      20. / IMG_WIDTH, 20. / IMG_HEIGHT)
         ctx.stroke()
 
     # Reset pen to black
@@ -202,9 +221,17 @@ def draw_target_points(ctx, target_points):
         ctx.stroke()
         ctx.transform(cairo.Matrix(yy=-1, y0=IMG_HEIGHT))
 
-        #            ctx.arc(task_x / IMG_WIDTH, task_y / IMG_HEIGHT, 5./IMG_WIDTH, 0, 2*math.pi)
-        #            ctx.stroke()
-        #            ctx.fill()
+        # Draw p-medians as circles
+        if i == 2 or i == 11 or i == 13:
+            # ctx.arc(task_x / IMG_WIDTH, task_y / IMG_HEIGHT, 5./IMG_WIDTH, 0, 2*math.pi)
+            # ctx.stroke()
+            # ctx.fill()
+            ctx.set_source_rgb(.36, .36, 1.0)
+            ctx.set_line_width((3. / IMG_WIDTH))
+        else:
+            ctx.set_source_rgb(0, 0, 0)
+            ctx.set_line_width((1. / IMG_WIDTH))
+
         ctx.move_to((task_x - 5) / IMG_WIDTH, (task_y - 5) / IMG_HEIGHT)
         ctx.line_to((task_x + 5) / IMG_WIDTH, (task_y + 5) / IMG_HEIGHT)
         ctx.stroke()
@@ -212,6 +239,8 @@ def draw_target_points(ctx, target_points):
         ctx.move_to((task_x - 5) / IMG_WIDTH, (task_y + 5) / IMG_HEIGHT)
         ctx.line_to((task_x + 5) / IMG_WIDTH, (task_y - 5) / IMG_HEIGHT)
         ctx.stroke()
+
+        ctx.set_source_rgb(0, 0, 0)
 
 
 def _pose_equal(pose1, pose2):
@@ -357,7 +386,7 @@ def plot_trajectory(bag_paths, task_dir):
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
-            print(sys.exc_info()[:2])
+            print(sys.exc_info())
             continue
 
         experiment_finished = False
@@ -388,8 +417,6 @@ def plot_trajectory(bag_paths, task_dir):
 
         draw_arena(ctx)
 
-        draw_start_locs(ctx, start_config)
-
         # Draw target points
         target_points = target_point_configs[task_file]
 
@@ -400,9 +427,11 @@ def plot_trajectory(bag_paths, task_dir):
         try:
             for topic, msg, msg_time in bag.read_messages():
                 run_msgs[topic].append(msg)
+            draw_start_locs(ctx, start_config, run_msgs)
             draw_trajectories(ctx, run_msgs)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
+            traceback.print_exc()
             continue
 
         bag_basename = bag_filename.replace('.bag', '')

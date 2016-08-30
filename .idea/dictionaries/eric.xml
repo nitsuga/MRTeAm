@@ -18,6 +18,7 @@
       <w>loginfo</w>
       <w>menlo</w>
       <w>mincost</w>
+      <w>minimax</w>
       <w>mrta</w>
       <w>multirobot</w>
       <w>navfn</w>

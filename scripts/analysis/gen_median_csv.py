@@ -29,6 +29,7 @@ import mrta.mrta_planner_proxy
 IN_CSV_FILENAME = 'stats.csv'
 OUT_DIST_CSV_FILENAME = 'median_distance.csv'
 OUT_TIME_CSV_FILENAME = 'median_time.csv'
+OUT_MINIMAX_CSV_FILENAME = 'median_minimax_distance.csv'
 
 OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_MEDIANS',
                   'MEDIAN_SPREAD',
@@ -113,7 +114,7 @@ def sig_handler(sig, frame):
 signal.signal(signal.SIGINT, sig_handler)
 
 
-def write_training_files(in_file, out_dist, out_time):
+def write_training_files(in_file, out_dist, out_time, out_minimax):
     global planner_proxy
     try:
 
@@ -128,6 +129,9 @@ def write_training_files(in_file, out_dist, out_time):
         out_time_csv = csv.writer(open(out_time, 'wb'))
         out_time_csv.writerow(OUT_FIELDNAMES)
 
+        out_minimax_csv = csv.writer(open(out_minimax, 'wb'))
+        out_minimax_csv.writerow(OUT_FIELDNAMES)
+
         # for name, group in stats_frame.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
         for name, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
 
@@ -139,13 +143,47 @@ def write_training_files(in_file, out_dist, out_time):
             if group.ROBOT1_STARTX.count() < 2:
                 continue
 
+            # We only have two rows in this group (one per PSI and SSI)
+            first_row = group.iloc[0]
+            second_row = group.iloc[1]
+
+            first_row_max_dist = max(first_row.ROBOT1_DISTANCE, first_row.ROBOT2_DISTANCE, first_row.ROBOT3_DISTANCE)
+            second_row_max_dist = max(second_row.ROBOT1_DISTANCE, second_row.ROBOT2_DISTANCE, second_row.ROBOT3_DISTANCE)
+
+            minimax_row = None
+            minimax_loser_row = None
+
+            if first_row_max_dist < second_row_max_dist:
+                minimax_row = first_row
+                minimax_loser_row = second_row
+            else:
+                minimax_row = second_row
+                minimax_loser_row = first_row
+
+            minimax_margin = abs(first_row_max_dist - second_row_max_dist)
+
             # find the rows of the "winners" for both distance and time
             min_dist_idx = group.TOTAL_DISTANCE.idxmin()
             min_dist_row = stats_frame.ix[min_dist_idx]
+            max_dist_idx = group.TOTAL_DISTANCE.idxmax()
+            max_dist_row = stats_frame.ix[max_dist_idx]
+
             min_time_idx = group.TOTAL_MOVEMENT_TIME.idxmin()
             min_time_row = stats_frame.ix[min_time_idx]
+            max_time_idx = group.TOTAL_MOVEMENT_TIME.idxmax()
+            max_time_row = stats_frame.ix[max_time_idx]
 
-            print "distance winner: {0}, time winner: {1}".format(min_dist_row.MECHANISM, min_time_row.MECHANISM)
+            dist_margin = max_dist_row.TOTAL_DISTANCE - min_dist_row.TOTAL_DISTANCE
+            time_margin = max_time_row.TOTAL_MOVEMENT_TIME - min_time_row.TOTAL_MOVEMENT_TIME
+
+            print "distance winner: {0}, minimax distance winner: {1}, time winner: {2}".format(min_dist_row.MECHANISM, minimax_row.MECHANISM, min_time_row.MECHANISM)
+            print "distance win margin: {0}, time win margin: {1}, minimax distance margin: {2}".format(dist_margin, time_margin, minimax_margin)
+            print "distance winner bag filename: {0}".format(min_dist_row.BAG_FILENAME)
+            print "distance loser bag filename: {0}".format(max_dist_row.BAG_FILENAME)
+            print "time winner bag filename: {0}".format(min_time_row.BAG_FILENAME)
+            print "time loser bag filename: {0}".format(max_time_row.BAG_FILENAME)
+            print "minimax distance winner bag filename: {0}".format(minimax_row.BAG_FILENAME)
+            print "minimax distance loser bag filename: {0}".format(minimax_loser_row.BAG_FILENAME)
 
             robot_graph = igraph.Graph()
             robot_graph.add_vertices(ROBOT_NAMES)
@@ -200,12 +238,15 @@ def write_training_files(in_file, out_dist, out_time):
 
             min_dist_row['MEDIAN_SPREAD'] = median_spread
             min_time_row['MEDIAN_SPREAD'] = median_spread
+            minimax_row['MEDIAN_SPREAD'] = median_spread
 
             min_dist_row['TEAM_DIAMETER'] = team_diameter
             min_time_row['TEAM_DIAMETER'] = team_diameter
+            minimax_row['TEAM_DIAMETER'] = team_diameter
 
             out_dist_csv.writerow([min_dist_row[f] for f in OUT_FIELDNAMES])
             out_time_csv.writerow([min_time_row[f] for f in OUT_FIELDNAMES])
+            out_minimax_csv.writerow([minimax_row[f] for f in OUT_FIELDNAMES])
 
     except IOError:
         print "Something went wrong!"
@@ -218,25 +259,30 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Produce training files from summary statistics.')
 
     parser.add_argument('-i', '--input',
-                        default = IN_CSV_FILENAME,
-                        help = 'The .csv file containing summary statistics,')
+                        default=IN_CSV_FILENAME,
+                        help='The .csv file containing summary statistics,')
 
     parser.add_argument('-od', '--out_distance',
-                        default = OUT_DIST_CSV_FILENAME,
-                        help = 'The file to write for minimum distance-based training.')
+                        default=OUT_DIST_CSV_FILENAME,
+                        help='The file to write for minimum distance-based training.')
 
     parser.add_argument('-ot', '--out_time',
-                        default = OUT_TIME_CSV_FILENAME,
-                        help = 'The file to write for minimum time-based training.')
+                        default=OUT_TIME_CSV_FILENAME,
+                        help='The file to write for minimum time-based training.')
+
+    parser.add_argument('-om', '--out_minimax',
+                        default=OUT_MINIMAX_CSV_FILENAME,
+                        help='The file to write for minimax distance-based training.')
 
     args = parser.parse_args()
 
     in_file = args.input
     out_dist = args.out_distance
     out_time = args.out_time
+    out_minimax = args.out_minimax
 
-    print(in_file, out_dist, out_time)
+    print(in_file, out_dist, out_time, out_minimax)
 
     start_ros()
-    write_training_files(in_file, out_dist, out_time)
+    write_training_files(in_file, out_dist, out_time, out_minimax)
     stop_ros()
