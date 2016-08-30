@@ -5,10 +5,11 @@
 #$ -l exclusive
 #$ -t 1-10
 #$ -V
+#$ -M eric.schneider@liverpool.ac.uk
+#$ -m abe
 
-#source /home/esch/.bashrc
-
-#export ROS_OS_OVERRIDE=rhel
+source /home/esch/.bashrc
+export ROS_OS_OVERRIDE=rhel
 
 RUN_COUNT=1
 SCRIPT_DIR=~/GIT/mrta/scripts
