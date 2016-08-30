@@ -1170,6 +1170,12 @@ class Auctioneer:
                                               self.add_scripted_task,
                                               [str(yaml_task['task_id'])]))
 
+            # Necessary to log this?
+            debug_msg = mrta.msg.Debug()
+            debug_msg.key = 'auctioneer-task-file'
+            debug_msg.value = self.task_file
+            self.debug_pub.publish(debug_msg)
+
         except Exception as e:
             rospy.logerr("Can't open/parse task file {0}!".format(self.task_file))
             e_type, e_value, e_traceback = sys.exc_info()
@@ -1290,10 +1296,7 @@ class Auctioneer:
         return self.p_medians_greedy(matrix, p)
 
         # Teitz-Bart
-
-
         return p_medians
-
 
     def choose_dynamic_mechanism(self, unallocated):
         """ Decide which mechanism to use given a list of unallocated tasks.
@@ -1369,7 +1372,7 @@ class Auctioneer:
         task_graph_mst = task_graph.spanning_tree(weights=task_graph.es['weight'])
         rospy.loginfo("Auctioneer: task_graph_mst: {0}, distances: {1}".format(task_graph_mst.summary(),
                                                                                task_graph_mst.es['weight']))
-        #print task_graph_mst
+        # print task_graph_mst
 
         # 3. Find ideal facility locations (p-medians) in the tree.
 
@@ -1384,7 +1387,6 @@ class Auctioneer:
         debug_msg.key = 'auctioneer-median-ids'
         debug_msg.value = "median task ids: [{0}]".format(','.join(median_task_ids))
         self.debug_pub.publish(debug_msg)
-
 
         # 4. If The team (average, max?) distance to the facility locations
         # is greater than ?, choose SSI. Otherwise, choose PSI.

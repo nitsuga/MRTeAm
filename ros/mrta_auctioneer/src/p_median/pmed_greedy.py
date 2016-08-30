@@ -11,6 +11,7 @@ from string import atoi
 
 INF = float('inf')
 
+
 def evaluate(dist, median, n):
     sumdist = 0.0
     p = len(median)
@@ -21,6 +22,7 @@ def evaluate(dist, median, n):
                 dist0 = dist[i][median[j]]
         sumdist += dist0
     return sumdist
+
 
 def pmed_greedy(dist, p):
     n = len(dist)

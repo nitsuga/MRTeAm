@@ -17,6 +17,7 @@ import sys
 
 INF = float('inf')
 
+
 def findout(median, fi, dist, d1, d2, N):
     """
     Determines, given a candidate for insertion (fi), 
@@ -38,7 +39,8 @@ def findout(median, fi, dist, d1, d2, N):
             fmin = v[i]
             fr = i
     fmin = w-fmin
-    return fmin, fr # gain and vertex to be replaced
+    return fmin, fr  # gain and vertex to be replaced
+
 
 def update_assignment(dist, median, d1, d2, p, N):
     """
@@ -65,6 +67,7 @@ def update_assignment(dist, median, d1, d2, p, N):
         dist1 += dist[i][d1[i]]
     return dist1
 
+
 def next(dist, median, d1, d2, p, N):
     """
     INPUT
@@ -74,7 +77,7 @@ def next(dist, median, d1, d2, p, N):
       d2: list of second nearest facility
       p: number of facilities to locate
       N: number of vertices on the nextwork
-    OUPTU
+    OUTPUT
       r: total distance
       median: list of integers for selected vertices
     """
@@ -83,16 +86,18 @@ def next(dist, median, d1, d2, p, N):
         gain, fr1 = findout(median, i, dist, d1, d2, N)
         if i in median:
             continue
-        if gain>bestgain:
+        if gain > bestgain:
             bestgain = gain
             fr = fr1
             fi = i
     r = 0
+    print "bestgain: {0}".format(bestgain)
     if bestgain > 0:
         i = median.index(fr) 
         median[i] = fi
         r = update_assignment(dist, median, d1, d2, p, N)
-    return bestgain>0, r, fr, fi
+    return bestgain > 0, r, fr, fi
+
 
 def teitz_bart(dist, p, verbose=False):
     """
@@ -103,15 +108,17 @@ def teitz_bart(dist, p, verbose=False):
     """
     N = len(dist)
     median = random.sample(range(N), p)
-    d1    = [-1 for i in range(N)]
-    d2    = [-1 for i in range(N)]
-    r = update_assignment(dist, median, d1, d2, p , N)
-    if verbose: print r
+    d1 = [-1 for i in range(N)]
+    d2 = [-1 for i in range(N)]
+    r = update_assignment(dist, median, d1, d2, p, N)
+    if verbose:
+        print r
     while True:
         result = next(dist, median, d1, d2, p, N)
         if result[0]:
             r = result[1]
-            if verbose: print r
+            if verbose:
+                print r
         else:
             break
     return r, median

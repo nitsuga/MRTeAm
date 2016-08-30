@@ -12,6 +12,7 @@
       <w>filedata</w>
       <w>fysom</w>
       <w>ggplot</w>
+      <w>hrteam</w>
       <w>koenig</w>
       <w>launchfile</w>
       <w>loginfo</w>
@@ -28,9 +29,12 @@
       <w>respawn</w>
       <w>rosbag</w>
       <w>rosgraph</w>
+      <w>roslaunch</w>
       <w>rosparam</w>
       <w>rospy</w>
+      <w>rviz</w>
       <w>smartlab</w>
+      <w>stageros</w>
       <w>timeline</w>
       <w>timelines</w>
       <w>turtlebot</w>
