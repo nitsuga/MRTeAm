@@ -55,7 +55,7 @@ def _read_points(task_file):
         for yaml_task in yaml_tasks:
             task_loc = yaml_task['location']
             x, y = float(task_loc['x']) * 100., float(task_loc['y']) * 100.
-            points.append( [ x, y ] )
+            points.append( (yaml_task['task_id'], x, y) )
 
     # .txt config file
     elif task_file.name.endswith('txt'):
@@ -200,7 +200,7 @@ def draw_start_locs(ctx, start_config, run_msgs):
     ctx.set_source_rgb(0, 0, 0)
 
 
-def draw_target_points(ctx, target_points):
+def draw_target_points(ctx, target_points, run_msgs):
     # Font style for printing points
     ctx.select_font_face('Sans', cairo.FONT_SLANT_NORMAL,
                          cairo.FONT_WEIGHT_BOLD)
@@ -208,9 +208,27 @@ def draw_target_points(ctx, target_points):
 
     ctx.set_line_width((1. / IMG_WIDTH))
 
+    median_task_ids = []
+
+    median_task_ids_re = re.compile('median task ids: \[(.*)\]')
+
+    # Get the ids of the p-median tasks
+    for debug_msg in run_msgs['/debug']:
+        if debug_msg.key == 'auctioneer-median-ids':
+            matches = re.search(median_task_ids_re, debug_msg.value)
+            if matches:
+                task_ids_string = matches.group(1)
+                median_task_ids.extend(task_ids_string.split(','))
+                break
+
+    print "median task ids: {0}".format(median_task_ids)
+
     for i, target_point in enumerate(target_points):
-        task_x = target_point[0]
-        task_y = target_point[1]
+        task_id = target_point[0]
+        task_x = target_point[1]
+        task_y = target_point[2]
+
+        print "plotting task {0}".format(task_id)
 
         #            print "Drawing task point at (%f,%f)" % (task_x, task_y)
 
@@ -222,12 +240,14 @@ def draw_target_points(ctx, target_points):
         ctx.transform(cairo.Matrix(yy=-1, y0=IMG_HEIGHT))
 
         # Draw p-medians as circles
-        if i == 2 or i == 11 or i == 13:
-            # ctx.arc(task_x / IMG_WIDTH, task_y / IMG_HEIGHT, 5./IMG_WIDTH, 0, 2*math.pi)
-            # ctx.stroke()
-            # ctx.fill()
+        #if i == 2 or i == 11 or i == 13:
+        if task_id in median_task_ids:
+            print "task {0} is a median".format(task_id)
             ctx.set_source_rgb(.36, .36, 1.0)
             ctx.set_line_width((3. / IMG_WIDTH))
+            ctx.arc(task_x / IMG_WIDTH, task_y / IMG_HEIGHT, 5./IMG_WIDTH, 0, 2*math.pi)
+            ctx.stroke()
+            ctx.fill()
         else:
             ctx.set_source_rgb(0, 0, 0)
             ctx.set_line_width((1. / IMG_WIDTH))
@@ -258,6 +278,55 @@ def _pose_equal(pose1, pose2):
         return False
 
     return True
+
+
+def draw_paths_to_medians(ctx, start_config, run_msgs, target_points):
+    median_distance_re = re.compile('.*\[(\w+)\].*\[(\w+)\] == \[(\d+\.\d+([eE][+-]?\d+)?)\]')
+
+    # Key is robot_id, value is [median task_id, distance]
+    robot_medians = defaultdict(str)
+
+    for msg in run_msgs['/debug']:
+        if msg.key == 'auctioneer-median-distance':
+            matches = re.search(median_distance_re, msg.value)
+            if matches:
+                msg_robot_id = matches.group(1)
+                msg_median_task_id = matches.group(2)
+                msg_median_distance = float(matches.group(3))
+
+                if not robot_medians[msg_robot_id]:
+                    print "median distance message: {0}".format(msg.value)
+                    robot_medians[msg_robot_id] = [msg_median_task_id, msg_median_distance]
+
+    # Make it a dashed grey line
+    ctx.set_source_rgb(0.6, 0.6, 0.6)
+    ctx.set_dash([5.0 / IMG_WIDTH])
+
+    for robot_num, robot_id in enumerate(robot_names):
+        # Hack, sorry
+        # start_loc = start_locations[start_config][robot_id]
+        start_loc = start_locations[start_config][robot_num]
+        median_task_id = robot_medians[robot_id][0]
+        distance_to_median = robot_medians[robot_id][1]
+
+        end_loc = None
+
+        for target_point in target_points:
+            task_id = target_point[0]
+            task_x = target_point[1]
+            task_y = target_point[2]
+
+            if task_id == median_task_id:
+                end_loc = (task_x, task_y)
+
+        # Draw a line from the robot start location to its median
+        ctx.move_to(start_loc[0] / IMG_WIDTH, start_loc[1] / IMG_HEIGHT)
+        ctx.line_to(end_loc[0] / IMG_WIDTH, end_loc[1] / IMG_HEIGHT)
+        ctx.stroke()
+
+    # Revert to solid black lines
+    ctx.set_source_rgb(0, 0, 0)
+    ctx.set_dash([])
 
 
 def draw_trajectories(ctx, run_msgs):
@@ -420,14 +489,18 @@ def plot_trajectory(bag_paths, task_dir):
         # Draw target points
         target_points = target_point_configs[task_file]
 
-        draw_target_points(ctx, target_points)
-
         run_msgs = defaultdict(list)
 
         try:
             for topic, msg, msg_time in bag.read_messages():
                 run_msgs[topic].append(msg)
+
+            draw_target_points(ctx, target_points, run_msgs)
+
             draw_start_locs(ctx, start_config, run_msgs)
+
+            draw_paths_to_medians(ctx, start_config, run_msgs, target_points)
+
             draw_trajectories(ctx, run_msgs)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))

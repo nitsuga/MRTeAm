@@ -38,6 +38,7 @@ field_names = [
     'TOTAL_DISTANCE',
     'TOTAL_COLLISIONS',
     'TOTAL_DISTANCE_TO_MEDIANS',
+    'MEDIAN_TASK_IDS',
     'NUM_ANNOUNCE_MSGS',
     'NUM_ANNOUNCE_TASKS',
     'NUM_BID_MSGS',
@@ -274,6 +275,7 @@ def parse_stats(bag_paths, output):
     dt_re = re.compile('(.*)\.bag')
     # median_distance_re = re.compile('.*\[(\w+)\].*\[(\w+)\] == \[(\d+\.\d+)\]')
     median_distance_re = re.compile('.*\[(\w+)\].*\[(\w+)\] == \[(\d+\.\d+([eE][+-]?\d+)?)\]')
+    median_task_ids_re = re.compile('median task ids: \[(.*)\]')
 
     for i, bag_path in enumerate(bag_paths):
         print("Reading {0}".format(bag_path))
@@ -598,6 +600,24 @@ def parse_stats(bag_paths, output):
 
         # for r_name in ROBOT_NAMES:
         #     robot = robots[r_name]
+
+        p_median_task_ids = None
+        # p-median task ids
+        for debug_msg in run_msgs['/debug']:
+            if p_median_task_ids:
+                break
+
+            if debug_msg.key == 'auctioneer-median-ids':
+                print "median task ids message: {0}".format(debug_msg.value)
+                matches = re.search(median_task_ids_re, debug_msg.value)
+                if matches:
+                    p_median_task_ids_csv = matches.group(1)
+
+                    # Sigh.. this is a comma-separated string. If we output it literally it will
+                    # mess with the CSV format. Turn it into a '-'-separated string
+                    p_median_task_ids = '-'.join(p_median_task_ids_csv.split(','))
+
+        row_fields['MEDIAN_TASK_IDS'] = p_median_task_ids
 
         for j in range(1, 4):
             r_name = 'robot_{0}'.format(j)
