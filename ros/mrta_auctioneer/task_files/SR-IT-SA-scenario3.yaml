@@ -118,15 +118,15 @@
   duration: 0
   depends: []
 
-- task_id: '12'
-  type: SENSOR_SWEEP
-  location:
-    x: 7.5
-    y: 2.5
-  arrival_time: 0
-  num_robots: 1
-  duration: 0
-  depends: []
+#- task_id: '12'
+#  type: SENSOR_SWEEP
+#  location:
+#    x: 7.5
+#    y: 2.5
+#  arrival_time: 0
+#  num_robots: 1
+#  duration: 0
+#  depends: []
 
 #- task_id: '13'
 #  type: SENSOR_SWEEP
