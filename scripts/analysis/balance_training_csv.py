@@ -3,9 +3,11 @@
 import argparse
 import csv
 import pandas as pd
+import sys
 
 
 from imblearn.under_sampling import RandomUnderSampler
+from imblearn.combine import SMOTEENN
 
 OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_MEDIANS',
                   # 'TOTAL_DISTANCE_TO_ALL_MEDIANS',
@@ -29,24 +31,36 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_MEDIANS',
                   'MECHANISM']
 
 
-def balance_training(in_file, out_file):
+def balance_training(in_file, out_file, method):
 
     df = pd.read_csv(in_file)
 
     df_x = df.ix[:,:-1].values
-    df_y = df.ix[:,-1:].values
+    df_y = df.ix[:,-1:].values.ravel()
 
-    # Random undersampling
-    rus = RandomUnderSampler()
+    # Resampler
+    rs = None
 
-    x_resampled, y_resampled = rus.fit_sample(df_x, df_y)
+    if method == 'UR':
+        # Random undersampling
+        rs = RandomUnderSampler()
+    elif method == 'SE':
+        # SMOTE + ENN
+        rs = SMOTEENN()
+    else:
+        print "Unsupported method: {0}".format(method)
+        sys.exit(1)
+
+
+    x_resampled, y_resampled = rs.fit_sample(df_x, df_y)
 
     x_resampled = x_resampled.tolist()
     y_resampled = y_resampled.tolist()
 
     with open(out_file, 'wb') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(OUT_FIELDNAMES)
+        #writer.writerow(OUT_FIELDNAMES)
+        writer.writerow(df.columns.tolist())
         for i in range(len(x_resampled)):
             print "writing row {0}".format(i)
             row = list(x_resampled[i])
@@ -61,8 +75,13 @@ if __name__ == '__main__':
     parser.add_argument('output',
                         help='The balanced csv file to write.')
 
+    parser.add_argument('method',
+                        choices=['UR', 'SE'],
+                        help='Method to balance training sets. UR: Undersample-random, SE: SMOTE-ENN')
+
     args = parser.parse_args()
     in_file = args.input
     out_file = args.output
+    method = args.method
 
-    balance_training(in_file, out_file)
+    balance_training(in_file, out_file, method)

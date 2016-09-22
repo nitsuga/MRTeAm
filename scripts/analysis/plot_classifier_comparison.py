@@ -49,8 +49,11 @@ h = .02  # step size in the mesh
 title = 'Classifier Comparison: Minimax Distance'
 input_file = 'minimax_distance.csv'
 
-feature1 = 'MIN_DISTANCE_TO_MEDIAN'
-feature2 = 'MAX_DISTANCE_TO_MEDIAN'
+feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
+#feature1 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
+feature2 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
+#feature2 = 'ASSIGNED_MEDIAN_COUNT_SPREAD'
+
 
 xaxis_label = 'Minimum Distance to Median'
 yaxis_label = 'Maximum Distance to Median'
@@ -63,7 +66,7 @@ classifiers = [
     SVC(kernel="linear", C=0.025),
     SVC(gamma=2, C=1),
     DecisionTreeClassifier(max_depth=5),
-    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=2),
     AdaBoostClassifier(),
     GaussianNB(),
     LinearDiscriminantAnalysis(),

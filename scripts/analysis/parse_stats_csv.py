@@ -37,7 +37,7 @@ field_names = [
     'TOTAL_DELAY_TIME',
     'TOTAL_DISTANCE',
     'TOTAL_COLLISIONS',
-    'TOTAL_DISTANCE_TO_MEDIANS',
+    'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
     'MEDIAN_TASK_IDS',
     'NUM_ANNOUNCE_MSGS',
     'NUM_ANNOUNCE_TASKS',
@@ -45,7 +45,7 @@ field_names = [
     'ALLOC_MSG_BYTES',
     'ROBOT1_STARTX',
     'ROBOT1_STARTY',
-    'ROBOT1_DISTANCE_TO_MEDIAN',
+    'ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN',
     'ROBOT1_DISTANCE',
     'ROBOT1_MOVEMENT_TIME',
     'ROBOT1_WAITING_TIME',
@@ -53,7 +53,7 @@ field_names = [
     'ROBOT1_DELAY_TIME',
     'ROBOT2_STARTX',
     'ROBOT2_STARTY',
-    'ROBOT2_DISTANCE_TO_MEDIAN',
+    'ROBOT2_DISTANCE_TO_ASSIGNED_MEDIAN',
     'ROBOT2_DISTANCE',
     'ROBOT2_MOVEMENT_TIME',
     'ROBOT2_WAITING_TIME',
@@ -61,7 +61,7 @@ field_names = [
     'ROBOT2_DELAY_TIME',
     'ROBOT3_STARTX',
     'ROBOT3_STARTY',
-    'ROBOT3_DISTANCE_TO_MEDIAN',
+    'ROBOT3_DISTANCE_TO_ASSGNED_MEDIAN',
     'ROBOT3_DISTANCE',
     'ROBOT3_MOVEMENT_TIME',
     'ROBOT3_WAITING_TIME',
@@ -382,7 +382,7 @@ def parse_stats(bag_paths, output):
         total_delay_time = 0.0
         total_distance = 0.0
         total_collisions = 0
-        total_distance_to_medians = 0.0
+        total_distance_to_assigned_medians = 0.0
 
         robots = {}
 
@@ -438,7 +438,7 @@ def parse_stats(bag_paths, output):
 
 #            print "{0} distance: {1}".format(r_name, robot.distance)
 
-            # Distance to the robot's nearest (p-)median
+            # Distance to the robot's assigned (p-)median
             for debug_msg in run_msgs['/debug']:
                 if not robot.distance_to_median:
                     # print "finding median distance for {0}".format(robot.name)
@@ -552,7 +552,7 @@ def parse_stats(bag_paths, output):
             total_distance += robot.distance
             print("{0} distance: {1}".format(r_name, robot.distance))
             total_collisions += robot.collisions
-            total_distance_to_medians += robot.distance_to_median
+            total_distance_to_assigned_medians += robot.distance_to_median
 
         if incomplete_tasks:
             print("There is no record of successful completion of one or more tasks. Skipping this run!")
@@ -568,7 +568,7 @@ def parse_stats(bag_paths, output):
         row_fields['TOTAL_DELAY_TIME'] = total_delay_time            # 'TOTAL_DELAY_TIME'
         row_fields['TOTAL_DISTANCE'] = total_distance                # 'TOTAL_DISTANCE'
         row_fields['TOTAL_COLLISIONS'] = total_collisions            # 'TOTAL_COLLISIONS'
-        row_fields['TOTAL_DISTANCE_TO_MEDIANS'] = total_distance_to_medians  # 'TOTAL_COLLISIONS'
+        row_fields['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'] = total_distance_to_assigned_medians  # 'TOTAL_COLLISIONS'
 
         # Deliberation metrics
         announce_msg_bytes = bid_msg_bytes = award_msg_bytes = 0
@@ -625,7 +625,7 @@ def parse_stats(bag_paths, output):
 
             row_fields['ROBOT{0}_STARTX'.format(j)] = robot.startx                    # 'ROBOT<n>_STARTX'
             row_fields['ROBOT{0}_STARTY'.format(j)] = robot.starty                    # 'ROBOT<n>_STARTY'
-            row_fields['ROBOT{0}_DISTANCE_TO_MEDIAN'.format(j)] = robot.distance_to_median  # 'ROBOT<n>_DISTANCE_TO_MEDIAN'
+            row_fields['ROBOT{0}_DISTANCE_TO_ASSIGNED_MEDIAN'.format(j)] = robot.distance_to_median  # 'ROBOT<n>_DISTANCE_TO_MEDIAN'
             row_fields['ROBOT{0}_DISTANCE'.format(j)] = robot.distance                # 'ROBOT<n>_DISTANCE'
             row_fields['ROBOT{0}_MOVEMENT_TIME'.format(j)] = robot.movement_time      # 'ROBOT<n>_MOVEMENT_TIME'
             row_fields['ROBOT{0}_WAITING_TIME'.format(j)] = robot.waiting_time        # 'ROBOT<n>_WAITING_TIME'

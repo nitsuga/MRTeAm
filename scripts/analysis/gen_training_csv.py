@@ -36,22 +36,25 @@ OUT_RUN_TIME_CSV_FILENAME = 'run_time.csv'
 OUT_EXECUTION_PHSE_TIME_CSV_FILENAME = 'execution_phase_time.csv'
 OUT_MINIMAX_CSV_FILENAME = 'minimax_distance.csv'
 
-OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_MEDIANS',
+OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'TOTAL_DISTANCE_TO_ALL_MEDIANS',
-                  'MEDIAN_SPREAD',
-                  'MAX_DISTANCE_TO_MEDIAN',
-                  'MIN_DISTANCE_TO_MEDIAN',
+                  'MAX_DISTANCE_TO_ASSIGNED_MEDIAN',
+                  'MAX_DISTANCE_TO_ANY_MEDIAN',
+                  'MIN_DISTANCE_TO_ASSIGNED_MEDIAN',
+                  'MIN_DISTANCE_TO_ANY_MEDIAN',
+                  'ASSIGNED_MEDIAN_DISTANCE_SPREAD',
+                  'TOTAL_MEDIAN_DISTANCE_SPREAD',
                   'TEAM_DIAMETER',
-                  'MEDIAN_ASSIGNMENT_SPREAD',
-                  'ROBOT1_DISTANCE_TO_MEDIAN',
+                  'ASSIGNED_MEDIAN_COUNT_SPREAD',
+                  'ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN',
                   'ROBOT1_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT1_STARTX',
                   'ROBOT1_STARTY',
-                  'ROBOT2_DISTANCE_TO_MEDIAN',
+                  'ROBOT2_DISTANCE_TO_ASSIGNED_MEDIAN',
                   'ROBOT2_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT2_STARTX',
                   'ROBOT2_STARTY',
-                  'ROBOT3_DISTANCE_TO_MEDIAN',
+                  'ROBOT3_DISTANCE_TO_ASSIGNED_MEDIAN',
                   'ROBOT3_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT3_STARTX',
                   'ROBOT3_STARTY',
@@ -286,27 +289,27 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                                                             robot_graph.es['weight']))
             #print("Distance-weighted adjacency matrix: {0}".format(pp.pformat(dist_matrix)))
 
-            robot_graph_mst = robot_graph.spanning_tree(weights=robot_graph.es['weight'])
+            # robot_graph_mst = robot_graph.spanning_tree(weights=robot_graph.es['weight'])
             # print("robot_graph_mst: {0}, distances: {1}".format(robot_graph_mst.summary(),
             #                                                     robot_graph_mst.es['weight']))
             # print task_graph_mst
             team_diameter = robot_graph.diameter(directed=False, weights='weight')
             print "team diameter: {0}".format(team_diameter)
 
-            robot_median_distances = [min_dist_row.ROBOT1_DISTANCE_TO_MEDIAN,
-                                      min_dist_row.ROBOT2_DISTANCE_TO_MEDIAN,
-                                      min_dist_row.ROBOT3_DISTANCE_TO_MEDIAN]
+            assigned_robot_median_distances = [min_dist_row.ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN,
+                                               min_dist_row.ROBOT2_DISTANCE_TO_ASSIGNED_MEDIAN,
+                                               min_dist_row.ROBOT3_DISTANCE_TO_ASSIGNED_MEDIAN]
 
-            print "robot median distances: {0}".format(robot_median_distances)
+            print "robot median distances: {0}".format(assigned_robot_median_distances)
 
-            min_median_dist = min(robot_median_distances)
-            print "min_median_dist: {0}".format(min_median_dist)
+            min_assigned_median_dist = min(assigned_robot_median_distances)
+            print "min_assigned_median_dist: {0}".format(min_assigned_median_dist)
 
-            max_median_dist = max(robot_median_distances)
-            print "max_median_dist: {0}".format(max_median_dist)
+            max_assigned_median_dist = max(assigned_robot_median_distances)
+            print "max_assigned_median_dist: {0}".format(max_assigned_median_dist)
 
-            median_spread = max_median_dist - min_median_dist
-            print "median distance spread: {0}".format(median_spread)
+            assigned_median_distance_spread = max_assigned_median_dist - min_assigned_median_dist
+            print "assigned median distance spread: {0}".format(assigned_median_distance_spread)
 
             # Keep track of every robot's distance to every median
             # Key is robot id, value is a dict of median task_id => distance
@@ -314,7 +317,7 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             for robot_name in ROBOT_NAMES:
                 distance_to_all_medians[robot_name] = {}
 
-            # For each robot, count how many medians is is the "closest" to
+            # For each robot, count how many medians it is the "closest" to
             greedy_median_count = {}
             for robot_name in ROBOT_NAMES:
                 greedy_median_count[robot_name] = 0
@@ -346,26 +349,42 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
 
                 greedy_median_count[min_robot_id] += 1
 
-            median_assignment_spread = max(greedy_median_count.values()) - min(greedy_median_count.values())
+            assigned_median_count_spread = max(greedy_median_count.values()) - min(greedy_median_count.values())
 
             for row in (min_dist_row, min_run_time_row, min_execution_phase_time_row, minimax_row):
-                row['MAX_DISTANCE_TO_MEDIAN'] = max_median_dist
-                row['MIN_DISTANCE_TO_MEDIAN'] = min_median_dist
-                row['MEDIAN_SPREAD'] = median_spread
+                row['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'] = sum(assigned_robot_median_distances)
+                row['MAX_DISTANCE_TO_ASSIGNED_MEDIAN'] = max_assigned_median_dist
+                row['MIN_DISTANCE_TO_ASSIGNED_MEDIAN'] = min_assigned_median_dist
+                row['ASSIGNED_MEDIAN_DISTANCE_SPREAD'] = assigned_median_distance_spread
                 row['TEAM_DIAMETER'] = team_diameter
-                row['MEDIAN_ASSIGNMENT_SPREAD'] = median_assignment_spread
+                row['ASSIGNED_MEDIAN_COUNT_SPREAD'] = assigned_median_count_spread
 
                 total_distance_to_all_medians = 0.0
+
+                max_distance_to_any_median = None
+                min_distance_to_any_median = None
+
                 for robot_name in distance_to_all_medians:
                     robot_distance_to_all_medians = 0.0
                     for median_task_id in distance_to_all_medians[robot_name]:
-                        robot_distance_to_all_medians += distance_to_all_medians[robot_name][median_task_id]
+                        robot_median_distance = distance_to_all_medians[robot_name][median_task_id]
+
+                        robot_distance_to_all_medians += robot_median_distance
+
+                        if not max_distance_to_any_median or robot_median_distance > max_distance_to_any_median:
+                            max_distance_to_any_median = robot_median_distance
+
+                        if not min_distance_to_any_median or robot_median_distance < min_distance_to_any_median:
+                            min_distance_to_any_median = robot_median_distance
 
                     row["{0}_DISTANCE_TO_ALL_MEDIANS".format(robot_name.upper())] = robot_distance_to_all_medians
 
                     total_distance_to_all_medians += robot_distance_to_all_medians
 
                 row['TOTAL_DISTANCE_TO_ALL_MEDIANS'] = total_distance_to_all_medians
+                row['MAX_DISTANCE_TO_ANY_MEDIAN'] = max_distance_to_any_median
+                row['MIN_DISTANCE_TO_ANY_MEDIAN'] = min_distance_to_any_median
+                row['TOTAL_MEDIAN_DISTANCE_SPREAD'] = max_distance_to_any_median - min_distance_to_any_median
 
             out_dist_csv.writerow([min_dist_row[f] for f in OUT_FIELDNAMES])
             out_run_time_csv.writerow([min_run_time_row[f] for f in OUT_FIELDNAMES])
