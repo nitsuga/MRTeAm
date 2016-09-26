@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import pandas as pd
 from sklearn.cross_validation import train_test_split
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_moons, make_circles, make_classification
 from sklearn.neighbors import KNeighborsClassifier
@@ -65,8 +66,8 @@ feature2 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature2 = 'ASSIGNED_MEDIAN_COUNT_SPREAD'
 
 
-xaxis_label = 'Minimum Distance to Median'
-yaxis_label = 'Maximum Distance to Median'
+xaxis_label = 'Minimum Distance to Assigned Median'
+yaxis_label = 'Maximum Distance to Assigned Median'
 
 names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree",
          "Random Forest", "AdaBoost", "Naive Bayes", "Linear Discriminant Analysis",
@@ -88,12 +89,19 @@ classifiers = [
 # X += 2 * rng.uniform(size=X.shape)
 # linearly_separable = (X, y)
 
+pca = PCA(n_components=2)
+
 mm_frame = pd.read_csv(input_file)
 
 mm_x = mm_frame.ix[:, [feature1, feature2]].values
+#mm_x = mm_frame.ix[:, :-1].values
+
 mm_y = mm_frame.ix[:, -1:].values.flatten()
 
 mm_y = nominal_to_numeric(mm_y, {'PSI': 0, 'SSI': 1})
+
+#mm_x = pca.fit(mm_x, mm_y).transform(mm_x)
+
 
 # datasets = [make_moons(noise=0.3, random_state=0),
 #             make_circles(noise=0.2, factor=0.5, random_state=1),
@@ -130,9 +138,9 @@ for ds in datasets:
     ax = plt.subplot(gs[0:3, 0:3])
 
     # Plot the training points
-    l1 = ax.scatter(X_train[:, 0], X_train[:, 1], s=80, c=y_train, cmap=cm_bright, label='Test Set')
+    l1 = ax.scatter(X_train[:, 0], X_train[:, 1], s=90, c=y_train, cmap=cm_bright, label='Test Set')
     # and testing points
-    l2 = ax.scatter(X_test[:, 0], X_test[:, 1], s=80, c=y_test, cmap=cm_bright, alpha=0.4, label='Training Set')
+    l2 = ax.scatter(X_test[:, 0], X_test[:, 1], s=90, c=y_test, cmap=cm_bright, alpha=0.4, label='Training Set')
     ax.set_xlim(xx.min(), xx.max())
     ax.set_ylim(yy.min(), yy.max())
     ax.set_xticks(())
@@ -170,7 +178,7 @@ for ds in datasets:
         ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright)
         # and testing points
         ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright,
-                   alpha=0.6)
+                   alpha=0.4)
 
         ax.set_xlim(xx.min(), xx.max())
         ax.set_ylim(yy.min(), yy.max())
