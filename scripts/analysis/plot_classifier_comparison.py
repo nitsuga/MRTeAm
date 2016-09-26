@@ -44,6 +44,16 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
+import sys
+
+
+def nominal_to_numeric(col, codeDict):
+    colCoded = pd.Series(col, copy=True)
+    for key, value in codeDict.items():
+        colCoded.replace(key, value, inplace=True)
+    return colCoded
+
+
 h = .02  # step size in the mesh
 
 title = 'Classifier Comparison: Minimax Distance'
@@ -72,30 +82,18 @@ classifiers = [
     LinearDiscriminantAnalysis(),
     QuadraticDiscriminantAnalysis()]
 
-X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
-                           random_state=1, n_clusters_per_class=1)
-rng = np.random.RandomState(2)
-X += 2 * rng.uniform(size=X.shape)
-linearly_separable = (X, y)
+# X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
+#                            random_state=1, n_clusters_per_class=1)
+# rng = np.random.RandomState(2)
+# X += 2 * rng.uniform(size=X.shape)
+# linearly_separable = (X, y)
 
 mm_frame = pd.read_csv(input_file)
 
-#mm_x = mm_frame.ix[:, ['MEDIAN_SPREAD', 'TEAM_DIAMETER']].values
-# mm_x = mm_frame.ix[:,['TOTAL_DISTANCE_TO_MEDIANS', 'MEDIAN_SPREAD']].values
-
-# mm_x = mm_frame.ix[:,['MEDIAN_SPREAD', 'TOTAL_DISTANCE_TO_MEDIANS']].values
-
 mm_x = mm_frame.ix[:, [feature1, feature2]].values
-
 mm_y = mm_frame.ix[:, -1:].values.flatten()
 
-for i in range(len(mm_y)):
-    if mm_y[i] == 'PSI':
-        mm_y[i] = 0
-    else:
-        mm_y[i] = 1
-
-mm_y = mm_y.astype(int)
+mm_y = nominal_to_numeric(mm_y, {'PSI': 0, 'SSI': 1})
 
 # datasets = [make_moons(noise=0.3, random_state=0),
 #             make_circles(noise=0.2, factor=0.5, random_state=1),
