@@ -60,11 +60,21 @@ h = .02  # step size in the mesh
 title = 'Classifier Comparison: Minimax Distance'
 input_file = 'minimax_distance.csv'
 
+# title = 'Classifier Comparison: Execution Phase Time'
+# input_file = 'execution_phase_time.csv'
+
 feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
+#feature1 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
+#feature1 = 'MIN_DISTANCE_TO_ANY_MEDIAN'
 #feature1 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
+#feature1 = 'ASSIGNED_MEDIAN_COUNT_SPREAD'
+
 feature2 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature2 = 'ASSIGNED_MEDIAN_COUNT_SPREAD'
-
+#feature2 = 'ASSIGNED_MEDIAN_DISTANCE_SPREAD'
+#feature2 = 'TEAM_DIAMETER'
+#feature2 = 'MAX_DISTANCE_TO_ANY_MEDIAN'
+#feature2 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
 
 xaxis_label = 'Minimum Distance to Assigned Median'
 yaxis_label = 'Maximum Distance to Assigned Median'
@@ -83,6 +93,11 @@ classifiers = [
     LinearDiscriminantAnalysis(),
     QuadraticDiscriminantAnalysis()]
 
+# X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
+#                            random_state=1, n_clusters_per_class=1)
+# rng = np.random.RandomState(2)
+# X += 2 * rng.uniform(size=X.shape)
+# linearly_separable = (X, y)
 # X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
 #                            random_state=1, n_clusters_per_class=1)
 # rng = np.random.RandomState(2)
@@ -123,7 +138,7 @@ for ds in datasets:
     # preprocess dataset, split into training and test part
     X, y = ds
     X = StandardScaler().fit_transform(X)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.35)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.4)
 
     x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
     y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5

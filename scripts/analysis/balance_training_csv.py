@@ -5,38 +5,17 @@ import csv
 import pandas as pd
 import sys
 
-
-from imblearn.under_sampling import RandomUnderSampler
 from imblearn.combine import SMOTEENN
-
-OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_MEDIANS',
-                  # 'TOTAL_DISTANCE_TO_ALL_MEDIANS',
-                  'MEDIAN_SPREAD',
-                  'MAX_DISTANCE_TO_MEDIAN',
-                  'MIN_DISTANCE_TO_MEDIAN',
-                  'TEAM_DIAMETER',
-                  'MEDIAN_ASSIGNMENT_SPREAD',
-                  'ROBOT1_DISTANCE_TO_MEDIAN',
-                  # 'ROBOT1_DISTANCE_TO_ALL_MEDIANS',
-                  'ROBOT1_STARTX',
-                  'ROBOT1_STARTY',
-                  'ROBOT2_DISTANCE_TO_MEDIAN',
-                  # 'ROBOT2_DISTANCE_TO_ALL_MEDIANS',
-                  'ROBOT2_STARTX',
-                  'ROBOT2_STARTY',
-                  'ROBOT3_DISTANCE_TO_MEDIAN',
-                  # 'ROBOT3_DISTANCE_TO_ALL_MEDIANS',
-                  'ROBOT3_STARTX',
-                  'ROBOT3_STARTY',
-                  'MECHANISM']
+from imblearn.under_sampling import ClusterCentroids
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.under_sampling import TomekLinks
 
 
 def balance_training(in_file, out_file, method):
-
     df = pd.read_csv(in_file)
 
-    df_x = df.ix[:,:-1].values
-    df_y = df.ix[:,-1:].values.ravel()
+    df_x = df.ix[:, :-1].values.tolist()
+    df_y = df.ix[:, -1:].values.flatten().tolist()
 
     # Resampler
     rs = None
@@ -47,10 +26,13 @@ def balance_training(in_file, out_file, method):
     elif method == 'SE':
         # SMOTE + ENN
         rs = SMOTEENN()
+    elif method == 'TL':
+        rs = TomekLinks()
+    elif method == 'CC':
+        rs = ClusterCentroids()
     else:
         print "Unsupported method: {0}".format(method)
         sys.exit(1)
-
 
     x_resampled, y_resampled = rs.fit_sample(df_x, df_y)
 
@@ -76,7 +58,7 @@ if __name__ == '__main__':
                         help='The balanced csv file to write.')
 
     parser.add_argument('method',
-                        choices=['UR', 'SE'],
+                        choices=['UR', 'SE', 'TL', 'CC'],
                         help='Method to balance training sets. UR: Undersample-random, SE: SMOTE-ENN')
 
     args = parser.parse_args()

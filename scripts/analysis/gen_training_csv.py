@@ -45,7 +45,7 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'ASSIGNED_MEDIAN_DISTANCE_SPREAD',
                   'TOTAL_MEDIAN_DISTANCE_SPREAD',
                   'TEAM_DIAMETER',
-                  'ASSIGNED_MEDIAN_COUNT_SPREAD',
+                  'GREEDY_MEDIAN_COUNT_SPREAD',
                   'ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN',
                   'ROBOT1_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT1_STARTX',
@@ -190,10 +190,10 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
         # for name, group in stats_frame.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
 
         # Group by start positions
-        #for name, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
+        for name, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
 
         # Group by task file
-        for name, group in psi_ssi.groupby([stats_frame.TASK_FILE]):
+        # for name, group in psi_ssi.groupby([stats_frame.TASK_FILE]):
 
             print name
 
@@ -349,7 +349,7 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
 
                 greedy_median_count[min_robot_id] += 1
 
-            assigned_median_count_spread = max(greedy_median_count.values()) - min(greedy_median_count.values())
+            greedy_median_count_spread = max(greedy_median_count.values()) - min(greedy_median_count.values())
 
             for row in (min_dist_row, min_run_time_row, min_execution_phase_time_row, minimax_row):
                 row['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'] = sum(assigned_robot_median_distances)
@@ -357,7 +357,7 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 row['MIN_DISTANCE_TO_ASSIGNED_MEDIAN'] = min_assigned_median_dist
                 row['ASSIGNED_MEDIAN_DISTANCE_SPREAD'] = assigned_median_distance_spread
                 row['TEAM_DIAMETER'] = team_diameter
-                row['ASSIGNED_MEDIAN_COUNT_SPREAD'] = assigned_median_count_spread
+                row['GREEDY_MEDIAN_COUNT_SPREAD'] = greedy_median_count_spread
 
                 total_distance_to_all_medians = 0.0
 

@@ -27,6 +27,7 @@
       <w>proc</w>
       <w>procs</w>
       <w>pset</w>
+      <w>resampled</w>
       <w>respawn</w>
       <w>rosbag</w>
       <w>rosgraph</w>
@@ -39,6 +40,7 @@
       <w>timeline</w>
       <w>timelines</w>
       <w>turtlebot</w>
+      <w>undersample</w>
       <w>yaml</w>
       <w>ymin</w>
     </words>
