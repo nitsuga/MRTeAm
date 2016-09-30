@@ -47,6 +47,7 @@ from collections import defaultdict
 import itertools
 import os
 from partitionsets import ordered_set, partition
+import pickle
 import pprint
 import re
 from sets import Set
@@ -73,6 +74,7 @@ from itertools import chain, combinations
 # import rosgraph
 # import rosgraph.names
 import rosnode
+import rospkg
 import rospy
 import rospy.rostime
 
@@ -1025,6 +1027,20 @@ class Auctioneer:
         # task_id => list of robot_name
         self.awarded = defaultdict(list)
 
+        # Classifier used to predict an appropriate mechanism in
+        # select_mechanism_dynamic(). This classifier will have been
+        # trained in scikit-learn and dumped to a file with pickle.
+        pkg = rospkg.RosPack()
+        pkg_path = pkg.get_path('mrta_auctioneer')
+        dumpfilename = 'minimax-svc.dump'
+        dumppath = os.path.join(pkg_path, 'classifier', dumpfilename)
+
+        # Trained on
+        # ['GREEDY_MEDIAN_COUNT_SPREAD', 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN', 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
+        # 'TEAM_DIAMETER']
+
+        self.classifier = pickle.load(open(dumppath, 'rb'))
+
         # Set up state machine.
         # See mrta/docs/auctioneer-fsm.png
         self.fsm = Fysom( 
@@ -1135,6 +1151,7 @@ class Auctioneer:
         rospy.loginfo("self.new_task_added=={0}".format(self.new_task_added))
 
         rospy.loginfo("add_scripted_task(): current state=={0}".format(self.fsm.current))
+
 
     def load_tasks(self, data):
         rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
@@ -1298,7 +1315,87 @@ class Auctioneer:
         # Teitz-Bart
         return p_medians
 
-    def choose_dynamic_mechanism(self, unallocated):
+
+    def get_team_diameter(self):
+
+        robot_graph = igraph.Graph()
+        robot_graph.add_vertices(self.team_members)
+
+        # Turn on weighting
+        robot_graph.es['weight'] = 1.0
+
+        # For every pair of robots
+        for pair in combinations(self.team_members, 2):
+            first_robot_name = pair[0]
+            second_robot_name = pair[1]
+
+            source_point = mrta.Point(self.team_poses[first_robot_name].position.x,
+                                      self.team_poses[first_robot_name].position.y)
+            source_pose = self.planner_proxy._point_to_pose(source_point)
+
+            target_point = mrta.Point(self.team_poses[second_robot_name].position.x,
+                                      self.team_poses[second_robot_name].position.y)
+            target_pose = self.planner_proxy._point_to_pose(target_point)
+
+            distance = self.planner_proxy.get_path_cost(source_pose, target_pose)
+
+            robot_graph[first_robot_name, second_robot_name] = distance
+
+        dist_matrix = robot_graph.get_adjacency(type=2, attribute='weight').data
+
+        print("robot_graph: {0}, distances: {1}".format(robot_graph.summary(),
+                                                        robot_graph.es['weight']))
+        # print("Distance-weighted adjacency matrix: {0}".format(pp.pformat(dist_matrix)))
+
+        # robot_graph_mst = robot_graph.spanning_tree(weights=robot_graph.es['weight'])
+        # print("robot_graph_mst: {0}, distances: {1}".format(robot_graph_mst.summary(),
+        #                                                     robot_graph_mst.es['weight']))
+        # print task_graph_mst
+        team_diameter = robot_graph.diameter(directed=False, weights='weight')
+        print "team diameter: {0}".format(team_diameter)
+        return team_diameter
+
+
+    def get_greedy_median_count(self, median_tasks):
+
+        # Keep track of every robot's distance to every median
+        # Key is robot id, value is a dict of median task_id => distance
+        distance_to_all_medians = {}
+        for robot_name in self.team_members:
+            distance_to_all_medians[robot_name] = {}
+
+        # For each robot, count how many medians it is the "closest" to
+        greedy_median_count = {}
+        for robot_name in self.team_members:
+            greedy_median_count[robot_name] = 0
+
+        for median_task in median_tasks:
+            min_robot_id = None
+            min_robot_distance = None
+
+            source_point = mrta.Point(median_task.location.x,
+                                      median_task.location.y)
+            source_pose = self.planner_proxy._point_to_pose(source_point)
+
+            for robot_name in self.team_members:
+                target_point = mrta.Point(self.team_poses[robot_name].position.x,
+                                          self.team_poses[robot_name].position.y)
+                target_pose = self.planner_proxy._point_to_pose(target_point)
+
+                distance = self.planner_proxy.get_path_cost(source_pose, target_pose)
+
+                distance_to_all_medians[robot_name][median_task.task_id] = distance
+
+                if not min_robot_distance or distance < min_robot_distance:
+                    min_robot_id = robot_name
+                    min_robot_distance = distance
+
+            greedy_median_count[min_robot_id] += 1
+
+        return greedy_median_count
+
+
+    def select_mechanism_dynamic(self, unallocated):
         """ Decide which mechanism to use given a list of unallocated tasks.
 
         Our first go at this will use ideas from facility-location to choose
@@ -1437,7 +1534,6 @@ class Auctioneer:
             median_task_candidates.remove(min_median_task)
             team_member_candidates.remove(min_team_member)
 
-
         total_dist_to_medians = 0.0
         avg_dist_to_medians = 0.0
 
@@ -1449,14 +1545,24 @@ class Auctioneer:
         rospy.loginfo("Total distance to medians: {0}, Average distance to medians: {1}".format(total_dist_to_medians,
                                                                                                 avg_dist_to_medians))
 
-        # So what criteria do we use to decide? Min/max/average distance? Compare those
-        # to some property of the graph like diameter?
+        greedy_median_count = self.get_greedy_median_count(median_tasks)
+        greedy_median_count_spread = max(greedy_median_count.values()) - min(greedy_median_count.values())
 
-        # This is just a test!
-        if avg_dist_to_medians < 5.0:
-            dynamic_mechanism = 'PSI'
-        else:
-            dynamic_mechanism = 'SSI'
+        min_distance_to_assigned_median = min(team_distance_to_medians.values())
+        total_distance_to_assigned_medians = sum(team_distance_to_medians.values())
+
+        team_diameter = self.get_team_diameter()
+
+        features = [greedy_median_count_spread,
+                    min_distance_to_assigned_median,
+                    total_distance_to_assigned_medians,
+                    team_diameter]
+
+        rospy.loginfo("Auctioneer: features: {0}".format(pp.pformat(features)))
+
+        dynamic_mechanism = self.classifier.predict([features])[0]
+
+        rospy.loginfo("Auctioneer: select_mechanism_dynamic() chose {0}".format(dynamic_mechanism))
 
         return dynamic_mechanism
 
@@ -1512,7 +1618,7 @@ class Auctioneer:
             # the experiment
             begin_choose_msg = mrta.msg.ExperimentEvent()
             begin_choose_msg.experiment_id = self.experiment_id
-            begin_choose_msg.event = mrta.msg.ExperimentEvent.BEGIN_CHOOSE_MECHANISM
+            begin_choose_msg.event = mrta.msg.ExperimentEvent.BEGIN_SELECT_MECHANISM
             stamp(begin_choose_msg)
             self.experiment_pub.publish(begin_choose_msg)
 
@@ -1520,15 +1626,16 @@ class Auctioneer:
             mechanism = self.mechanism
 
             # If we're choosing a mechanism a runtime
-            if self.dynamic_mechanism:
-                mechanism2 = self.choose_dynamic_mechanism(unallocated)
-                rospy.loginfo("Auctioneer: Mechanism {0} chosen".format(mechanism))
+#            if self.dynamic_mechanism:
+            if mechanism == 'SEL':
+                mechanism = self.select_mechanism_dynamic(unallocated)
+                rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
             # Send a message to mark the end of the mechanism-choosing phase of
             # the experiment
             begin_choose_msg = mrta.msg.ExperimentEvent()
             begin_choose_msg.experiment_id = self.experiment_id
-            begin_choose_msg.event = mrta.msg.ExperimentEvent.END_CHOOSE_MECHANISM
+            begin_choose_msg.event = mrta.msg.ExperimentEvent.END_SELECT_MECHANISM
             stamp(begin_choose_msg)
             self.experiment_pub.publish(begin_choose_msg)
 

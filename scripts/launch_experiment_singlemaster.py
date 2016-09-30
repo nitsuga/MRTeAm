@@ -116,9 +116,9 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     if args.reallocate:
         reallocate_flag = 'true'
 
-    dynamic_mechanism_flag = 'false'
-    if args.dynamic_mechanism:
-        dynamic_mechanism_flag = 'true'
+    # dynamic_mechanism_flag = 'false'
+    # if args.dynamic_mechanism:
+    #     dynamic_mechanism_flag = 'true'
 
     # If we're doing random start poses, generate them first,
     # but ONLY if we're not "reusing" previously-generated start poses
@@ -135,7 +135,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                   main_launchfile,
                                   "nogui_flag:={0}".format(nogui_flag),
                                   "reallocate:={0}".format(reallocate_flag),
-                                  "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
+                                  # "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
                                   "map_file:={0}".format(map_file),
                                   "world_file:={0}".format(world_file),
                                   "task_file:={0}".format(task_file),
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Launch a multirobot task-allocation experiment.')
 
     parser.add_argument('mechanism',
-                        choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX'],
+                        choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX', 'SEL'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
                         choices=['brooklyn', 'smartlab'],
@@ -219,7 +219,7 @@ if __name__ == '__main__':
                         help='Name of the file containing task point locations.')
     parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
     parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
-    parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
+#    parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
     parser.add_argument("-rs", "--reuse_starts",
                         help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_poses.DEFAULT_START_POSE_FILE),
                         action="store_true")
