@@ -1630,14 +1630,18 @@ class Auctioneer:
             if mechanism == 'SEL':
                 mechanism = self.select_mechanism_dynamic(unallocated)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
+            else:
+                # Call it anyway to record information about medians and distance. Discard the result.
+                self.select_mechanism_dynamic(unallocated)
+                rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
             # Send a message to mark the end of the mechanism-choosing phase of
             # the experiment
-            begin_choose_msg = mrta.msg.ExperimentEvent()
-            begin_choose_msg.experiment_id = self.experiment_id
-            begin_choose_msg.event = mrta.msg.ExperimentEvent.END_SELECT_MECHANISM
-            stamp(begin_choose_msg)
-            self.experiment_pub.publish(begin_choose_msg)
+            end_choose_msg = mrta.msg.ExperimentEvent()
+            end_choose_msg.experiment_id = self.experiment_id
+            end_choose_msg.event = mrta.msg.ExperimentEvent.END_SELECT_MECHANISM
+            stamp(end_choose_msg)
+            self.experiment_pub.publish(end_choose_msg)
 
             if mechanism == 'OSI':
                 auction_osi = AuctionOSI(self, unallocated, self.auction_round)
