@@ -224,10 +224,9 @@ if __name__ == '__main__':
     parser.add_argument("-rs", "--reuse_starts",
                         help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_poses.DEFAULT_START_POSE_FILE),
                         action="store_true")
-    parser.add_argument("-cl", "--classifier_name",
+    parser.add_argument("-cl", "--classifier_name", type=str,
                         help="Base filename of a classifier to use for dynamic mechanism selection.",
-                        default='clf_execution_phase_time_random_forest',
-                        action="store_true")
+                        default='clf_execution_phase_time_random_forest')
 
     args = parser.parse_args()
 
