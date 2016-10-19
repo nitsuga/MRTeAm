@@ -9,6 +9,8 @@
 
   <arg name="dummy_robot_name" default="robot_0" />
 
+  <arg name="classifier_name" default="clf_execution_phase_time_random_forest" />
+
 <!--  <node name="rviz" pkg="rviz" type="rviz" /> -->
 
   <!-- Map server -->
@@ -303,6 +305,7 @@
     <param name="reallocate" value="$(arg reallocate)" />
 <!--    <param name="dynamic_mechanism" value="$(arg dynamic_mechanism)" /> -->
     <param name="dummy_robot_name" value="$(arg dummy_robot_name)" />
+    <param name="classifier_name" value="$(arg classifier_name)" />
   </node>
 
 </launch>

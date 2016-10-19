@@ -58,6 +58,7 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'ROBOT3_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT3_STARTX',
                   'ROBOT3_STARTY',
+                  'WINNER_DIFFERENCE',
                   'MECHANISM']
 
 ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
@@ -190,10 +191,10 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
         # for name, group in stats_frame.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
 
         # Group by start positions
-        for name, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
+        # for name, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
 
         # Group by task file
-        # for name, group in psi_ssi.groupby([stats_frame.TASK_FILE]):
+        for name, group in psi_ssi.groupby([stats_frame.TASK_FILE]):
 
             print name
 
@@ -222,8 +223,6 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 minimax_row = second_row
                 minimax_loser_row = first_row
 
-            minimax_margin = abs(first_row_max_dist - second_row_max_dist)
-
             # find the rows of the "winners" for both distance and time
             min_dist_idx = group.TOTAL_DISTANCE.idxmin()
             min_dist_row = stats_frame.ix[min_dist_idx]
@@ -245,12 +244,18 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             max_execution_phase_time_idx = group.EXECUTION_PHASE_TIME.idxmax()
             max_execution_phase_time_row = stats_frame.ix[max_execution_phase_time_idx]
 
-            dist_margin = max_dist_row.TOTAL_DISTANCE - min_dist_row.TOTAL_DISTANCE
+            minimax_margin = abs(first_row_max_dist - second_row_max_dist)
+            team_distance_margin = max_dist_row.TOTAL_DISTANCE - min_dist_row.TOTAL_DISTANCE
             run_time_margin = max_run_time_row.TOTAL_RUN_TIME - min_run_time_row.TOTAL_RUN_TIME
-            execution_phase_time_margin = max_execution_phase_time_row.EXECUTION_PHASE_TIME - max_execution_phase_time_row.EXECUTION_PHASE_TIME
+            execution_phase_time_margin = max_execution_phase_time_row.EXECUTION_PHASE_TIME - min_execution_phase_time_row.EXECUTION_PHASE_TIME
+
+            minimax_row['WINNER_DIFFERENCE'] = minimax_margin
+            min_dist_row['WINNER_DIFFERENCE'] = team_distance_margin
+            min_run_time_row['WINNER_DIFFERENCE'] = run_time_margin
+            min_execution_phase_time_row['WINNER_DIFFERENCE'] = execution_phase_time_margin
 
             print "team distance winner: {0}, minimax distance winner: {1}, run time winner: {2}, execution phase time winner: {3}".format(min_dist_row.MECHANISM, minimax_row.MECHANISM, min_run_time_row.MECHANISM, min_execution_phase_time_row.MECHANISM)
-            print "team distance win margin: {0}, minimax distance margin: {1}, run time win margin: {2}, execution phase time margin: {3}".format(dist_margin, minimax_margin, run_time_margin, execution_phase_time_margin)
+            print "team distance win margin: {0}, minimax distance margin: {1}, run time win margin: {2}, execution phase time margin: {3}".format(team_distance_margin, minimax_margin, run_time_margin, execution_phase_time_margin)
             print "team distance winner bag filename: {0}".format(min_dist_row.BAG_FILENAME)
             print "team distance loser bag filename: {0}".format(max_dist_row.BAG_FILENAME)
             print "run time winner bag filename: {0}".format(min_run_time_row.BAG_FILENAME)

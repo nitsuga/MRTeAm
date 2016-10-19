@@ -11,8 +11,11 @@ from imblearn.under_sampling import RandomUnderSampler
 from imblearn.under_sampling import TomekLinks
 
 
-def balance_training(in_file, out_file, method):
+def balance_training(in_file, out_file, method, significant=False):
     df = pd.read_csv(in_file)
+
+    if significant:
+        df = df[df.WINNER_DIFFERENCE > df.WINNER_DIFFERENCE.std()]
 
     df_x = df.ix[:, :-1].values.tolist()
     df_y = df.ix[:, -1:].values.flatten().tolist()
@@ -61,9 +64,13 @@ if __name__ == '__main__':
                         choices=['UR', 'SE', 'TL', 'CC'],
                         help='Method to balance training sets. UR: Undersample-random, SE: SMOTE-ENN')
 
+    parser.add_argument("-s", "--significant", help="Drop instances where WINNER_DISTANCE is not significant.",
+                        action="store_true")
+
     args = parser.parse_args()
     in_file = args.input
     out_file = args.output
     method = args.method
+    significant = args.significant
 
     balance_training(in_file, out_file, method)

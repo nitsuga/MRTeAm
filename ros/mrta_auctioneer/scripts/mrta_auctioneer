@@ -45,6 +45,7 @@ Eric Schneider <eric.schneider@liverpool.ac.uk>
 # Standard Python modules
 from collections import defaultdict
 import itertools
+import numpy as np
 import os
 from partitionsets import ordered_set, partition
 import pickle
@@ -1032,14 +1033,19 @@ class Auctioneer:
         # trained in scikit-learn and dumped to a file with pickle.
         pkg = rospkg.RosPack()
         pkg_path = pkg.get_path('mrta_auctioneer')
-        dumpfilename = 'minimax-svc.dump'
-        dumppath = os.path.join(pkg_path, 'classifier', dumpfilename)
 
-        # Trained on
-        # ['GREEDY_MEDIAN_COUNT_SPREAD', 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN', 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
-        # 'TEAM_DIAMETER']
+        clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
+        clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
+        clf_features_filename = '{0}.features'.format(clf_base_filename)
 
-        self.classifier = pickle.load(open(dumppath, 'rb'))
+        classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
+        features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
+
+        with open(classifier_path, 'rb') as classifier_file:
+            self.classifier = pickle.load(classifier_file)
+
+        with open(features_path, 'rb') as features_file:
+            self.feature_names = eval(features_file.read())
 
         # Set up state machine.
         # See mrta/docs/auctioneer-fsm.png
@@ -1151,7 +1157,6 @@ class Auctioneer:
         rospy.loginfo("self.new_task_added=={0}".format(self.new_task_added))
 
         rospy.loginfo("add_scripted_task(): current state=={0}".format(self.fsm.current))
-
 
     def load_tasks(self, data):
         rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
@@ -1355,7 +1360,6 @@ class Auctioneer:
         print "team diameter: {0}".format(team_diameter)
         return team_diameter
 
-
     def get_greedy_median_count(self, median_tasks):
 
         # Keep track of every robot's distance to every median
@@ -1392,8 +1396,7 @@ class Auctioneer:
 
             greedy_median_count[min_robot_id] += 1
 
-        return greedy_median_count
-
+        return greedy_median_count, distance_to_all_medians
 
     def select_mechanism_dynamic(self, unallocated):
         """ Decide which mechanism to use given a list of unallocated tasks.
@@ -1488,7 +1491,7 @@ class Auctioneer:
         # 4. If The team (average, max?) distance to the facility locations
         # is greater than ?, choose SSI. Otherwise, choose PSI.
 
-        team_distance_to_medians = defaultdict(float)
+        team_distance_to_assigned_medians = defaultdict(float)
 
         # Assign each team member to the median closest to it. We'll assign medians to
         # team members in a 1-1 correspondence, so we'll need candidate lists
@@ -1529,36 +1532,65 @@ class Auctioneer:
                                                                                                       min_distance_to_median)
             self.debug_pub.publish(debug_msg)
 
-            team_distance_to_medians[min_team_member] = min_distance_to_median
+            team_distance_to_assigned_medians[min_team_member] = min_distance_to_median
 
             median_task_candidates.remove(min_median_task)
             team_member_candidates.remove(min_team_member)
 
-        total_dist_to_medians = 0.0
-        avg_dist_to_medians = 0.0
+        total_dist_to_assigned_medians = 0.0
+        avg_dist_to_assigned_medians = 0.0
 
-        for team_member in team_distance_to_medians:
-            total_dist_to_medians += team_distance_to_medians[team_member]
+        for team_member in team_distance_to_assigned_medians:
+            total_dist_to_assigned_medians += team_distance_to_assigned_medians[team_member]
 
-        avg_dist_to_medians = total_dist_to_medians / len(team_distance_to_medians) * 1.0
+        avg_dist_to_assigned_medians = total_dist_to_assigned_medians / len(team_distance_to_assigned_medians) * 1.0
 
-        rospy.loginfo("Total distance to medians: {0}, Average distance to medians: {1}".format(total_dist_to_medians,
-                                                                                                avg_dist_to_medians))
+        rospy.loginfo("Total distance to medians: {0}, Average distance to medians: {1}".format(total_dist_to_assigned_medians,
+                                                                                                avg_dist_to_assigned_medians))
 
-        greedy_median_count = self.get_greedy_median_count(median_tasks)
+        greedy_median_count, team_distance_to_all_medians = self.get_greedy_median_count(median_tasks)
         greedy_median_count_spread = max(greedy_median_count.values()) - min(greedy_median_count.values())
 
-        min_distance_to_assigned_median = min(team_distance_to_medians.values())
-        total_distance_to_assigned_medians = sum(team_distance_to_medians.values())
+        min_distance_to_assigned_median = min(team_distance_to_assigned_medians.values())
+        max_distance_to_assigned_median = max(team_distance_to_assigned_medians.values())
+        total_distance_to_assigned_medians = sum(team_distance_to_assigned_medians.values())
+
+        assigned_median_distance_spread = max_distance_to_assigned_median - min_distance_to_assigned_median
+
+        total_distance_to_all_medians = 0.0
+        max_distance_to_any_median = None
+        min_distance_to_any_median = None
+        for robot_name in team_distance_to_all_medians:
+            for median_task_id in team_distance_to_all_medians[robot_name]:
+
+                robot_median_distance = team_distance_to_all_medians[robot_name][median_task_id]
+
+                if not max_distance_to_any_median or robot_median_distance > max_distance_to_any_median:
+                    max_distance_to_any_median = robot_median_distance
+
+                if not min_distance_to_any_median or robot_median_distance < min_distance_to_any_median:
+                    min_distance_to_any_median = robot_median_distance
+
+                total_distance_to_all_medians += robot_median_distance
+
+        total_median_distance_spread = max_distance_to_any_median - min_distance_to_any_median
 
         team_diameter = self.get_team_diameter()
 
-        features = [greedy_median_count_spread,
-                    min_distance_to_assigned_median,
-                    total_distance_to_assigned_medians,
-                    team_diameter]
+        # features = [greedy_median_count_spread,
+        #             min_distance_to_assigned_median,
+        #             total_distance_to_assigned_medians,
+        #             team_diameter]
 
         rospy.loginfo("Auctioneer: features: {0}".format(pp.pformat(features)))
+
+        features_map = {'MAX_DISTANCE_TO_ASSIGNED_MEDIAN': max_distance_to_assigned_median,
+                        'ASSIGNED_MEDIAN_DISTANCE_SPREAD': assigned_median_distance_spread,
+                        'TOTAL_MEDIAN_DISTANCE_SPREAD': total_median_distance_spread,
+                        'GREEDY_MEDIAN_COUNT_SPREAD': greedy_median_count_spread,
+                        'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS': total_dist_to_assigned_medians}
+
+        features = np.reshape([features_map[f] for f in self.feature_names], (1, -1))
 
         dynamic_mechanism = self.classifier.predict([features])[0]
 

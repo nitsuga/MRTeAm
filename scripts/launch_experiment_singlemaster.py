@@ -139,7 +139,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                   "map_file:={0}".format(map_file),
                                   "world_file:={0}".format(world_file),
                                   "task_file:={0}".format(task_file),
-                                  "mechanism:={0}".format(mechanism)])
+                                  "mechanism:={0}".format(mechanism),
+                                  "classifier_name:={0}".format(args.classifier_name)])
     running_procs.append(main_proc)
     time.sleep(1)
 
@@ -222,6 +223,10 @@ if __name__ == '__main__':
 #    parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
     parser.add_argument("-rs", "--reuse_starts",
                         help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_poses.DEFAULT_START_POSE_FILE),
+                        action="store_true")
+    parser.add_argument("-cl", "--classifier_name",
+                        help="Base filename of a classifier to use for dynamic mechanism selection.",
+                        default='clf_execution_phase_time_random_forest',
                         action="store_true")
 
     args = parser.parse_args()
