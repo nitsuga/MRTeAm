@@ -1582,8 +1582,6 @@ class Auctioneer:
         #             total_distance_to_assigned_medians,
         #             team_diameter]
 
-        rospy.loginfo("Auctioneer: features: {0}".format(pp.pformat(features)))
-
         features_map = {'MAX_DISTANCE_TO_ASSIGNED_MEDIAN': max_distance_to_assigned_median,
                         'ASSIGNED_MEDIAN_DISTANCE_SPREAD': assigned_median_distance_spread,
                         'TOTAL_MEDIAN_DISTANCE_SPREAD': total_median_distance_spread,
@@ -1591,6 +1589,8 @@ class Auctioneer:
                         'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS': total_dist_to_assigned_medians}
 
         features = np.reshape([features_map[f] for f in self.feature_names], (1, -1))
+
+        rospy.loginfo("Auctioneer: features: {0}".format(pp.pformat(features)))
 
         dynamic_mechanism = self.classifier.predict([features])[0]
 
