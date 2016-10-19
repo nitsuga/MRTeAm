@@ -1592,7 +1592,7 @@ class Auctioneer:
 
         rospy.loginfo("Auctioneer: features: {0}".format(pp.pformat(features)))
 
-        dynamic_mechanism = self.classifier.predict([features])[0]
+        dynamic_mechanism = self.classifier.predict(features)[0]
 
         rospy.loginfo("Auctioneer: select_mechanism_dynamic() chose {0}".format(dynamic_mechanism))
 
