@@ -632,6 +632,10 @@ def parse_stats(bag_paths, output):
             row_fields['ROBOT{0}_IDLE_TIME'.format(j)] = robot.idle_time              # 'ROBOT<n>_IDLE_TIME'
             row_fields['ROBOT{0}_DELAY_TIME'.format(j)] = robot.delay_time            # 'ROBOT<n>_DELAY_TIME'
 
+        row_fields['MAXIMUM_ROBOT_DISTANCE'] = max(row_fields['ROBOT1_DISTANCE'],
+                                                   row_fields['ROBOT2_DISTANCE'],
+                                                   row_fields['ROBOT3_DISTANCE'])
+
         # Round float values to 6 digits of precision
         for key in row_fields.keys():
             if is_number(row_fields[key]):
