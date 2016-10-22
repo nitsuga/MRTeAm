@@ -67,7 +67,8 @@ field_names = [
     'ROBOT3_WAITING_TIME',
     'ROBOT3_IDLE_TIME',
     'ROBOT3_DELAY_TIME',
-    'MEAN_MSG_TIME'
+    'MEAN_MSG_TIME',
+    'MAXIMUM_ROBOT_DISTANCE'
 ]
 
 ROBOT_NAMES = ['robot_1',
