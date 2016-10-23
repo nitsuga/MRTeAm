@@ -68,7 +68,8 @@ field_names = [
     'ROBOT3_IDLE_TIME',
     'ROBOT3_DELAY_TIME',
     'MEAN_MSG_TIME',
-    'MAXIMUM_ROBOT_DISTANCE'
+    'MAXIMUM_ROBOT_DISTANCE',
+    'MECHANISM_SELECTED'
 ]
 
 ROBOT_NAMES = ['robot_1',
@@ -619,6 +620,12 @@ def parse_stats(bag_paths, output):
                     p_median_task_ids = '-'.join(p_median_task_ids_csv.split(','))
 
         row_fields['MEDIAN_TASK_IDS'] = p_median_task_ids
+
+        # Selected mechanism, if any
+        row_fields['SELECTED_MECHANISM'] = None
+        for debug_msg in run_msgs['/debug']:
+            if debug_msg.key == 'auctioneer-selected-mechanism':
+                row_fields['SELECTED_MECHANISM'] = debug_msg.value
 
         for j in range(1, 4):
             r_name = 'robot_{0}'.format(j)
