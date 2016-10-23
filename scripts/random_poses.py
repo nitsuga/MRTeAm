@@ -82,7 +82,7 @@ def occupy_region(image, center_x, center_y, buffer, color):
                 continue
 
 
-def get_random_poses(image, num_poses, buffer_size):
+def get_random_poses(image, num_poses, buffer_size, occupy):
     im_width, im_height = image.size
 
     # The random poses (pairs of (x, y, z, alpha)) to return, initially empty
@@ -108,12 +108,15 @@ def get_random_poses(image, num_poses, buffer_size):
                 reversed_y = im_height - candidate_y
                 random_poses.append((candidate_x/100.0, reversed_y/100.0, 0, alpha))
 
-                # 'Occupy' a region around the point with a certain color,
-                # in our case RGBA black (0, 0, 0, 255)
-                occupied_color = (0, 0, 0, 255)
-                occupy_region(image, candidate_x, candidate_y, buffer_size, occupied_color)
+                if occupy:
+                    # 'Occupy' a region around the point with a certain color,
+                    # in our case RGBA black (0, 0, 0, 255)
+                    occupied_color = (0, 0, 0, 255)
+                    occupy_region(image, candidate_x, candidate_y, buffer_size, occupied_color)
 
                 break
+            # else:
+            #     print "{2}: ({0},{1}) is not a safe location".format(candidate_x, candidate_y, i)
 
     return random_poses
 
@@ -139,7 +142,7 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=15):
         print "Couldn't open map image {0} for reading!".format(map_image_file)
         sys.exit(1)
 
-    random_poses = get_random_poses(map_image, num_poses, buffer_size)
+    random_poses = get_random_poses(map_image, num_poses, buffer_size, occupy=False)
 
     # Write the poses to output_file
     try:
@@ -179,7 +182,7 @@ def generate_and_write_starts(map_image_file, num_poses=3, buffer_size=70, outpu
         print "Couldn't open map image {0} for reading!".format(map_image_file)
         sys.exit(1)
 
-    random_poses = get_random_poses(map_image, num_poses, buffer_size)
+    random_poses = get_random_poses(map_image, num_poses, buffer_size, occupy=True)
 
     # Write the poses to output_file
     try:
