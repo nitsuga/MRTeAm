@@ -1607,6 +1607,11 @@ class Auctioneer:
 
         rospy.loginfo("Auctioneer: select_mechanism_dynamic() chose {0}".format(dynamic_mechanism))
 
+        debug_msg = mrta.msg.Debug()
+        debug_msg.key = 'auctioneer-selected-mechanism'
+        debug_msg.value = dynamic_mechanism
+        self.debug_pub.publish(debug_msg)
+
         return dynamic_mechanism
 
     def choose_mechanism(self, e):
