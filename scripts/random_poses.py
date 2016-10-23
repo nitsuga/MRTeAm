@@ -142,7 +142,7 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=15):
         print "Couldn't open map image {0} for reading!".format(map_image_file)
         sys.exit(1)
 
-    random_poses = get_random_poses(map_image, num_poses, buffer_size, occupy=False)
+    random_poses = get_random_poses(map_image, num_poses, buffer_size, occupy=True)
 
     # Write the poses to output_file
     try:
