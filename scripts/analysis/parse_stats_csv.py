@@ -69,7 +69,8 @@ field_names = [
     'ROBOT3_DELAY_TIME',
     'MEAN_MSG_TIME',
     'MAXIMUM_ROBOT_DISTANCE',
-    'MECHANISM_SELECTED'
+    'MECHANISM_SELECTED',
+    'MECHANISM_SELECTION_TIME'
 ]
 
 ROBOT_NAMES = ['robot_1',
@@ -364,6 +365,11 @@ def parse_stats(bag_paths, output):
                                         mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
                                         exp_msgs)
         row_fields['NAP_TIME'] = nap_time  # 'NAP_TIME'
+
+        selection_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_SELECT_MECHANISM,
+                                              mrta.msg.ExperimentEvent.END_SELECT_MECHANISM,
+                                              exp_msgs)
+        row_fields['MECHANISM_SELECTION_TIME'] = selection_time  # 'MECHANISM_SELECTION_TIME'
 
         exp_begin_stamp = None
         exp_begin_time = None
