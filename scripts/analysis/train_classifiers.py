@@ -112,9 +112,9 @@ def train_classifiers(in_csv, output):
             pipe = pipeline.Pipeline([
                                       ('scaler', preprocessing.StandardScaler()),
                                       ('feat', top_feat),
-                                      #('clf', SVC())])
+                                      # ('clf', SVC())])
                                       ('clf', RandomForestClassifier())])
-                                      #('clf', KNeighborsClassifier())])
+                                      # ('clf', KNeighborsClassifier())])
                                       # ('clf', DecisionTreeClassifier())])
 
             # SVC parameters
@@ -184,11 +184,17 @@ def train_classifiers(in_csv, output):
             best_params[new_key] = best_params.pop(key)
 
         clf = RandomForestClassifier(**best_params)
+        # clf = KNeighborsClassifier(**best_params)
+
         clf = clf.fit(X.ix[:, best_features], y)
 
-        out_file = open(output, 'wb')
-        pickle.dump(clf, out_file)
-        out_file.close()
+        with open('{0}.dump'.format(output), 'wb') as clf_out:
+            pickle.dump(clf, clf_out)
+
+        with open('{0}.features'.format(output), 'wb') as feat_out:
+            for feat in best_features:
+                print >> feat_out, feat
+
 
     except:
         traceback.print_exc()
@@ -202,7 +208,7 @@ if __name__ == '__main__':
                         help='A .csv training file.')
 
     parser.add_argument('output',
-                        help='Filename to save (pickle) the classifier.')
+                        help='Base filename to use when saving (pickling) the classifier and features.')
 
     args = parser.parse_args()
     in_csv = args.in_csv

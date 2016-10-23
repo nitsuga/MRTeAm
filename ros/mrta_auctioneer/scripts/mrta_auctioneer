@@ -1034,18 +1034,25 @@ class Auctioneer:
         pkg = rospkg.RosPack()
         pkg_path = pkg.get_path('mrta_auctioneer')
 
-        clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
-        clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
-        clf_features_filename = '{0}.features'.format(clf_base_filename)
+        try:
+            clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
+            clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
+            clf_features_filename = '{0}.features'.format(clf_base_filename)
 
-        classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
-        features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
+            classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
+            features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
 
-        with open(classifier_path, 'rb') as classifier_file:
-            self.classifier = pickle.load(classifier_file)
+            with open(classifier_path, 'rb') as classifier_file:
+                self.classifier = pickle.load(classifier_file)
 
-        with open(features_path, 'rb') as features_file:
-            self.feature_names = eval(features_file.read())
+            self.feature_names = []
+            with open(features_path, 'rb') as features_file:
+                for line in features_file:
+                    self.feature_names.append(line.rstrip())
+        except:
+            rospy.logerr("Error opening classifier/features".format(self.task_file))
+            e_type, e_value, e_traceback = sys.exc_info()
+            rospy.logerr("{0}: {1}".format(e_type, e_value))
 
         # Set up state machine.
         # See mrta/docs/auctioneer-fsm.png
@@ -1583,10 +1590,14 @@ class Auctioneer:
         #             team_diameter]
 
         features_map = {'MAX_DISTANCE_TO_ASSIGNED_MEDIAN': max_distance_to_assigned_median,
+                        'MIN_DISTANCE_TO_ASSIGNED_MEDIAN': min_distance_to_assigned_median,
+                        'MAX_DISTANCE_TO_ANY_MEDIAN': max_distance_to_any_median,
+                        'MIN_DISTANCE_TO_ANY_MEDIAN': min_distance_to_any_median,
                         'ASSIGNED_MEDIAN_DISTANCE_SPREAD': assigned_median_distance_spread,
                         'TOTAL_MEDIAN_DISTANCE_SPREAD': total_median_distance_spread,
                         'GREEDY_MEDIAN_COUNT_SPREAD': greedy_median_count_spread,
-                        'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS': total_dist_to_assigned_medians}
+                        'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS': total_dist_to_assigned_medians,
+                        'TEAM_DIAMETER': team_diameter}
 
         features = np.reshape([features_map[f] for f in self.feature_names], (1, -1))
 
