@@ -622,10 +622,10 @@ def parse_stats(bag_paths, output):
         row_fields['MEDIAN_TASK_IDS'] = p_median_task_ids
 
         # Selected mechanism, if any
-        row_fields['SELECTED_MECHANISM'] = None
+        row_fields['MECHANISM_SELECTED'] = None
         for debug_msg in run_msgs['/debug']:
             if debug_msg.key == 'auctioneer-selected-mechanism':
-                row_fields['SELECTED_MECHANISM'] = debug_msg.value
+                row_fields['MECHANISM_SELECTED'] = debug_msg.value
 
         for j in range(1, 4):
             r_name = 'robot_{0}'.format(j)
