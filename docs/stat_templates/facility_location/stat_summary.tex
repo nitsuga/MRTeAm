@@ -1,0 +1,117 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{graphicx}
+\usepackage[
+top    = 2.5cm,
+bottom = 2.50cm,
+left   = 2.5cm,
+right  = 2.50cm]{geometry}
+\usepackage{relsize}
+\usepackage{titling}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+% Define a task filename here
+%\newcommand{\taskfile}{tasks_A}
+
+\title{$TITLE$}
+\preauthor{}
+\author{}
+\postauthor{}
+\predate{}
+\date{}
+\postdate{}
+
+\begin{document}
+
+\maketitle
+
+\subsection*{Start configurations combined}
+
+\vspace{1cm}
+
+%%% Overall stats, regardless of start config
+
+%% Execution Time
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{execution-phase-time.pdf}
+\end{minipage}
+%% Total Run Time
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{run-time.pdf}
+\end{minipage}
+\\[2.0cm]
+
+
+%% Maximum Distance Travelled
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{maximum-distance.pdf}
+\end{minipage}
+%% Team Distance Travelled
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{team-distance.pdf}
+\end{minipage}
+\\[0.2cm]
+
+\newpage
+
+%%% Clustered and distributed starts
+
+\subsection*{Clustered (left column), Distributed (right column)}
+
+%% Execution Time
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{execution-phase-time-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{execution-phase-time-distributed.pdf}
+\end{minipage}
+\\[0.2cm]
+
+%% Total Run Time
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{run-time-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{run-time-distributed.pdf}
+\end{minipage}
+\\[0.2cm]
+
+%% Maximum Distance Travelled
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{team-distance-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{team-distance-distributed.pdf}
+\end{minipage}
+\\[0.5cm]
+
+%% Team Distance Travelled
+\noindent
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{maximum-distance-clustered.pdf}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\includegraphics[width=\textwidth]{maximum-distance-distributed.pdf}
+\end{minipage}
+\\[0.5cm]
+
+%%% Deliberation Time
+%\noindent
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{deliberation-$TASKFILE$-clustered.pdf}
+%\end{minipage}
+%\begin{minipage}{0.5\textwidth}
+%\includegraphics[width=\textwidth]{deliberation-$TASKFILE$-distributed.pdf}
+%\end{minipage}
+%\\[0.2cm]
+
+
+
+
+\end{document}
