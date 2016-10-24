@@ -5,18 +5,21 @@ import datetime
 import mrta
 import mrta.msg
 import pprint
+import rospkg
 import rospy
 import signal
 import subprocess
 import sys
 import time
 
+# Our random start pose functions
+import random_poses
+
 # Paths to ROS binaries
-#ROS_HOME = '/opt/ros/hydro'
 ROS_HOME = '/opt/ros/indigo'
-#ROS_HOME = '/home/esch/opt/ros/indigo'
+# ROS_HOME = '/home/esch/opt/ros/indigo'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
-#ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
+# ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
 
 # How many seconds to wait before killing all processes
@@ -28,36 +31,36 @@ TIMEOUT_PSI = 600
 running_procs = []
 
 # Robots we want to start up
-robots = [ { 'name': 'robot_1',
-             'port': '11312' },
-           { 'name': 'robot_2',
-             'port': '11313' },
-           { 'name': 'robot_3',
-             'port': '11314' } ]
+robots = [{'name': 'robot_1',
+           'port': '11312'},
+          {'name': 'robot_2',
+           'port': '11313'},
+          {'name': 'robot_3',
+           'port': '11314'}]
 
-maps = { 'brooklyn': 'brooklyn_lab.png',
-         'smartlab': 'smartlab_ugv_arena_v2.png' }
+maps = {'brooklyn': 'brooklyn_lab.png',
+        'smartlab': 'smartlab_ugv_arena_v2.png'}
 
-world_files = { 'brooklyn': { 'clustered': 'brooklyn_arena_3_robots_clustered.world',
-                              'distributed': 'brooklyn_arena_3_robots_distributed.world',
-                              'distributed_A': ''},
-                'smartlab': { 'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
-                              'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
-                              'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'} }
+world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
+                            'distributed': 'brooklyn_arena_3_robots_distributed.world',
+                            'distributed_A': ''},
+               'smartlab': {'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
+                            'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
+                            'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'}}
 
 
 mechanisms = [ 'OSI', 'PSI', 'SSI', 'RR' ]
 
-#task_files = [ 'brooklyn_tasks_A.txt',
-#               'tasks_A.txt' ]
+# task_files = [ 'brooklyn_tasks_A.txt', 'tasks_A.txt' ]
 
 # Topics to record with rosbag
-record_topics = [ '/experiment', '/tasks/announce', '/tasks/bid',
-                  '/tasks/award', '/tasks/status', '/tasks/new', '/debug' ]
+record_topics = ['/experiment', '/tasks/announce', '/tasks/bid',
+                 '/tasks/award', '/tasks/status', '/tasks/new', '/debug']
 
 exp_running = False
 
 pp = pprint.PrettyPrinter(indent=2)
+
 
 def kill_procs():
     for proc in reversed(running_procs):
@@ -68,6 +71,7 @@ def kill_procs():
         except:
             print("Error: {0}".format(sys.exc_info()[0]))
         time.sleep(2)
+
 
 # Terminate all child processes when we get a SIGINT
 def sig_handler(sig, frame):
@@ -89,21 +93,43 @@ def on_exp_event(exp_event_msg):
         exp_running = False
 
 
-def launch_experiment(mechanism, map_file, world_file, task_file, args):
+def launch_experiment(mechanism, map_file, world_file, task_file, relay_type, args):
     global exp_running
     exp_running = True
+
+    if relay_type not in ['fkie', 'rmq']:
+        print "Unknown relay type: {0}".format(relay_type)
+        sys.exit(1)
+
+    rospack = rospkg.RosPack()
 
     start_time = datetime.datetime.now()
 
     # Launch the "main" roscore on port 11311 : stage_ros and map_server
     print('######## Launching Stage ########')
     main_pkg = 'mrta'
-    main_launchfile = 'stage_3_robots_fkie.launch'
-    # main_launchfile = 'stage_3_robots_rmq.launch'
+    if relay_type == 'fkie':
+        main_launchfile = 'stage_3_robots_fkie.launch'
+    elif relay_type == 'rmq':
+        main_launchfile = 'stage_3_robots_rmq.launch'
 
     nogui_flag = None
     if args.nogui:
       nogui_flag = '-g'
+
+    reallocate_flag = 'false'
+    if args.reallocate:
+        reallocate_flag = 'true'
+
+    # If we're doing random start poses, generate them first,
+    # but ONLY if we're not "reusing" previously-generated start poses
+    if args.start_config == 'random' and not args.reuse_starts:
+        print "Generating a new set of random start locations..."
+        try:
+            os.remove(random_poses.DEFAULT_START_POSE_FILE)
+        except OSError:
+            pass
+        random_poses.generate_and_write_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
@@ -139,8 +165,11 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     # Launch the robots
     robot_pkg = 'mrta_robot_controller'
-    robot_launchfile = 'move_base_generic_fkie.launch'
-    #robot_launchfile = 'move_base_generic_rmq.launch'
+    if relay_type == 'fkie':
+        robot_launchfile = 'move_base_generic_fkie.launch'
+    elif relay_type == 'rmq':
+        robot_launchfile = 'move_base_generic_rmq.launch'
+
     for robot in robots:
         print("######## Launching {0} ########".format(robot['name']))
         robot_proc = subprocess.Popen([ROSLAUNCH,
@@ -155,8 +184,11 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     # Launch the auctioneer
     print('######## Launching auctioneer ########')
     auc_pkg = 'mrta_auctioneer'
-    auc_launchfile = 'mrta_auctioneer_fkie.launch'
-    # auc_launchfile = 'mrta_auctioneer_rmq.launch'
+    if relay_type == 'fkie':
+        auc_launchfile = 'mrta_auctioneer_fkie.launch'
+    elif relay_type == 'rmq':
+        auc_launchfile = 'mrta_auctioneer_rmq.launch'
+
     auc_port = '11315'
     mechanism = mechanism
     task_file = task_file
@@ -166,7 +198,8 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                  '-p', auc_port,
                                  "mechanism:={0}".format(mechanism),
                                  "task_file:={0}".format(task_file),
-                                 "map_file:={0}".format(map_file)])
+                                 "map_file:={0}".format(map_file),
+                                 "classifier_name:={0}".format(args.classifier_name)])
 
     running_procs.append(auc_proc)
 
@@ -214,8 +247,18 @@ if __name__ == '__main__':
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
+    parser.add_argument('relay_type',
+                        choices=['fkie', 'rmq'],
+                        help='Method to relay messages between ROS masters.')
     parser.add_argument("-ng","--nogui", help="Disable the Stage GUI", action="store_true")
-
+    parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
+    # parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
+    parser.add_argument("-rs", "--reuse_starts",
+                        help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_poses.DEFAULT_START_POSE_FILE),
+                        action="store_true")
+    parser.add_argument("-cl", "--classifier_name", type=str,
+                        help="Base filename of a classifier to use for dynamic mechanism selection.",
+                        default='clf_execution_phase_time_random_forest')
 
     args = parser.parse_args()
 
@@ -223,6 +266,7 @@ if __name__ == '__main__':
     map_file = maps[args.map]
     world_file = world_files[args.map][args.start_config]
     task_file = args.task_file
+    relay_type = args.relay_type
 
-    launch_experiment(mechanism, map_file, world_file, task_file, args)
+    launch_experiment(mechanism, map_file, world_file, task_file, relay_type, args)
 

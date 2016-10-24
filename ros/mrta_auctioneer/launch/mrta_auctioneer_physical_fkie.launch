@@ -1,6 +1,10 @@
 <launch>
   <param name="/use_sim_time" value="true"/>
 
+  <arg name="reallocate" default="false" />
+  <arg name="dummy_robot_name" default="robot_0" />
+  <arg name="classifier_name" default="clf_execution_phase_time_random_forest" />
+
   <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" output="screen">
     <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
     <param name="mechanism" value="$(arg mechanism)" />
@@ -12,6 +16,10 @@
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen">
     <rosparam param="robot_hosts">['tyner', 'tb12', 'tb13', 'tb14']</rosparam>
     <param name="name" value="auctioneer_master" />
+    <param name="reallocate" value="$(arg reallocate)" />
+    <param name="dynamic_mechanism" value="True" />
+    <param name="dummy_robot_name" value="$(arg dummy_robot_name)" />
+    <param name="classifier_name" value="$(arg classifier_name)" />
   </node>
 
   <!-- FKIE master sync -->

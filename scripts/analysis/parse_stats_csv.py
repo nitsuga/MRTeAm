@@ -68,7 +68,9 @@ field_names = [
     'ROBOT3_IDLE_TIME',
     'ROBOT3_DELAY_TIME',
     'MEAN_MSG_TIME',
-    'MAXIMUM_ROBOT_DISTANCE'
+    'MAXIMUM_ROBOT_DISTANCE',
+    'MECHANISM_SELECTED',
+    'MECHANISM_SELECTION_TIME'
 ]
 
 ROBOT_NAMES = ['robot_1',
@@ -364,6 +366,11 @@ def parse_stats(bag_paths, output):
                                         exp_msgs)
         row_fields['NAP_TIME'] = nap_time  # 'NAP_TIME'
 
+        selection_time = count_interval_times(mrta.msg.ExperimentEvent.BEGIN_SELECT_MECHANISM,
+                                              mrta.msg.ExperimentEvent.END_SELECT_MECHANISM,
+                                              exp_msgs)
+        row_fields['MECHANISM_SELECTION_TIME'] = selection_time  # 'MECHANISM_SELECTION_TIME'
+
         exp_begin_stamp = None
         exp_begin_time = None
         exp_end_execution_stamp = None
@@ -619,6 +626,12 @@ def parse_stats(bag_paths, output):
                     p_median_task_ids = '-'.join(p_median_task_ids_csv.split(','))
 
         row_fields['MEDIAN_TASK_IDS'] = p_median_task_ids
+
+        # Selected mechanism, if any
+        row_fields['MECHANISM_SELECTED'] = None
+        for debug_msg in run_msgs['/debug']:
+            if debug_msg.key == 'auctioneer-selected-mechanism':
+                row_fields['MECHANISM_SELECTED'] = debug_msg.value
 
         for j in range(1, 4):
             r_name = 'robot_{0}'.format(j)

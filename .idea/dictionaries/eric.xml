@@ -5,8 +5,10 @@
       <w>actionlib</w>
       <w>amcl</w>
       <w>anova</w>
+      <w>bindok</w>
       <w>costmap</w>
       <w>costmaps</w>
+      <w>declareok</w>
       <w>defaultdict</w>
       <w>exps</w>
       <w>filedata</w>
@@ -32,6 +34,7 @@
       <w>rosbag</w>
       <w>rosgraph</w>
       <w>roslaunch</w>
+      <w>rospack</w>
       <w>rosparam</w>
       <w>rospy</w>
       <w>rviz</w>
