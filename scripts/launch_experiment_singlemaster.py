@@ -220,7 +220,7 @@ if __name__ == '__main__':
                         help='Name of the file containing task point locations.')
     parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
     parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
-#    parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
+    # parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
     parser.add_argument("-rs", "--reuse_starts",
                         help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_poses.DEFAULT_START_POSE_FILE),
                         action="store_true")

@@ -6,7 +6,6 @@
 
 <!--  <arg name="dynamic_mechanism" default="false" /> -->
 
-
   <arg name="dummy_robot_name" default="robot_0" />
 
   <arg name="classifier_name" default="clf_execution_phase_time_random_forest" />
