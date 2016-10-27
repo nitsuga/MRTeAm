@@ -1034,6 +1034,8 @@ class Auctioneer:
         pkg = rospkg.RosPack()
         pkg_path = pkg.get_path('mrta_auctioneer')
 
+        self.classifier = None
+        self.feature_names = None
         try:
             clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
             clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
@@ -1420,6 +1422,10 @@ class Auctioneer:
         # Return early with the default mechanism if the set of tasks is less
         # than a certain amount
         if len(unallocated) <= 2:
+            return dynamic_mechanism
+
+        # Return early if no classifier or features have been set
+        if not self.classifier or not self.feature_names:
             return dynamic_mechanism
 
         # 1. Build a complete graph of unallocated tasks.
