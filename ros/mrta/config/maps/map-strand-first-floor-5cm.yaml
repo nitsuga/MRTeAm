@@ -1,0 +1,6 @@
+image: map-strand-first-floor-v1-5cm.png
+resolution: 0.0665
+origin: [0.0, 0.0, 0.0]
+occupied_thresh: 0.53
+free_thresh: 0.1
+negate: 0
