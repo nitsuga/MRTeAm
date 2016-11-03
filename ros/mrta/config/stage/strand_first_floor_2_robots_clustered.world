@@ -1,0 +1,42 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+resolution 0.05
+
+#interval_sim 100  # simulation timestep in milliseconds
+interval_sim 50
+interval_real 50
+
+window
+( 
+  size [ 600.000 1200.000 ] 
+#  center [ 9.9 21.69 ]
+  center [ 1.0 46.0 ]
+#  rotate [ 30 -15 ]
+
+  scale 95.0
+)
+
+# load an environment bitmap
+# here stage is set up with specific x and y coordinates
+# changing the map.yaml resolution will not actually change the map coordinates -
+# to change them, change 'size [18.8 43.38 2]' below
+floorplan
+( 
+  name "strand_first_floor"
+  bitmap "../maps/map-strand-first-floor-v1-5cm.png"
+#  size [25.0 57.6 2]
+  size [25.0 57.6 2]
+  pose [ 12.5 28.8 0 0 ]
+  origin [0 0 0 0]
+)
+
+# Our robots
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+#turtlebot ( pose [ 14.0 43.61 0 161.0 ] color "red" )	# "robot_1", "sw room, upper right"
+turtlebot ( pose [ 9.5 48.0 0 180.0 ] color "red" )   # "robot_1", "sw room, upper right"
+#turtlebot ( pose [ 13.10 42.03 0 161.0 ] color "green" )	# "robot_2", "sw room, upper left"
+turtlebot ( pose [ 10.25 47.5 0 270.0 ] color "green" )        # "robot_2", "sw room, upper left"
+
+
