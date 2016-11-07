@@ -59,7 +59,11 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'ROBOT3_STARTX',
                   'ROBOT3_STARTY',
                   'WINNER_DIFFERENCE',
-                  'MECHANISM']
+                  'MECHANISM',
+                  'MAXIMUM_ROBOT_DISTANCE',
+                  'EXECUTION_PHASE_TIME',
+                  'TOTAL_DISTANCE',
+                  'TOTAL_RUN_TIME']
 
 ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 
@@ -164,12 +168,24 @@ def read_point_configs(task_dir):
         task_file = open(task_file_path, "rb")
         target_point_configs[task_filename] = _read_points(task_file)
 
+def read_point_config(task_dir, task_filename):
+    global target_point_configs
+
+    # task_filenames = [f for f in listdir(task_dir) if isfile(join(task_dir, f))]
+
+    # for task_filename in task_filenames:
+    task_file_path = join(task_dir, task_filename)
+
+    print "Reading points from {0}...".format(task_file_path)
+    task_file = open(task_file_path, "rb")
+    target_point_configs[task_filename] = _read_points(task_file)
+
 
 def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir):
     global planner_proxy
     try:
 
-        read_point_configs(task_dir)
+        # read_point_configs(task_dir)
 
         stats_frame = pd.read_csv(in_file)
 
@@ -205,6 +221,11 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             # Only record a training instance if runs for both mechanisms (PSI, SSI) succeeded
             if group.ROBOT1_STARTX.count() < 2:
                 continue
+
+            # Read the task file
+            task_file = name
+            if task_file not in target_point_configs:
+                read_point_config(task_dir, task_file)
 
             # We only have two rows in this group (one per PSI and SSI)
             first_row = group.iloc[0]
@@ -390,6 +411,8 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 row['MAX_DISTANCE_TO_ANY_MEDIAN'] = max_distance_to_any_median
                 row['MIN_DISTANCE_TO_ANY_MEDIAN'] = min_distance_to_any_median
                 row['TOTAL_MEDIAN_DISTANCE_SPREAD'] = max_distance_to_any_median - min_distance_to_any_median
+
+                row['MAXIMUM_ROBOT_DISTANCE'] = max(row['ROBOT1_DISTANCE'], row['ROBOT2_DISTANCE'], row['ROBOT3_DISTANCE'])
 
             out_dist_csv.writerow([min_dist_row[f] for f in OUT_FIELDNAMES])
             out_run_time_csv.writerow([min_run_time_row[f] for f in OUT_FIELDNAMES])
