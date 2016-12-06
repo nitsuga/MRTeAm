@@ -69,7 +69,7 @@
 -->
 
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen">
-    <rosparam param="robot_hosts">['tyner','tb12','tb13','tb14']</rosparam>
+    <rosparam param="robot_hosts">['']</rosparam>
     <param name="name" value="$(arg robot_name)_master"/>
   </node>
   

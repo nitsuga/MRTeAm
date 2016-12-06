@@ -11,3 +11,6 @@ local_costmap:
    transform_tolerance: 0.5
 #   inflation_radius: 0.175
    inflation_radius: 0.1
+   plugins:
+    - {name: obstacle_layer,      type: "costmap_2d::VoxelLayer"}
+    - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
