@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2016.11.24)  7 DEC 2016 10:55
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2016.11.24)  7 DEC 2016 11:00
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -748,7 +748,7 @@ fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/sh
 are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/te
 xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on mrteam-manual.pdf (1 page, 58550 bytes).
+Output written on mrteam-manual.pdf (1 page, 58424 bytes).
 PDF statistics:
  90 PDF objects out of 1000 (max. 8388607)
  80 compressed objects within 1 object stream
