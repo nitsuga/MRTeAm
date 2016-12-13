@@ -232,6 +232,15 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             first_row = group.iloc[0]
             second_row = group.iloc[1]
 
+            # Find the PSI row/run
+            if first_row.MECHANISM == 'PSI':
+                psi_row = first_row
+            elif second_row.MECHANISM == 'PSI':
+                psi_row = second_row
+            else:
+                print("Couldn't identify PSI run! Skipping this start configuration...")
+                continue
+
             first_row_max_dist = max(first_row.ROBOT1_DISTANCE, first_row.ROBOT2_DISTANCE, first_row.ROBOT3_DISTANCE)
             second_row_max_dist = max(second_row.ROBOT1_DISTANCE, second_row.ROBOT2_DISTANCE, second_row.ROBOT3_DISTANCE)
 
