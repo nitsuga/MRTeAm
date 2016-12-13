@@ -189,6 +189,10 @@ def read_point_config(task_dir, task_filename):
     target_point_configs[task_filename] = _read_points(task_file)
 
 
+def find_allocation_spread(psi_bag):
+    pass
+
+
 def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root):
     global planner_proxy
     try:
