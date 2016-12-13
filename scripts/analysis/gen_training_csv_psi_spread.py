@@ -29,7 +29,6 @@ import mrta
 import mrta.msg
 import mrta.mrta_planner_proxy
 
-
 IN_CSV_FILENAME = 'stats.csv'
 OUT_DIST_CSV_FILENAME = 'team_distance.csv'
 OUT_RUN_TIME_CSV_FILENAME = 'run_time.csv'
@@ -70,6 +69,8 @@ ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
 
+BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
+
 # Key is a task filename, value is a dict, where
 #  key is a task_id, value is an (x, y) pair of coordinates
 target_point_configs = {}
@@ -86,11 +87,17 @@ LAUNCHFILE = 'stage_dummy_robot.launch'
 DUMMY_ROBOT_NAME = 'robot_0'
 MAP_FILE = 'smartlab_ugv_arena_v2.png'
 WORLD_FILE = 'smartlab_ugv_arena_dummy_robot.world'
-#NOGUI_FLAG = ''
+# NOGUI_FLAG = ''
 NOGUI_FLAG = '-g'
 
 planner_proxy = None
 main_proc = None
+
+
+def find_file(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
 
 
 def start_ros():
@@ -182,7 +189,7 @@ def read_point_config(task_dir, task_filename):
     target_point_configs[task_filename] = _read_points(task_file)
 
 
-def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir):
+def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root):
     global planner_proxy
     try:
 
@@ -238,8 +245,28 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             elif second_row.MECHANISM == 'PSI':
                 psi_row = second_row
             else:
-                print("Couldn't identify PSI run! Skipping this start configuration...")
+                print("Couldn't identify PSI run! Skipping...")
                 continue
+
+            # Find the PSI bag filename
+            psi_bag_filename = psi_row.BAG_FILENAME
+
+            psi_bag_filepath = find_file(psi_bag_filename, bag_root)
+
+            if not psi_bag_filepath:
+                print("Couldn't find {0} in {1}! Skipping...".format(psi_bag_filename, psi_bag_filepath))
+                continue
+
+            try:
+                psi_bag = rosbag.Bag(psi_bag_filepath)
+            except:
+                print(sys.exc_info()[0])
+                print("Couldn't open {0}! Skipping...".format(psi_bag_filepath))
+                continue
+
+            # Examine the bag to determine how imbalanced the PSI allocation was
+            # psi_allocation_spread = find_allocation_spread(psi_bag)
+            # psi_bag.close()
 
             first_row_max_dist = max(first_row.ROBOT1_DISTANCE, first_row.ROBOT2_DISTANCE, first_row.ROBOT3_DISTANCE)
             second_row_max_dist = max(second_row.ROBOT1_DISTANCE, second_row.ROBOT2_DISTANCE, second_row.ROBOT3_DISTANCE)
@@ -467,6 +494,10 @@ if __name__ == '__main__':
                         default=TASK_FILES_DEFAULT,
                         help="Location of task configuration (target point) files")
 
+    parser.add_argument('-br', '--bag_root',
+                        default=BAG_ROOT_DEFAULT,
+                        help="Root directory of bag files.")
+
     args = parser.parse_args()
 
     in_file = args.input
@@ -475,8 +506,9 @@ if __name__ == '__main__':
     out_execution_phase_time = args.out_execution_phase_time
     out_minimax = args.out_minimax
     task_dir = args.task_dir
+    bag_root = args.bag_root
 
-    print(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir)
+    print(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
 
     start_ros()
     write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir)
