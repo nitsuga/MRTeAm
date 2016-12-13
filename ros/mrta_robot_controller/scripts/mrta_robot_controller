@@ -310,8 +310,8 @@ class RobotController:
 
         self._clearing_costmaps = True
 
-        self._disable_obstacle_layer()
-        self._clear_costmaps()
+        # self._disable_obstacle_layer()
+        # self._clear_costmaps()
         # self._clear_costmaps()
 
         self._disable_static_layer()

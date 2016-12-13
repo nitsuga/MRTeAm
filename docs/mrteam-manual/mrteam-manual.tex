@@ -1,0 +1,145 @@
+%%%% koma-script article class
+\documentclass[A4paper,toc=flat]{scrartcl}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{amsmath}
+\usepackage{appendix}
+\usepackage{blindtext}
+\usepackage{booktabs}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{colortbl}
+\usepackage[autostyle]{csquotes}
+\usepackage{enumitem}
+%\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{hhline}
+\usepackage[hidelinks]{hyperref}
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{relsize}
+\usepackage{setspace}
+%\usepackage[usenames]{xcolor}
+\usepackage{soul}
+\usepackage{subfig}
+\usepackage{wrapfig}
+%\usepackage[dvipsnames]{xcolor}
+
+%\usepackage{lmodern}
+
+\usepackage{amsthm}
+\usepackage{amsfonts}
+
+\usepackage[mathcal]{euscript}
+
+% Use smaller margins
+\usepackage{fullpage}
+
+
+%%%% Custom commands
+
+% A thick horizontal line
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+%%%% Custom values (e.g., spacing)
+\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+
+% Use 1.5 vertical spacing
+\onehalfspace
+
+% Caption font options
+\captionsetup[subfloat]{font={scriptsize}}
+
+%% YAML markup for listings
+%\newcommand\YAMLcolonstyle{\color{red}\mdseries}
+%\newcommand\YAMLkeystyle{\color{black}\bfseries}
+%\newcommand\YAMLvaluestyle{\color{blue}\mdseries}
+%
+%% here is a macro expanding to the name of the language
+%% (handy if you decide to change it further down the road)
+%\newcommand\language@yaml{yaml}
+%
+%\expandafter\expandafter\expandafter\lstdefinelanguage
+%\expandafter{\language@yaml}
+%{
+%  keywords={true,false,null,y,n},
+%  keywordstyle=\color{darkgray}\bfseries,
+%  basicstyle=\YAMLkeystyle,                                 % assuming a key comes first
+%  sensitive=false,
+%  comment=[l]{\#},
+%  morecomment=[s]{/*}{*/},
+%  commentstyle=\color{purple}\ttfamily,
+%  stringstyle=\YAMLvaluestyle\ttfamily,
+%  moredelim=[l][\color{orange}]{\&},
+%  moredelim=[l][\color{magenta}]{*},
+%  moredelim=**[il][\YAMLcolonstyle{:}\YAMLvaluestyle]{:},   % switch to value style at :
+%  morestring=[b]',
+%  morestring=[b]",
+%  literate =    {---}{{\ProcessThreeDashes}}3
+%                {>}{{\textcolor{red}\textgreater}}1     
+%                {|}{{\textcolor{red}\textbar}}1 
+%                {\ -\ }{{\mdseries\ -\ }}3,
+%}
+%
+%% switch to key style at EOL
+%\lst@AddToHook{EveryLine}{\ifx\lst@language\language@yaml\YAMLkeystyle\fi}
+%\makeatother
+%
+%\newcommand\ProcessThreeDashes{\llap{\color{cyan}\mdseries-{-}-}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin document
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\title{MRTeAM: A Guide}
+\date{December 2, 2016}
+\author{Eric Schneider \textless\emph{eric.schneider@\{liverpool \rule[-0.4ex]{0.2ex}{1.2em} kcl.ac.uk\}}\textgreater}
+
+\maketitle
+
+\section{Introduction}
+
+\section{Components}
+
+\subsection{ROS Components}
+
+\subsection{Robot Controller}
+
+\subsection{Auctioneer}
+
+\subsection{Multiple ROS Masters}
+
+\subsubsection{ROS Master Bridge with RabbitMQ}
+
+\subsubsection{Multimaster FKIE}
+
+\section{Auction Mechanics}
+
+\section{Messages}
+
+%%%%% APPENDIX
+\appendix
+
+\section{Code excerpts}
+
+\section{rosmsg Definitions}
+
+\begin{lstlisting}{../../ros/mrta/msg/ExperimentEvent.msg}
+\end{lstlisting}
+
+%\begin{minted}[
+%  gobble=4,
+%  frame=single,
+%  linenos
+%]{yaml}{../../ros/mrta/msg/ExperimentEvent.msg}
+%\end{minted}
+
+\bibliographystyle{ieeetr}
+\bibliography{facility-location}  % mrteam.bib is the name of the Bibliography in this case
+
+\end{document}
+%%%%%%%% END DOCUMENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
