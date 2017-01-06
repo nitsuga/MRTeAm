@@ -45,6 +45,7 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'TOTAL_MEDIAN_DISTANCE_SPREAD',
                   'TEAM_DIAMETER',
                   'GREEDY_MEDIAN_COUNT_SPREAD',
+                  'PSI_SPREAD',
                   'ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN',
                   'ROBOT1_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT1_STARTX',
@@ -189,8 +190,21 @@ def read_point_config(task_dir, task_filename):
     target_point_configs[task_filename] = _read_points(task_file)
 
 
-def find_allocation_spread(psi_bag):
-    pass
+def get_psi_spread(psi_bag):
+    spread = 0
+
+    robot_award_counts = defaultdict(int)
+
+    try:
+        for topic, msg, msg_time in psi_bag.read_messages('/tasks/award'):
+            robot_award_counts[msg.robot_id] += len(msg.tasks)
+    except:
+        print(sys.exc_info()[0])
+        return -1
+
+    spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
+
+    return spread
 
 
 def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root):
@@ -262,6 +276,7 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 continue
 
             try:
+                print("Opening PSI bag at {0}...".format(psi_bag_filepath))
                 psi_bag = rosbag.Bag(psi_bag_filepath)
             except:
                 print(sys.exc_info()[0])
@@ -269,8 +284,8 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 continue
 
             # Examine the bag to determine how imbalanced the PSI allocation was
-            # psi_allocation_spread = find_allocation_spread(psi_bag)
-            # psi_bag.close()
+            psi_spread = get_psi_spread(psi_bag)
+            psi_bag.close()
 
             first_row_max_dist = max(first_row.ROBOT1_DISTANCE, first_row.ROBOT2_DISTANCE, first_row.ROBOT3_DISTANCE)
             second_row_max_dist = max(second_row.ROBOT1_DISTANCE, second_row.ROBOT2_DISTANCE, second_row.ROBOT3_DISTANCE)
@@ -426,6 +441,8 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 row['TEAM_DIAMETER'] = team_diameter
                 row['GREEDY_MEDIAN_COUNT_SPREAD'] = greedy_median_count_spread
 
+                row['PSI_SPREAD'] = psi_spread
+
                 total_distance_to_all_medians = 0.0
 
                 max_distance_to_any_median = None
@@ -515,5 +532,5 @@ if __name__ == '__main__':
     print(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
 
     start_ros()
-    write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir)
+    write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
     stop_ros()
