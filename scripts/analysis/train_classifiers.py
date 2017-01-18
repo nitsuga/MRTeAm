@@ -59,6 +59,11 @@ def train_classifiers(in_csv, output):
         # Drop the 'WINNER_DIFFERENCE' column
         input_frame = input_frame.drop('WINNER_DIFFERENCE', 1)
 
+        input_frame = input_frame.drop('MAXIMUM_ROBOT_DISTANCE', 1)
+        input_frame = input_frame.drop('EXECUTION_PHASE_TIME', 1)
+        input_frame = input_frame.drop('TOTAL_DISTANCE', 1)
+        input_frame = input_frame.drop('TOTAL_RUN_TIME', 1)
+
         for robot_name in robot_names:
             input_frame = input_frame.drop('{0}_DISTANCE_TO_ASSIGNED_MEDIAN'.format(robot_name), 1)
             input_frame = input_frame.drop('{0}_DISTANCE_TO_ALL_MEDIANS'.format(robot_name), 1)
@@ -77,7 +82,7 @@ def train_classifiers(in_csv, output):
         y = input_frame['MECHANISM']
 
         # Scale (to normal) X
-        #X = StandardScaler().fit_transform(X)
+        # X = StandardScaler().fit_transform(X)
 
         # K-fold splits
         k_folds = KFold(n_splits=FOLDS)
@@ -130,7 +135,8 @@ def train_classifiers(in_csv, output):
                 # 'clf__min_samples_split': [2, 3, 4, 5, 10],
                 'clf__max_depth': [3, None],
                 # 'clf__max_features': [1, 3, 10],
-                'clf__min_samples_split': [1, 3, 10],
+                # 'clf__min_samples_split': [1, 3, 10],
+                'clf__min_samples_split': [2, 3, 10],
                 'clf__min_samples_leaf': [1, 3, 10],
                 'clf__bootstrap': [True, False],
                 'clf__criterion': ['gini', 'entropy']
@@ -183,6 +189,7 @@ def train_classifiers(in_csv, output):
             new_key = key.replace('clf__', '')
             best_params[new_key] = best_params.pop(key)
 
+        # clf = SVC(**best_params)
         clf = RandomForestClassifier(**best_params)
         # clf = KNeighborsClassifier(**best_params)
 

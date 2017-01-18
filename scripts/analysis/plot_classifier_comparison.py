@@ -64,20 +64,21 @@ input_file = 'minimax_distance.csv'
 # input_file = 'execution_phase_time.csv'
 
 #feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
-#feature1 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
+feature1 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature1 = 'MIN_DISTANCE_TO_ANY_MEDIAN'
 #feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature1 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
-feature1 = 'GREEDY_MEDIAN_COUNT_SPREAD'
+#feature1 = 'GREEDY_MEDIAN_COUNT_SPREAD'
 
 #feature2 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
-feature2 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
+#feature2 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature2 = 'ASSIGNED_MEDIAN_COUNT_SPREAD'
 #feature2 = 'ASSIGNED_MEDIAN_DISTANCE_SPREAD'
 #feature2 = 'TEAM_DIAMETER'
 #feature2 = 'MAX_DISTANCE_TO_ANY_MEDIAN'
 #feature2 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
 #feature2 = 'ASSIGNED_MEDIAN_DISTANCE_SPREAD'
+feature2 = 'PSI_SPREAD'
 
 
 xaxis_label = 'Minimum Distance to Assigned Median'
@@ -110,7 +111,9 @@ mm_frame = pd.read_csv(input_file)
 mm_x = mm_frame.ix[:, [feature1, feature2]].values
 #mm_x = mm_frame.ix[:, :-1].values
 
-mm_y = mm_frame.ix[:, -1:].values.flatten()
+#mm_y = mm_frame.ix[:, -1:].values.flatten()
+mm_y = mm_frame['MECHANISM']
+
 
 mm_y = nominal_to_numeric(mm_y, {'PSI': 0, 'SSI': 1})
 
