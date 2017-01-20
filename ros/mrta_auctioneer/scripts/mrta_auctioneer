@@ -148,9 +148,6 @@ class Auction(object):
                 'oncollect_bids': self.collect_bids,
                 'ondetermine_winner': self.determine_winner,
                 'onaward': self.award
-                
-                # on-event handlers
-                # 'onchoose_OSI': self.choose_OSI
             }
         )
 
@@ -302,6 +299,7 @@ class AuctionOSI(Auction):
 
         time.sleep(0.5)
 
+
 class AuctionPSI(Auction):
     """ A Parallel Single-Item auction.
 
@@ -415,6 +413,95 @@ class AuctionPSI(Auction):
 
             # Mark the task as awarded
             won_task.awarded = True
+
+
+class AuctionPPSI(AuctionPSI):
+
+    mechanism_name = 'PPSI'
+
+    def __init__(self, auctioneer=None, tasks=None, auction_round=None):
+        # A handle to the Auctioneer object who called us
+        self.auctioneer = auctioneer
+
+        # The tasks we are meant to announce/award in the current round
+        self.tasks = tasks
+
+        # To identify in which round bids are made for tasks
+        self.auction_round = auction_round
+
+        # Set up state machine.
+        # See multirobot/docs/auctioneer-fsm.png
+        self.fsm = Fysom(
+            events=[
+                ('startup', 'none', 'announce'),
+                ('announced', 'announce', 'collect_bids'),
+                ('bids_collected', 'collect_bids', 'determine_winner'),
+                ('choose_SSI', 'determine_winner', 'exit'),
+                ('winner_determined', 'determine_winner', 'award'),
+            ],
+            callbacks={
+                # on-enter state handlers
+                'onannounce': self.announce,
+                'oncollect_bids': self.collect_bids,
+                'ondetermine_winner': self.determine_winner,
+                'onaward': self.award,
+                'onexit': self.exit
+            }
+        )
+
+        # Start the state machine
+        self.fsm.startup()
+
+    def determine_winner(self, e):
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
+
+        bids = self.auctioneer.bids[self.auction_round]
+
+        rospy.logdebug("bids:\n{0}".format(pp.pformat(bids)))
+
+        # We'll determine the winner of and send an award message for each task
+        task_winners = defaultdict(list)  # task_winners[task_id] = [winner_ids]
+
+        for task in self.tasks:
+
+            bid_tuples = []
+            for robot_id in bids.keys():
+                if robot_id not in self.auctioneer.awarded[task.task_id]:
+                    # task_id below is a 1-tuple. see Auctioneer.on_bid_received()
+                    bid_tuples.append([robot_id, bids[robot_id][tuple([task.task_id])]])  # i.e., [robot_id, bid_value]
+
+            # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
+            bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
+
+            num_robots = task.num_robots
+            # The top (actually lowest) num_robots bids
+            winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
+
+            self.auctioneer.awarded[task.task_id].extend(winner_ids)
+
+            rospy.loginfo("winner(s) of task {0}: '{1}'".format(task.task_id, winner_ids))
+
+            task_winners[task.task_id] = winner_ids
+
+        # Determine PSI spread: task_max - task_min, where
+        #
+        #   task_max = greatest number of tasks awarded to a single robot
+        #   task_min = least number of tasks awarded to a single robot
+
+        robot_award_counts = defaultdict(int)
+
+        for task_id in task_winners:
+            winner_ids = task_winners[task_id]
+
+            for winner_id in winner_ids:
+                robot_award_counts[winner_id] += 1
+
+        psi_spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
+
+        self.fsm.winner_determined(task_winners=task_winners)
+
+    def exit(self, e):
+        pass
 
 
 class AuctionSSI(Auction):
@@ -1685,7 +1772,8 @@ class Auctioneer:
                 mechanism = self.select_mechanism_dynamic(unallocated)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
             else:
-                # Call it anyway to record information about medians and distance. Discard the result.
+                # Call it anyway to record information about medians and distance. Ignore the result
+                # (i.e., don't assign its return value to the variable 'mechanism')
                 self.select_mechanism_dynamic(unallocated)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
