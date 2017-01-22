@@ -18,7 +18,8 @@ def balance_training(in_file, out_file, method, significant=False):
         df = df[df.WINNER_DIFFERENCE > df.WINNER_DIFFERENCE.std()]
 
     df_x = df.ix[:, :-1].values.tolist()
-    df_y = df.ix[:, -1:].values.flatten().tolist()
+#    df_y = df.ix[:, -1:].values.flatten().tolist()
+    df_y = df.ix[:, 'MECHANISM'].values.flatten().tolist()
 
     # Resampler
     rs = None

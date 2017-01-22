@@ -33,7 +33,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import pandas as pd
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_moons, make_circles, make_classification
@@ -63,12 +63,15 @@ input_file = 'minimax_distance.csv'
 # title = 'Classifier Comparison: Execution Phase Time'
 # input_file = 'execution_phase_time.csv'
 
+# title = 'Classifier Comparison: Total Run Time'
+# input_file = 'run_time.csv'
+
 #feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
-feature1 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
+#feature1 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature1 = 'MIN_DISTANCE_TO_ANY_MEDIAN'
 #feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature1 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
-#feature1 = 'GREEDY_MEDIAN_COUNT_SPREAD'
+feature1 = 'GREEDY_MEDIAN_COUNT_SPREAD'
 
 #feature2 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature2 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
@@ -81,8 +84,11 @@ feature1 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 feature2 = 'PSI_SPREAD'
 
 
-xaxis_label = 'Minimum Distance to Assigned Median'
-yaxis_label = 'Maximum Distance to Assigned Median'
+# xaxis_label = 'Minimum Distance to Assigned Median'
+# yaxis_label = 'Maximum Distance to Assigned Median'
+
+xaxis_label = feature1
+yaxis_label = feature2
 
 names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree",
          "Random Forest", "AdaBoost", "Naive Bayes", "Linear Discriminant Analysis",
@@ -175,7 +181,7 @@ for ds in datasets:
 
     # iterate over classifiers
     for name, clf in zip(names, classifiers):
-#        ax = plt.subplot(len(datasets), len(classifiers) + 1, i)
+        # ax = plt.subplot(len(datasets), len(classifiers) + 1, i)
         ax = plt.subplot(gs[row, col])
         clf.fit(X_train, y_train)
         score = clf.score(X_test, y_test)

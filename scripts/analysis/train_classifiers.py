@@ -45,7 +45,7 @@ classifiers = [
     #QuadraticDiscriminantAnalysis()]
 
 # For K-fold stratification
-FOLDS = 5
+FOLDS = 10
 
 
 def train_classifiers(in_csv, output):
@@ -119,7 +119,7 @@ def train_classifiers(in_csv, output):
                                       ('feat', top_feat),
                                       # ('clf', SVC())])
                                       ('clf', RandomForestClassifier())])
-                                      # ('clf', KNeighborsClassifier())])
+                                      #('clf', KNeighborsClassifier())])
                                       # ('clf', DecisionTreeClassifier())])
 
             # SVC parameters

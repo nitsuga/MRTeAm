@@ -921,17 +921,15 @@ class RobotController:
             rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
             self.bid_pub.publish(bid_msg)
 
-        elif announce_msg.mechanism == 'PSI':
-            rospy.logdebug("({0}) mechanism == PSI".format(self.robot_name))
-            rospy.loginfo("mechanism == PSI")
+        elif announce_msg.mechanism == 'PSI' or announce_msg.mechanism == 'PPSI':
+            rospy.loginfo("({0}) mechanism == {1}".format(self.robot_name, announce_msg.mechanism))
 
             # In PSI we always calculate bids (path costs) from our current
             # position
             bid_from = self.current_pose
 
             for task_msg in announce_msg.tasks:
-                path_cost = self.get_path_cost(
-                    bid_from, self._point_to_pose(task_msg.location))
+                path_cost = self.get_path_cost(bid_from, self._point_to_pose(task_msg.location))
 
                 rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
                     self.robot_name,
@@ -947,7 +945,7 @@ class RobotController:
                 self.bid_pub.publish(bid_msg)
 
         elif announce_msg.mechanism == 'SSI':
-            rospy.logdebug("({0}) mechanism == SSI".format(self.robot_name))
+            rospy.loginfo("({0}) mechanism == SSI".format(self.robot_name))
 
             # Get the cumulative cost of all tasks in our agenda so far
             (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
