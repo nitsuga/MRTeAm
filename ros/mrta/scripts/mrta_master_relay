@@ -250,7 +250,7 @@ class MRTeAmRelay:
 
         relay_message = "{0}{1}{2}{3}{4}".format(self.node_name, HEADER_DELIMITER, topic, HEADER_DELIMITER, pickled_msg)
 
-        # rospy.loginfo("Publishing message from {0} to topic {1}".format(self.node_name, topic))
+        # rospy.loginfo("Publishing message to master bridge on topic {0}".format(topic))
 
         try:
             # self.channel_lock.acquire()
@@ -298,27 +298,31 @@ class MRTeAmRelay:
     def on_bridge_message(self, channel, method_frame, header_frame, body):
         """ Called when a message from the bridge (RabbitMQ) is received ("consumed") """
 
-        # print "Message received from bridge."
+        print "Message received from bridge."
 
         try:
             (sender, topic, pickled_msg) = body.split(HEADER_DELIMITER)
 
+            print "sender: {0}, topic: {1}".format(sender, topic)
+
             # We don't want to loop if the message was originally sent by us
-            if sender == self.node_name:
-                return
+            # if sender == self.node_name:
+            #     return
 
             # Ignore messages on topics we don't want to receive
             if topic not in self.receive_topics:
                 return
 
             # Also ignore messages about us
-            if self.robot_name in topic:
+            if self.robot_name and self.robot_name in topic:
                 return
 
-            # print "Message from {0} on topic {1}".format(sender, topic)
+            print "Message from {0} on topic {1}".format(sender, topic)
 
             # Unpickle the message
             message = cPickle.loads(pickled_msg)
+
+            print message
 
             # Get a handle to a local (ROS) publisher
             publisher = self.publishers[topic]
