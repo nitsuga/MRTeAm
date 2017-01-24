@@ -68,21 +68,30 @@
         <param name="master_bridge_host" value="$(arg master_bridge_host)" />
         <param name="master_bridge_port" value="$(arg master_bridge_port)" />
 
+        <param name="robot_name" value="$(arg robot_name)" />
+
         <!-- The list of topics we want to mirror -->
-        <rosparam param="topics">
+        <rosparam param="receive_topics">
         [
           '/robot_1/amcl_pose',
           '/robot_2/amcl_pose',
           '/robot_3/amcl_pose',
           '/experiment',
           '/tasks/announce',
-          '/tasks/bid',
           '/tasks/award',
           '/tasks/status',
-          '/tasks/new',
-          '/debug'
         ]
         </rosparam>
+
+        <rosparam param="send_topics">
+        [
+          '/robot_1/amcl_pose',
+          '/robot_2/amcl_pose',
+          '/robot_3/amcl_pose',
+          '/tasks/bid',
+        ]
+        </rosparam>
+
     </node>
 
 </launch>

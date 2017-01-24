@@ -16,6 +16,7 @@ import pika
 import nav_msgs.msg
 import geometry_msgs.msg
 import sensor_msgs.msg
+import tf2_msgs.msg
 import rospy
 import threading
 
@@ -54,6 +55,7 @@ topic_types = {'/robot_1/amcl_pose': geometry_msgs.msg.PoseWithCovarianceStamped
                '/tasks/award': mrta.msg.TaskAward,
                '/tasks/status': mrta.msg.TaskStatus,
                '/tasks/new': mrta.msg.SensorSweepTask,
+               '/tf': tf2_msgs.msg.TFMessage,
                '/debug': mrta.msg.Debug}
 
 robot_names = ['robot_1', 'robot_2', 'robot_3']
@@ -82,6 +84,15 @@ class MRTeAmRelay:
 
         # queue_name = "queue_{0}".format(unique_prefix)
 
+        # Topics to ignore completely (blacklist)
+        self.ignore_topics = []
+
+        # Substrings of topics to ignore receiving
+        self.receive_ignore_strings = []
+
+        # Substrings of topics to ignore sending
+        self.send_ignore_strings = []
+
         try:
             # Start the node
             print('######## {0} starting ########'.format(self.node_name))
@@ -98,16 +109,29 @@ class MRTeAmRelay:
             bridge_port = rospy.get_param('~master_bridge_port', '5672')
 
             # Topics to relay
-            relay_topics = rospy.get_param('~topics', [])
+            # relay_topics = rospy.get_param('~topics', [])
+
+            # Topics to send to the bridge/other masters
+            self.send_topics = rospy.get_param('~send_topics', [])
+
+            # Topics to receive from the bridge/other masters
+            self.receive_topics = rospy.get_param('~receive_topics', [])
+
+            # Special case when this node relays topics for a robot. We never
+            # want to receive messages from the bridge for a topic with a namespace
+            # that contains the robot's name, or we'd create a publish loop.
+            self.robot_name = rospy.get_param('~robot_name', '')
 
             print "bridge: {0}:{1}".format(bridge_host, bridge_port)
-            print "relay topics: {0}".format(relay_topics)
+            # print "relay topics: {0}".format(relay_topics)
+            print "send topics: {0}".format(self.send_topics)
+            print "receive topics: {0}".format(self.receive_topics)
 
-            # Subscribe to local topics and relay them
-            self.init_subscribers(relay_topics)
+            # Subscribe to local topics and republish them to the bridge
+            self.init_subscribers(self.send_topics)
 
-            # Republish messages from the bridge to local topics
-            self.init_publishers(relay_topics)
+            # Receive messages from the bridge and republish them locally
+            self.init_publishers(self.receive_topics)
 
             # Connect to the bridge
             self.connection = self.connect(bridge_host, bridge_port)
@@ -145,7 +169,7 @@ class MRTeAmRelay:
         self.start_consuming()
 
     def on_queue_declareok(self, frame):
-        # print "Queue declared: {0}".format(frame)
+        print "Queue declared: {0}".format(frame)
         print "Binding {0} to {1}".format(self.queue_name, self.exchange_name)
 
         self.channel.queue_bind(self.on_bindok,
@@ -218,11 +242,15 @@ class MRTeAmRelay:
             print "publish_to_bridge(): Channel not open"
             return
 
+        # Ignore messages on topics we don't want to send
+        if topic not in self.send_topics:
+            return
+
         pickled_msg = cPickle.dumps(message)
 
         relay_message = "{0}{1}{2}{3}{4}".format(self.node_name, HEADER_DELIMITER, topic, HEADER_DELIMITER, pickled_msg)
 
-        rospy.logdebug("Publishing message from {0} to topic {1}".format(self.node_name, topic))
+        # rospy.loginfo("Publishing message from {0} to topic {1}".format(self.node_name, topic))
 
         try:
             # self.channel_lock.acquire()
@@ -237,25 +265,35 @@ class MRTeAmRelay:
             rospy.loginfo("Error on publishing message to bridge: {0}, {1}".format(exc_info[0], exc_info[1]))
             traceback.print_exc()
 
-    def init_subscribers(self, relay_topics):
+    def init_subscribers(self, send_topics):
         """ Initialize subscriber callbacks for local messages (from roscore) """
 
         # For each topic we want to relay, call publish_to_bridge whenever we
         # receive a local message on that topic
-        for relay_topic in relay_topics:
-            print "Subscribing to {0}".format(relay_topic)
-            rospy.Subscriber(name=relay_topic,
-                             data_class=topic_types[relay_topic],
-                             callback=self.publish_to_bridge,
-                             callback_args=relay_topic)
+        for send_topic in send_topics:
 
-    def init_publishers(self, relay_topics):
+            # Don't republish other robots' poses to the bridge
+            if self.robot_name and 'amcl_pose' in send_topic and self.robot_name not in send_topic:
+                continue
+
+            print "Subscribing to {0}".format(send_topic)
+            rospy.Subscriber(name=send_topic,
+                             data_class=topic_types[send_topic],
+                             callback=self.publish_to_bridge,
+                             callback_args=send_topic)
+
+    def init_publishers(self, receive_topics):
         """ Initialize publisher objects for local messages (to roscore) """
 
-        for topic in relay_topics:
-            self.publishers[topic] = rospy.Publisher(topic,
-                                                     topic_types[topic],
-                                                     queue_size=5)
+        for receive_topic in receive_topics:
+
+            # Don't receive and republish our own poses
+            if self.robot_name and receive_topic == '/{0}/amcl_pose'.format(self.robot_name):
+                continue
+
+            self.publishers[receive_topic] = rospy.Publisher(receive_topic,
+                                                             topic_types[receive_topic],
+                                                             queue_size=5)
 
     def on_bridge_message(self, channel, method_frame, header_frame, body):
         """ Called when a message from the bridge (RabbitMQ) is received ("consumed") """
@@ -267,6 +305,14 @@ class MRTeAmRelay:
 
             # We don't want to loop if the message was originally sent by us
             if sender == self.node_name:
+                return
+
+            # Ignore messages on topics we don't want to receive
+            if topic not in self.receive_topics:
+                return
+
+            # Also ignore messages about us
+            if self.robot_name in topic:
                 return
 
             # print "Message from {0} on topic {1}".format(sender, topic)
