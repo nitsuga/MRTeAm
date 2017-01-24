@@ -72,7 +72,6 @@ def main(input_csv):
                 print 'Writing {0}'.format(out_path)
                 plt.savefig(out_path)
 
-
                 plt.close(ax.get_figure())
 
     except:

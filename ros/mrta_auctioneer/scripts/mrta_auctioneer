@@ -431,21 +431,23 @@ class AuctionPPSI(AuctionPSI):
 
         # Set up state machine.
         # See multirobot/docs/auctioneer-fsm.png
+
+        # This is essentially the same as PSI, except we remove the
+        # transition from determine_winner to award. In PPSI, determin_winner
+        # will return the dict task_winners so that the caller can decide
+        # what to do.
+
         self.fsm = Fysom(
             events=[
                 ('startup', 'none', 'announce'),
                 ('announced', 'announce', 'collect_bids'),
                 ('bids_collected', 'collect_bids', 'determine_winner'),
-                ('choose_SSI', 'determine_winner', 'exit'),
-                ('winner_determined', 'determine_winner', 'award'),
             ],
             callbacks={
                 # on-enter state handlers
                 'onannounce': self.announce,
                 'oncollect_bids': self.collect_bids,
                 'ondetermine_winner': self.determine_winner,
-                'onaward': self.award,
-                'onexit': self.exit
             }
         )
 
@@ -477,31 +479,13 @@ class AuctionPPSI(AuctionPSI):
             # The top (actually lowest) num_robots bids
             winner_ids = map(lambda entry: entry[0], bid_tuples[:num_robots])
 
-            self.auctioneer.awarded[task.task_id].extend(winner_ids)
+            # self.auctioneer.awarded[task.task_id].extend(winner_ids)
 
             rospy.loginfo("winner(s) of task {0}: '{1}'".format(task.task_id, winner_ids))
 
             task_winners[task.task_id] = winner_ids
 
-        # Determine PSI spread: task_max - task_min, where
-        #
-        #   task_max = greatest number of tasks awarded to a single robot
-        #   task_min = least number of tasks awarded to a single robot
-
-        robot_award_counts = defaultdict(int)
-
-        for task_id in task_winners:
-            winner_ids = task_winners[task_id]
-
-            for winner_id in winner_ids:
-                robot_award_counts[winner_id] += 1
-
-        psi_spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
-
-        self.fsm.winner_determined(task_winners=task_winners)
-
-    def exit(self, e):
-        pass
+        self.auctioneer.ppsi_task_winners = task_winners
 
 
 class AuctionSSI(Auction):
@@ -1014,6 +998,77 @@ class AuctionMAX(Auction):
             time.sleep(1)
 
 
+class AuctionMAN(Auction):
+    """
+    A manual "auction"
+    """
+    mechanism_name = 'MAN'
+
+    def __init__(self, auctioneer=None, tasks=None, auction_round=None, task_winners=None):
+        self.task_winners = task_winners
+        rospy.loginfo('self.task_winners == {0}'.format(self.task_winners))
+        super(AuctionMAN, self).__init__(auctioneer, tasks, auction_round)
+
+    def _construct_announcement_msg(self):
+        announce_msg = mrta.msg.AnnounceSensorSweep()
+        announce_msg.mechanism = self.mechanism_name
+
+        # Only announce one task (the first in the auctioneer's list)
+        announce_msg.tasks.append(self._construct_task_msg(self.tasks[0]))
+
+        return announce_msg
+
+    def announce(self, e):
+        rospy.loginfo("({0}) state: announce".format(self.mechanism_name))
+        rospy.loginfo("..skipping!")
+
+        self.fsm.announced()
+
+    def collect_bids(self, e):
+        rospy.loginfo("({0}) state: collect_bids".format(self.mechanism_name))
+        rospy.loginfo("..skipping!")
+
+        self.fsm.bids_collected()
+
+    def determine_winner(self, e):
+        rospy.loginfo("({0}) state: determine_winner".format(self.mechanism_name))
+        rospy.loginfo("..skipping!")
+
+        self.fsm.winner_determined()
+
+    def award(self, e):
+        """ Construct and send an award message for each task. """
+        rospy.loginfo("({0}) state: award".format(self.mechanism_name))
+
+        for task_id in self.task_winners:
+
+            won_task = self._get_task_by_id(task_id)
+
+            for winner_id in self.task_winners[task_id]:
+
+                award_msg = mrta.msg.TaskAward()
+
+                # award_msg.robot_id = team_cycle.next()
+                award_msg.robot_id = winner_id
+
+                task_msg = self._construct_task_msg(won_task)
+                award_msg.tasks.append(task_msg)
+
+                rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
+
+                stamp(award_msg)
+                self.auctioneer.award_pub.publish(award_msg)
+
+                won_task.num_robots_allocated += 1
+
+                self.auctioneer.awarded[task_id].extend(winner_id)
+
+                # Mark the task as awarded if the task has been awarded to its required
+                # number of robots
+                if won_task.num_robots_allocated == won_task.num_robots:
+                    won_task.awarded = True
+
+
 class Auctioneer:
 
     def __init__(self, mechanism=None, task_file=None):
@@ -1114,6 +1169,8 @@ class Auctioneer:
         # Keep track of which robots have been awarded which tasks
         # task_id => list of robot_name
         self.awarded = defaultdict(list)
+
+        self.ppsi_task_winners = None
 
         # Classifier used to predict an appropriate mechanism in
         # select_mechanism_dynamic(). This classifier will have been
@@ -1557,7 +1614,7 @@ class Auctioneer:
             print task_graph
 
             # Add the edge from source to target to task_graph
-            #task_graph.add_edge(source_id, target_id)
+            # task_graph.add_edge(source_id, target_id)
             task_graph[source_id, target_id] = distance
 
         rospy.loginfo("Auctioneer: task_graph: {0}, distances: {1}".format(task_graph.summary(),
@@ -1682,6 +1739,29 @@ class Auctioneer:
         #             total_distance_to_assigned_medians,
         #             team_diameter]
 
+        psi_spread = 0
+
+        # Run PPSI
+        auction_ppsi = AuctionPPSI(self, unallocated, self.auction_round)
+
+        # Get PPSI allocation and compute PSI spread: task_max - task_min, where
+        #
+        #   task_max = greatest number of tasks awarded to a single robot
+        #   task_min = least number of tasks awarded to a single robot
+
+        if self.ppsi_task_winners:
+            robot_award_counts = defaultdict(int)
+
+            for task_id in self.ppsi_task_winners:
+                winner_ids = self.ppsi_task_winners[task_id]
+
+                for winner_id in winner_ids:
+                    robot_award_counts[winner_id] += 1
+
+            psi_spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
+
+        rospy.loginfo('PSI_SPREAD == {0}'.format(psi_spread))
+
         features_map = {'MAX_DISTANCE_TO_ASSIGNED_MEDIAN': max_distance_to_assigned_median,
                         'MIN_DISTANCE_TO_ASSIGNED_MEDIAN': min_distance_to_assigned_median,
                         'MAX_DISTANCE_TO_ANY_MEDIAN': max_distance_to_any_median,
@@ -1690,7 +1770,8 @@ class Auctioneer:
                         'TOTAL_MEDIAN_DISTANCE_SPREAD': total_median_distance_spread,
                         'GREEDY_MEDIAN_COUNT_SPREAD': greedy_median_count_spread,
                         'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS': total_dist_to_assigned_medians,
-                        'TEAM_DIAMETER': team_diameter}
+                        'TEAM_DIAMETER': team_diameter,
+                        'PSI_SPREAD': psi_spread}
 
         features = np.reshape([features_map[f] for f in self.feature_names], (1, -1))
 
@@ -1766,11 +1847,24 @@ class Auctioneer:
             # Use one particular mechanism by default, defined in a startup parameter
             mechanism = self.mechanism
 
+            rospy.loginfo("######################################################")
+            rospy.loginfo("######## choose_mechanism(): mechanism == {0} ########".format(mechanism))
+            rospy.loginfo("######################################################")
+
             # If we're choosing a mechanism a runtime
 #            if self.dynamic_mechanism:
             if mechanism == 'SEL':
                 mechanism = self.select_mechanism_dynamic(unallocated)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
+
+                # At this point, PSI has actually already been partially run via PPSI. If PSI
+                # was selected, we want to finish it (actually award its allocation) via 'MAN',
+                # the manual allocation mechanism. The allocation will have been stored in
+                # self.ppsi_task_winners
+                if mechanism == 'PSI':
+                    mechanism = 'MAN'
+                    rospy.loginfo("Auctioneer: Running 'MAN' to finish the allocation.")
+
             else:
                 # Call it anyway to record information about medians and distance. Ignore the result
                 # (i.e., don't assign its return value to the variable 'mechanism')
@@ -1797,10 +1891,20 @@ class Auctioneer:
                 auction_sum = AuctionSUM(self, unallocated, self.auction_round)
             elif mechanism == 'MAX':
                 auction_max = AuctionMAX(self, unallocated, self.auction_round)
+            elif mechanism == 'MAN':
+                auction_man = AuctionMAN(self, unallocated, self.auction_round, self.ppsi_task_winners)
+
+            # If this is uncommented, mechanism selection happens only once.
+            # This has important implications! Consider if this is really what you want to do!
+            rospy.logdebug("######## choose_mechanism(): setting self.mechanism to {0} ########".format(mechanism))
+            self.mechanism = mechanism
+
+        # Reset the allocation created by the PPSI auction that was run in select_mechanism_dynamic
+        self.ppsi_task_winners = None
 
         # An auction runs when it is instantiated (above).
         # At this point, we can (safely?) consider all previously unallocated
-        # tasks to ahve been allocated
+        # tasks to have been allocated
         self.new_task_added = False
         rospy.loginfo("self.new_task_added == {0}".format(self.new_task_added))
 
