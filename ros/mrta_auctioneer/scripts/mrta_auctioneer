@@ -523,7 +523,7 @@ class AuctionSSI(Auction):
         stamp(announcement_msg)
         self.auctioneer.announce_pub.publish(announcement_msg)
 
-        rospy.logdebug("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
+        rospy.loginfo("Announcement:\n{0}".format(pp.pformat(announcement_msg)))
 
         self.fsm.announced()
 
@@ -1141,8 +1141,8 @@ class Auctioneer:
 
         # Start up a planner proxy
         dummy_robot_name = rospy.get_param('~dummy_robot_name', "robot_0")
-        rospy.loginfo("Auctioneer: Starting PlannerProxy")
-        #self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
+        # rospy.loginfo("Auctioneer: Starting PlannerProxy")
+        # self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
 
         # Scripted tasks that are not necessarily 'live' at the start of the experiment
         self.scripted_tasks = []
@@ -1175,30 +1175,30 @@ class Auctioneer:
         # Classifier used to predict an appropriate mechanism in
         # select_mechanism_dynamic(). This classifier will have been
         # trained in scikit-learn and dumped to a file with pickle.
-        pkg = rospkg.RosPack()
-        pkg_path = pkg.get_path('mrta_auctioneer')
-
-        self.classifier = None
-        self.feature_names = None
-        try:
-            clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
-            clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
-            clf_features_filename = '{0}.features'.format(clf_base_filename)
-
-            classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
-            features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
-
-            with open(classifier_path, 'rb') as classifier_file:
-                self.classifier = pickle.load(classifier_file)
-
-            self.feature_names = []
-            with open(features_path, 'rb') as features_file:
-                for line in features_file:
-                    self.feature_names.append(line.rstrip())
-        except:
-            rospy.logerr("Error opening classifier/features".format(self.task_file))
-            e_type, e_value, e_traceback = sys.exc_info()
-            rospy.logerr("{0}: {1}".format(e_type, e_value))
+        # pkg = rospkg.RosPack()
+        # pkg_path = pkg.get_path('mrta_auctioneer')
+        #
+        # self.classifier = None
+        # self.feature_names = None
+        # try:
+        #     clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
+        #     clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
+        #     clf_features_filename = '{0}.features'.format(clf_base_filename)
+        #
+        #     classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
+        #     features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
+        #
+        #     with open(classifier_path, 'rb') as classifier_file:
+        #         self.classifier = pickle.load(classifier_file)
+        #
+        #     self.feature_names = []
+        #     with open(features_path, 'rb') as features_file:
+        #         for line in features_file:
+        #             self.feature_names.append(line.rstrip())
+        # except:
+        #     rospy.logerr("Error opening classifier/features".format(self.task_file))
+        #     e_type, e_value, e_traceback = sys.exc_info()
+        #     rospy.logerr("{0}: {1}".format(e_type, e_value))
 
         # Set up state machine.
         # See mrta/docs/auctioneer-fsm.png
@@ -1428,7 +1428,14 @@ class Auctioneer:
     def idle(self, data):
         rospy.loginfo("state: idle")
 
-        # There are scripted (dynamic) tasks yet to come
+        # If our task pool (self.tasks) is empty, let's assume we were
+        # started up with no predefined mission (i.e., no task_file startup
+        # parameter). Idle here until some task appears, presumably via a
+        # messages on the /tasks/new topic.
+        while not self.tasks:
+            self.rate.sleep()
+
+        # There are scripted (dynamic) tasks yet to come. Idle until they arrive.
         incomplete_scripted_tasks = True
         while incomplete_scripted_tasks:
 
@@ -1869,7 +1876,7 @@ class Auctioneer:
             else:
                 # Call it anyway to record information about medians and distance. Ignore the result
                 # (i.e., don't assign its return value to the variable 'mechanism')
-                #self.select_mechanism_dynamic(unallocated)
+                # self.select_mechanism_dynamic(unallocated)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
             # Send a message to mark the end of the mechanism-choosing phase of

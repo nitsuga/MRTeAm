@@ -2,6 +2,8 @@
     <arg name="master_bridge_host" default="localhost" />
     <arg name="master_bridge_port" default="5672" />
 
+    <arg name="task_file" default="" />
+
     <param name="/use_sim_time" value="true"/>
 
     <arg name="reallocate" default="False" />
@@ -69,6 +71,7 @@
         [
           '/tasks/announce',
           '/tasks/award',
+          '/experiment'
         ]
         </rosparam>
     </node>

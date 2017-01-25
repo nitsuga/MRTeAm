@@ -250,7 +250,7 @@ class MRTeAmRelay:
 
         relay_message = "{0}{1}{2}{3}{4}".format(self.node_name, HEADER_DELIMITER, topic, HEADER_DELIMITER, pickled_msg)
 
-        # rospy.loginfo("Publishing message to master bridge on topic {0}".format(topic))
+        # rospy.loginfo("Publishing {0} to master bridge on topic {1}".format(message, topic))
 
         try:
             # self.channel_lock.acquire()
