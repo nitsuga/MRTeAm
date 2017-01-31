@@ -169,7 +169,7 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=15):
         sys.exit(1)
 
 
-def generate_and_write_starts(map_image_file, num_poses=3, buffer_size=70, output_filename=DEFAULT_START_POSE_FILE):
+def generate_and_write_random_starts(map_image_file, num_poses=3, buffer_size=70, output_filename=DEFAULT_START_POSE_FILE):
 
     # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
     #                                                               num_poses,
@@ -203,6 +203,38 @@ def generate_and_write_starts(map_image_file, num_poses=3, buffer_size=70, outpu
         print "Couldn't open {0} for writing! Exiting.".format(output_filename)
         sys.exit(1)
 
+
+def generate_and_write_starts(map_image_file, poses, output_filename=DEFAULT_START_POSE_FILE):
+
+    # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
+    #                                                               num_poses,
+    #                                                               buffer_size,
+    #                                                               output_filename)
+
+    try:
+        map_image = Image.open(map_image_file)
+    except IOError:
+        print "Couldn't open map image {0} for reading!".format(map_image_file)
+        sys.exit(1)
+
+    # Write the poses to output_file
+    try:
+        output_file = open(output_filename, 'wb')
+
+        robot_colors = ['red', 'green', 'blue']
+
+        for i, pose in enumerate(poses):
+            # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
+            output_file.write("turtlebot ( pose [ {0} {1} {2} {3} ] color \"{4}\" )\n".format(pose[0],
+                                                                                              pose[1],
+                                                                                              pose[2],
+                                                                                              pose[3],
+                                                                                              robot_colors[i]))
+        output_file.close()
+
+    except IOError:
+        print "Couldn't open {0} for writing! Exiting.".format(output_filename)
+        sys.exit(1)
 
 if __name__ == '__main__':
 

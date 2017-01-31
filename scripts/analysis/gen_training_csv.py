@@ -13,6 +13,7 @@ from os.path import isdir, isfile, join
 import pandas as pd
 import pprint
 import re
+from scipy.spatial import distance
 import signal
 import subprocess
 import sys
@@ -45,7 +46,10 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'ASSIGNED_MEDIAN_DISTANCE_SPREAD',
                   'TOTAL_MEDIAN_DISTANCE_SPREAD',
                   'TEAM_DIAMETER',
+                  'AVERAGE_TEAMMATE_DISTANCE',
+                  'AVERAGE_TEAM_CENTROID_DISTANCE',
                   'GREEDY_MEDIAN_COUNT_SPREAD',
+                  'PSI_SPREAD',
                   'ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN',
                   'ROBOT1_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT1_STARTX',
@@ -70,6 +74,8 @@ ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
 
+BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
+
 # Key is a task filename, value is a dict, where
 #  key is a task_id, value is an (x, y) pair of coordinates
 target_point_configs = {}
@@ -86,11 +92,17 @@ LAUNCHFILE = 'stage_dummy_robot.launch'
 DUMMY_ROBOT_NAME = 'robot_0'
 MAP_FILE = 'smartlab_ugv_arena_v2.png'
 WORLD_FILE = 'smartlab_ugv_arena_dummy_robot.world'
-#NOGUI_FLAG = ''
+# NOGUI_FLAG = ''
 NOGUI_FLAG = '-g'
 
 planner_proxy = None
 main_proc = None
+
+
+def find_file(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
 
 
 def start_ros():
@@ -182,7 +194,24 @@ def read_point_config(task_dir, task_filename):
     target_point_configs[task_filename] = _read_points(task_file)
 
 
-def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir):
+def get_psi_spread(psi_bag):
+    spread = 0
+
+    robot_award_counts = defaultdict(int)
+
+    try:
+        for topic, msg, msg_time in psi_bag.read_messages('/tasks/award'):
+            robot_award_counts[msg.robot_id] += len(msg.tasks)
+    except:
+        print(sys.exc_info()[0])
+        return -1
+
+    spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
+
+    return spread
+
+
+def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root):
     global planner_proxy
     try:
 
@@ -231,6 +260,36 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             # We only have two rows in this group (one per PSI and SSI)
             first_row = group.iloc[0]
             second_row = group.iloc[1]
+
+            # Find the PSI row/run
+            if first_row.MECHANISM == 'PSI':
+                psi_row = first_row
+            elif second_row.MECHANISM == 'PSI':
+                psi_row = second_row
+            else:
+                print("Couldn't identify PSI run! Skipping...")
+                continue
+
+            # Find the PSI bag filename
+            psi_bag_filename = psi_row.BAG_FILENAME
+
+            psi_bag_filepath = find_file(psi_bag_filename, bag_root)
+
+            if not psi_bag_filepath:
+                print("Couldn't find {0} in {1}! Skipping...".format(psi_bag_filename, psi_bag_filepath))
+                continue
+
+            try:
+                print("Opening PSI bag at {0}...".format(psi_bag_filepath))
+                psi_bag = rosbag.Bag(psi_bag_filepath)
+            except:
+                print(sys.exc_info()[0])
+                print("Couldn't open {0}! Skipping...".format(psi_bag_filepath))
+                continue
+
+            # Examine the bag to determine how imbalanced the PSI allocation was
+            psi_spread = get_psi_spread(psi_bag)
+            psi_bag.close()
 
             first_row_max_dist = max(first_row.ROBOT1_DISTANCE, first_row.ROBOT2_DISTANCE, first_row.ROBOT3_DISTANCE)
             second_row_max_dist = max(second_row.ROBOT1_DISTANCE, second_row.ROBOT2_DISTANCE, second_row.ROBOT3_DISTANCE)
@@ -306,9 +365,9 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                                           min_dist_row["{0}_STARTY".format(second_robot_name.upper())])
                 target_pose = planner_proxy._point_to_pose(target_point)
 
-                distance = planner_proxy.get_path_cost(source_pose, target_pose)
+                teammate_distance = planner_proxy.get_path_cost(source_pose, target_pose)
 
-                robot_graph[first_robot_name, second_robot_name] = distance
+                robot_graph[first_robot_name, second_robot_name] = teammate_distance
 
             dist_matrix = robot_graph.get_adjacency(type=2, attribute='weight').data
 
@@ -322,6 +381,24 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             # print task_graph_mst
             team_diameter = robot_graph.diameter(directed=False, weights='weight')
             print "team diameter: {0}".format(team_diameter)
+
+            average_teammate_distance = np.mean(robot_graph.es['weight'])
+            print "average teammate distance: {0}".format(average_teammate_distance)
+
+            # Find the euclidean center of the team, then measure the average team
+            # member distance to that center.
+            team_centroid_x = sum([min_dist_row["{0}_STARTX".format(rn.upper())] for rn in ROBOT_NAMES]) * 1. / len(ROBOT_NAMES)
+            team_centroid_y = sum([min_dist_row["{0}_STARTY".format(rn.upper())] for rn in ROBOT_NAMES]) * 1. / len(ROBOT_NAMES)
+
+            total_team_centroid_distance = 0.0
+            for robot_name in ROBOT_NAMES:
+                robot_x = min_dist_row["{0}_STARTX".format(robot_name.upper())]
+                robot_y = min_dist_row["{0}_STARTY".format(robot_name.upper())]
+                total_team_centroid_distance += distance.euclidean((robot_x, robot_y), (team_centroid_x, team_centroid_y))
+
+            average_team_centroid_distance = total_team_centroid_distance * 1. / len(ROBOT_NAMES)
+
+            print "average team centroid distance: {0}".format(average_team_centroid_distance)
 
             assigned_robot_median_distances = [min_dist_row.ROBOT1_DISTANCE_TO_ASSIGNED_MEDIAN,
                                                min_dist_row.ROBOT2_DISTANCE_TO_ASSIGNED_MEDIAN,
@@ -366,13 +443,13 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                                               min_dist_row["{0}_STARTY".format(robot_name.upper())])
                     target_pose = planner_proxy._point_to_pose(target_point)
 
-                    distance = planner_proxy.get_path_cost(source_pose, target_pose)
+                    median_distance = planner_proxy.get_path_cost(source_pose, target_pose)
 
-                    distance_to_all_medians[robot_name][median_task_id] = distance
+                    distance_to_all_medians[robot_name][median_task_id] = median_distance
 
-                    if not min_robot_distance or distance < min_robot_distance:
+                    if not min_robot_distance or median_distance < min_robot_distance:
                         min_robot_id = robot_name
-                        min_robot_distance = distance
+                        min_robot_distance = median_distance
 
                 greedy_median_count[min_robot_id] += 1
 
@@ -384,7 +461,11 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 row['MIN_DISTANCE_TO_ASSIGNED_MEDIAN'] = min_assigned_median_dist
                 row['ASSIGNED_MEDIAN_DISTANCE_SPREAD'] = assigned_median_distance_spread
                 row['TEAM_DIAMETER'] = team_diameter
+                row['AVERAGE_TEAMMATE_DISTANCE'] = average_teammate_distance
+                row['AVERAGE_TEAM_CENTROID_DISTANCE'] = average_team_centroid_distance
                 row['GREEDY_MEDIAN_COUNT_SPREAD'] = greedy_median_count_spread
+
+                row['PSI_SPREAD'] = psi_spread
 
                 total_distance_to_all_medians = 0.0
 
@@ -458,6 +539,10 @@ if __name__ == '__main__':
                         default=TASK_FILES_DEFAULT,
                         help="Location of task configuration (target point) files")
 
+    parser.add_argument('-br', '--bag_root',
+                        default=BAG_ROOT_DEFAULT,
+                        help="Root directory of bag files.")
+
     args = parser.parse_args()
 
     in_file = args.input
@@ -466,9 +551,10 @@ if __name__ == '__main__':
     out_execution_phase_time = args.out_execution_phase_time
     out_minimax = args.out_minimax
     task_dir = args.task_dir
+    bag_root = args.bag_root
 
-    print(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir)
+    print(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
 
     start_ros()
-    write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir)
+    write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
     stop_ros()

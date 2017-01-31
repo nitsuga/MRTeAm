@@ -57,11 +57,11 @@ def nominal_to_numeric(col, codeDict):
 
 h = .02  # step size in the mesh
 
-title = 'Classifier Comparison: Minimax Distance'
-input_file = 'minimax_distance.csv'
+# title = 'Classifier Comparison: Minimax Distance'
+# input_file = 'minimax_distance.csv'
 
-# title = 'Classifier Comparison: Execution Phase Time'
-# input_file = 'execution_phase_time.csv'
+title = 'Classifier Comparison: Execution Phase Time'
+input_file = 'execution_phase_time.csv'
 
 # title = 'Classifier Comparison: Total Run Time'
 # input_file = 'run_time.csv'
@@ -72,6 +72,7 @@ input_file = 'minimax_distance.csv'
 #feature1 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature1 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
 feature1 = 'GREEDY_MEDIAN_COUNT_SPREAD'
+#feature1 = 'AVERAGE_TEAMMATE_DISTANCE'
 
 #feature2 = 'MAX_DISTANCE_TO_ASSIGNED_MEDIAN'
 #feature2 = 'MIN_DISTANCE_TO_ASSIGNED_MEDIAN'
@@ -82,6 +83,7 @@ feature1 = 'GREEDY_MEDIAN_COUNT_SPREAD'
 #feature2 = 'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS'
 #feature2 = 'ASSIGNED_MEDIAN_DISTANCE_SPREAD'
 feature2 = 'PSI_SPREAD'
+#feature2 = 'AVERAGE_TEAM_CENTROID_DISTANCE'
 
 
 # xaxis_label = 'Minimum Distance to Assigned Median'

@@ -128,7 +128,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
             os.remove(random_poses.DEFAULT_START_POSE_FILE)
         except OSError:
             pass
-        random_poses.generate_and_write_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
+        random_poses.generate_and_write_random_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
