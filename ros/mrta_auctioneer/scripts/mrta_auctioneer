@@ -373,7 +373,11 @@ class AuctionPSI(Auction):
             for robot_id in bids.keys():
                 if robot_id not in self.auctioneer.awarded[task.task_id]:
                     # task_id below is a 1-tuple. see Auctioneer.on_bid_received()
-                    bid_tuples.append([robot_id, bids[robot_id][tuple([task.task_id])]]) # i.e., [robot_id, bid_value]
+                    rospy.loginfo("Reading bid from {0} for {1}".format(robot_id, task.task_id))
+                    try:
+                        bid_tuples.append([robot_id, bids[robot_id][tuple([task.task_id])]]) # i.e., [robot_id, bid_value]
+                    except KeyError:
+                        pp.pprint(bid_tuples)
 
             # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
             bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
@@ -470,7 +474,11 @@ class AuctionPPSI(AuctionPSI):
             for robot_id in bids.keys():
                 if robot_id not in self.auctioneer.awarded[task.task_id]:
                     # task_id below is a 1-tuple. see Auctioneer.on_bid_received()
-                    bid_tuples.append([robot_id, bids[robot_id][tuple([task.task_id])]])  # i.e., [robot_id, bid_value]
+                    rospy.loginfo("Reading bid from {0} for {1}".format(robot_id, task.task_id))
+                    try:
+                        bid_tuples.append([robot_id, bids[robot_id][tuple([task.task_id])]])  # i.e., [robot_id, bid_value]
+                    except KeyError:
+                        pp.pprint(bid_tuples)
 
             # Sort tuples of [robot_id],[bid_value] in ascending order of bid value
             bid_tuples = sorted(bid_tuples, key=lambda entry: entry[1])
@@ -1481,9 +1489,7 @@ class Auctioneer:
         # Teitz-Bart
         return p_medians
 
-
     def get_team_diameter(self):
-
         robot_graph = igraph.Graph()
         robot_graph.add_vertices(self.team_members)
 
@@ -1559,7 +1565,7 @@ class Auctioneer:
 
         return greedy_median_count, distance_to_all_medians
 
-    def select_mechanism_dynamic(self, unallocated):
+    def select_mechanism_dynamic(self, unallocated, configured_mechanism):
         """ Decide which mechanism to use given a list of unallocated tasks.
 
         Our first go at this will use ideas from facility-location to choose
@@ -1749,24 +1755,25 @@ class Auctioneer:
 
         psi_spread = 0
 
-        # Run PPSI
-        auction_ppsi = AuctionPPSI(self, unallocated, self.auction_round)
+        if configured_mechanism == 'SEL':
+            # Run PPSI
+            auction_ppsi = AuctionPPSI(self, unallocated, self.auction_round)
 
-        # Get PPSI allocation and compute PSI spread: task_max - task_min, where
-        #
-        #   task_max = greatest number of tasks awarded to a single robot
-        #   task_min = least number of tasks awarded to a single robot
+            # Get PPSI allocation and compute PSI spread: task_max - task_min, where
+            #
+            #   task_max = greatest number of tasks awarded to a single robot
+            #   task_min = least number of tasks awarded to a single robot
 
-        if self.ppsi_task_winners:
-            robot_award_counts = defaultdict(int)
+            if self.ppsi_task_winners:
+                robot_award_counts = defaultdict(int)
 
-            for task_id in self.ppsi_task_winners:
-                winner_ids = self.ppsi_task_winners[task_id]
+                for task_id in self.ppsi_task_winners:
+                    winner_ids = self.ppsi_task_winners[task_id]
 
-                for winner_id in winner_ids:
-                    robot_award_counts[winner_id] += 1
+                    for winner_id in winner_ids:
+                        robot_award_counts[winner_id] += 1
 
-            psi_spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
+                psi_spread = max(robot_award_counts.values()) - min(robot_award_counts.values())
 
         rospy.loginfo('PSI_SPREAD == {0}'.format(psi_spread))
 
@@ -1862,7 +1869,7 @@ class Auctioneer:
             # If we're choosing a mechanism a runtime
 #            if self.dynamic_mechanism:
             if mechanism == 'SEL':
-                mechanism = self.select_mechanism_dynamic(unallocated)
+                mechanism = self.select_mechanism_dynamic(unallocated, mechanism)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
                 # At this point, PSI has actually already been partially run via PPSI. If PSI
@@ -1876,7 +1883,7 @@ class Auctioneer:
             else:
                 # Call it anyway to record information about medians and distance. Ignore the result
                 # (i.e., don't assign its return value to the variable 'mechanism')
-                self.select_mechanism_dynamic(unallocated)
+                self.select_mechanism_dynamic(unallocated, mechanism)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
             # Send a message to mark the end of the mechanism-choosing phase of
@@ -1945,6 +1952,8 @@ class Auctioneer:
             round_bids[robot_id] = {}
 
         # task_ids here is a *tuple* because a list can't be used as a dict key
+        rospy.loginfo("Adding bid from {0} for {1} with value {2}".format(robot_id, tuple(task_ids), float(bid)))
+
         round_bids[robot_id][tuple(task_ids)] = float(bid)
 
         self.bids_lock.release()
