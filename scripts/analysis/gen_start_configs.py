@@ -36,13 +36,6 @@ import random_poses
 maps = {'brooklyn': 'brooklyn_lab.png',
         'smartlab': 'smartlab_ugv_arena_v2.png'}
 
-START_POS = {'clustered': {'robot_1': {'x': 1.55, 'y': 1.5},
-                           'robot_2': {'x': 0.5,  'y': 1.5},
-                           'robot_3': {'x': 0.5,  'y': 0.5}},
-             'distributed': {'robot_1': {'x': 7.5, 'y': 5.5},
-                             'robot_2': {'x': 0.5, 'y': 5.5},
-                             'robot_3': {'x': 0.5, 'y': 0.5}}}
-
 ROBOT_NAMES = ['robot_1', 'robot_2', 'robot_3']
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -101,7 +94,7 @@ def stop_ros():
         print("Error: {0}".format(sys.exc_info()[0]))
 
 
-def sig_handler(sig, frame):
+def sig_handler(sig):
     """ Terminate all child processes when we get a SIGINT """
     if sig == signal.SIGINT:
         stop_ros()
@@ -111,63 +104,32 @@ def sig_handler(sig, frame):
 signal.signal(signal.SIGINT, sig_handler)
 
 def find_nearest_index(array,value):
-    idx = (np.abs(array-value)).argmin()
-    idx
+    return (np.abs(array-value)).argmin()
 
 def get_average_teammate_distance(start_poses):
-    pass
 
-def get_average_team_centroid_distance(start_poses):
-    pass
+    robot_graph = igraph.Graph()
+    robot_graph.add_vertices(ROBOT_NAMES)
 
-def generate_range_sequence(start, end, length):
-    step = end - start * 1. / length
-    return np.arange(start, end, step)
+    # Turn on weighting
+    robot_graph.es['weight'] = 1.0
 
+    # For every pair of robots
+    for pair in combinations(ROBOT_NAMES, 2):
+        first_robot_name = pair[0]
+        second_robot_name = pair[1]
 
-def generate_start_configs(map_file, avg_team_dist_range, avg_centroid_dist_range):
-    global planner_proxy
+        source_point = mrta.Point(start_poses[first_robot_name]['x'], start_poses[first_robot_name]['y'])
+        source_pose = planner_proxy._point_to_pose(source_point)
 
-    rospack = rospkg.RosPack()
+        target_point = mrta.Point(start_poses[second_robot_name]['x'], start_poses[second_robot_name]['y'])
+        target_pose = planner_proxy._point_to_pose(target_point)
 
-    # Generate 5 start configs for a range of average teammate distances
-    avg_team_dist_range_seq = generate_range_sequence(avg_team_dist_range[0], avg_team_dist_range[1], 5)
+        teammate_distance = planner_proxy.get_path_cost(source_pose, target_pose)
 
-    random_poses = get_random_poses("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file), 3, 70, occupy=True)
+        robot_graph[first_robot_name, second_robot_name] = teammate_distance
 
-
-    # Generate 5 start configs for a range of average team centroid distances
-    avg_centroid_dist_range_seq = generate_range_sequence(avg_centroid_dist_range[0], avg_centroid_dist_range[1], 5)
-
-
-    random_poses.generate_and_write_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
-
-    print "start config: {0}".format(start_config)
-
-        start_pos = START_POS[start_config]
-
-        robot_graph = igraph.Graph()
-        robot_graph.add_vertices(ROBOT_NAMES)
-
-        # Turn on weighting
-        robot_graph.es['weight'] = 1.0
-
-        # For every pair of robots
-        for pair in combinations(ROBOT_NAMES, 2):
-            first_robot_name = pair[0]
-            second_robot_name = pair[1]
-
-            source_point = mrta.Point(start_pos[first_robot_name]['x'], start_pos[first_robot_name]['y'])
-            source_pose = planner_proxy._point_to_pose(source_point)
-
-            target_point = mrta.Point(start_pos[second_robot_name]['x'], start_pos[second_robot_name]['y'])
-            target_pose = planner_proxy._point_to_pose(target_point)
-
-            teammate_distance = planner_proxy.get_path_cost(source_pose, target_pose)
-
-            robot_graph[first_robot_name, second_robot_name] = teammate_distance
-
-        dist_matrix = robot_graph.get_adjacency(type=2, attribute='weight').data
+        # dist_matrix = robot_graph.get_adjacency(type=2, attribute='weight').data
 
         print("robot_graph: {0}, distances: {1}".format(robot_graph.summary(),
                                                         robot_graph.es['weight']))
@@ -183,20 +145,46 @@ def generate_start_configs(map_file, avg_team_dist_range, avg_centroid_dist_rang
         average_teammate_distance = np.mean(robot_graph.es['weight'])
         print "average teammate distance: {0}".format(average_teammate_distance)
 
-        # Find the euclidean center of the team, then measure the average team
-        # member distance to that center.
-        team_centroid_x = sum([start_pos[rn]['x'] for rn in ROBOT_NAMES]) * 1. / len(ROBOT_NAMES)
-        team_centroid_y = sum([start_pos[rn]['y'] for rn in ROBOT_NAMES]) * 1. / len(ROBOT_NAMES)
+        return average_teammate_distance
 
-        total_team_centroid_distance = 0.0
-        for robot_name in ROBOT_NAMES:
-            robot_x = start_pos[robot_name]['x']
-            robot_y = start_pos[robot_name]['y']
-            total_team_centroid_distance += distance.euclidean((robot_x, robot_y), (team_centroid_x, team_centroid_y))
 
-        average_team_centroid_distance = total_team_centroid_distance * 1. / len(ROBOT_NAMES)
+def get_average_team_centroid_distance(start_poses):
 
-        print "average team centroid distance: {0}".format(average_team_centroid_distance)
+    # Find the euclidean center of the team, then measure the average team
+    # member distance to that center.
+    team_centroid_x = sum([start_poses[rn]['x'] for rn in ROBOT_NAMES]) * 1. / len(ROBOT_NAMES)
+    team_centroid_y = sum([start_poses[rn]['y'] for rn in ROBOT_NAMES]) * 1. / len(ROBOT_NAMES)
+
+    total_team_centroid_distance = 0.0
+    for robot_name in ROBOT_NAMES:
+        robot_x = start_poses[robot_name]['x']
+        robot_y = start_poses[robot_name]['y']
+        total_team_centroid_distance += distance.euclidean((robot_x, robot_y), (team_centroid_x, team_centroid_y))
+
+    average_team_centroid_distance = total_team_centroid_distance * 1. / len(ROBOT_NAMES)
+
+    print "average team centroid distance: {0}".format(average_team_centroid_distance)
+
+
+def generate_range_sequence(start, end, length):
+    step = end - start * 1. / length
+    return np.arange(start, end, step)
+
+
+def generate_start_configs(map_file, avg_team_dist_range, avg_centroid_dist_range):
+    global planner_proxy
+    rospack = rospkg.RosPack()
+
+    # Generate 5 start configs for a range of average teammate distances
+    avg_team_dist_range_seq = generate_range_sequence(avg_team_dist_range[0], avg_team_dist_range[1], 5)
+
+    random_poses = get_random_poses("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file), 3, 70, occupy=True)
+
+
+    # Generate 5 start configs for a range of average team centroid distances
+    avg_centroid_dist_range_seq = generate_range_sequence(avg_centroid_dist_range[0], avg_centroid_dist_range[1], 5)
+
+    random_poses = get_random_poses("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file), 3, 70, occupy=True)
 
 
 if __name__ == '__main__':
