@@ -1,0 +1,7 @@
+<library path="lib/libmrta_dwa_local_planner">
+  <class name="mrta_dwa_local_planner/MRTADWAPlannerROS" type="mrta_dwa_local_planner::MRTADWAPlannerROS" base_class_type="nav_core::BaseLocalPlanner">
+    <description>
+      A implementation of a local planner using either a DWA approach based on configuration parameters, with missing footprint spec bug fixed.
+    </description>
+  </class>
+</library>
