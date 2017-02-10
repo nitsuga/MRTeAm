@@ -298,12 +298,12 @@ class MRTeAmRelay:
     def on_bridge_message(self, channel, method_frame, header_frame, body):
         """ Called when a message from the bridge (RabbitMQ) is received ("consumed") """
 
-        print "Message received from bridge."
+        # print "Message received from bridge."
 
         try:
             (sender, topic, pickled_msg) = body.split(HEADER_DELIMITER)
 
-            print "sender: {0}, topic: {1}".format(sender, topic)
+            # print "sender: {0}, topic: {1}".format(sender, topic)
 
             # We don't want to loop if the message was originally sent by us
             # if sender == self.node_name:
@@ -322,7 +322,7 @@ class MRTeAmRelay:
             # Unpickle the message
             message = cPickle.loads(pickled_msg)
 
-            print message
+            # print message
 
             # Get a handle to a local (ROS) publisher
             publisher = self.publishers[topic]

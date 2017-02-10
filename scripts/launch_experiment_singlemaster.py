@@ -47,8 +47,13 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'distributed_A': ''},
                'smartlab': {'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
                             'distributed': 'smartlab_ugv_arena_3_robots_distributed.world',
-                            'random': 'smartlab_ugv_arena_3_robots_random_starts.world'}}
-
+                            'random': 'smartlab_ugv_arena_3_robots_random_starts.world',
+                            'start1': 'smartlab_ugv_arena_3_robots_start1.world',
+                            'start2': 'smartlab_ugv_arena_3_robots_start2.world',
+                            'start3': 'smartlab_ugv_arena_3_robots_start3.world',
+                            'start4': 'smartlab_ugv_arena_3_robots_start4.world',
+                            'start5': 'smartlab_ugv_arena_3_robots_start5.world',
+                            'start6': 'smartlab_ugv_arena_3_robots_start6.world'}}
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
@@ -214,7 +219,8 @@ if __name__ == '__main__':
                         choices=['brooklyn', 'smartlab'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
-                        choices=['clustered', 'distributed', 'random'],
+                        choices=['clustered', 'distributed', 'random',
+                                 'start1', 'start2', 'start3', 'start4', 'start5', 'start6'],
                         help='Starting locations of the robots.')
     parser.add_argument('task_file',
                         help='Name of the file containing task point locations.')
