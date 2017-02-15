@@ -1,4 +1,5 @@
 digraph auctioneer {
+	compound=true;
 #	rankdir=LR;
 	size="8,12"
 
@@ -33,7 +34,8 @@ digraph auctioneer {
 	node [shape=ellipse, label="award_RR"] award_RR;
 	
 	node [shape=ellipse, label="idle"] idle;
-	node [shapr=ellipse, label="choose_mechanism"] choose_mechanism;
+
+#	node [shape=ellipse, label="choose_mechanism"] choose_mechanism;
 	
 	start                -> load_tasks;
 	load_tasks           -> identify_team [label="tasks_loaded"];
@@ -55,14 +57,18 @@ digraph auctioneer {
 	award_PSI            -> choose_mechanism [label="have_tasks"];
 	award_PSI            -> idle [label="no_tasks"];
 
-	choose_mechanism      -> announce_PPSI [label="choose_PPSI"];
-	announce_PPSI         -> collect_bids_PPSI [label="announced"];
-	collect_bids_PPSI     -> determine_winner_PPSI [label="bids_collected"];
-	determine_winner_PPSI -> award_PPSI [label="winner_determined"];
-	determine_winner_PPSI -> exit_PPSI [label="choose_SSI"];
-	exit_PPSI             -> announce_SSI [label="choose_SSI"];
-	award_PPSI            -> choose_mechanism [label="have_tasks"];
-	award_PPSI            -> idle [label="no_tasks"];
+	subgraph choose_mechanism {
+		node [style=filled];
+		choose_mechanism      -> announce_PPSI [label="choose_PPSI"];
+		announce_PPSI         -> collect_bids_PPSI [label="announced"];
+		collect_bids_PPSI     -> determine_winner_PPSI [label="bids_collected"];
+		determine_winner_PPSI -> award_PPSI [label="winner_determined"];
+		determine_winner_PPSI -> exit_PPSI [label="choose_SSI"];
+		label = "PPSI";
+#		exit_PPSI             -> announce_SSI [label="choose_SSI"];
+#		award_PPSI            -> choose_mechanism [label="have_tasks"];
+#		award_PPSI            -> idle [label="no_tasks"];
+	}
 
 	choose_mechanism     -> announce_SSI [label="choose_SSI"];
 	announce_SSI         -> collect_bids_SSI [label="announced"];
