@@ -268,7 +268,7 @@ if __name__ == '__main__':
     output_file = args.output_file
 
     if args.pose_type == 'starts':
-        generate_and_write_starts(map_image_file, num_poses, buffer_size, output_file)
+        generate_and_write_random_starts(map_image_file, num_poses, buffer_size, output_file)
     elif args.pose_type == 'tasks':
         generate_and_write_tasks(map_image_file, num_poses, buffer_size)
 

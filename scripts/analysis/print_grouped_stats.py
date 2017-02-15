@@ -23,10 +23,12 @@ def print_grouped_stats(stats_csv):
     succ_group_stats = pd.DataFrame()
 
     for name, group in group_stats.groupby('TASK_FILE'):
-        print name
-        print len(group)
+        # print name
+        # print len(group)
         if len(group) == len(MECHANISMS):
             succ_group_stats = succ_group_stats.append([group.iloc[idx] for idx in range(len(MECHANISMS))])
+
+    print("{0} groups of {1}".format(len(succ_group_stats)/len(MECHANISMS), len(MECHANISMS)))
 
     for mechanism in MECHANISMS:
 
