@@ -11,6 +11,7 @@ import pprint
 import re
 import rosbag
 import sys
+import tf.transformations
 
 import mrta
 import mrta.msg
@@ -86,6 +87,8 @@ def is_number(s):
         return True
     except ValueError:
         return False
+    except TypeError:
+        return False
 
 
 class Robot(object):
@@ -93,6 +96,7 @@ class Robot(object):
         self.name = None
         self.startx = None
         self.starty = None
+        self.starta = None
         self.distance = 0.0
         self.distance_to_median = None
         self.movement_time = 0.0
@@ -429,6 +433,15 @@ def parse_stats(bag_paths, output):
                 if not robot.starty:
                     robot.starty = amcl_pose.position.y
 
+                if not robot.starta:
+
+                    quat = (amcl_pose.orientation.x,
+                            amcl_pose.orientation.y,
+                            amcl_pose.orientation.z,
+                            amcl_pose.orientation.w)
+                    euler = tf.transformations.euler_from_quaternion(quat)
+                    robot.starta = euler[2] * 180. / math.pi
+
                 if amcl_pose.position.x == 0 and amcl_pose.position.y == 0:
                     continue
 
@@ -443,6 +456,8 @@ def parse_stats(bag_paths, output):
                                        amcl_pose.position.y - last_pose.position.y)
                 robot.distance += pos_delta
                 last_pose = amcl_pose
+
+            print("{0} start pos: ({1}, {2}, {3})".format(r_name, robot.startx, robot.starty, robot.starta))
 
 #            print "{0} distance: {1}".format(r_name, robot.distance)
 
