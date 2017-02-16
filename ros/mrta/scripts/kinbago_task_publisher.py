@@ -1,0 +1,237 @@
+#!/usr/bin/env python
+
+# Python modules
+from collections import defaultdict
+import cPickle
+import sys
+import time
+import traceback
+import uuid
+import yaml
+
+# AMQP modules
+import pika
+
+# ROS modules
+import nav_msgs.msg
+import geometry_msgs.msg
+import sensor_msgs.msg
+import tf2_msgs.msg
+import rospy
+import threading
+
+# mrta modules
+import mrta
+import mrta.msg
+
+# We'll sleep 1/RATE seconds in every pass of the idle loop.
+RATE = 10
+
+# Base node name. We'll add a unique suffix to this.
+NODE_BASE = 'kinbago_task_publisher'
+
+
+class MRTeAmRelay:
+
+    def __init__(self):
+        """ Start the show """
+
+        # Exchange name. All relayed messages are published to/consumed from this
+        self.exchange_name = 'mrta_bridge'
+        # queue_name = None
+        self.queue_name = 'mrta_bridge_queue'
+
+        self.connection = None
+        self.channel = None
+        self.channel_lock = threading.Lock()
+
+        # topic (string) => rospy.Publisher object
+        self.publishers = defaultdict(str)
+
+        # Generate a unique prefix for our node name
+        unique_prefix = str(uuid.uuid1()).replace('-', '').replace('_', '')
+        self.node_name = "{0}_{1}".format(NODE_BASE, unique_prefix)
+
+        # queue_name = "queue_{0}".format(unique_prefix)
+
+        # Topics to ignore completely (blacklist)
+        self.ignore_topics = []
+
+        # Substrings of topics to ignore receiving
+        self.receive_ignore_strings = []
+
+        # Substrings of topics to ignore sending
+        self.send_ignore_strings = []
+
+        # For constructing KinbaGo task IDs
+        self.kinbago_task_id = 1
+
+        try:
+            # Start the node
+            print('######## {0} starting ########'.format(self.node_name))
+            rospy.loginfo("Starting node '{0}'...".format(self.node_name))
+            rospy.init_node(self.node_name)
+
+            # Set our rate
+            rate = rospy.Rate(RATE)
+
+            # RabbitMQ server hostname
+            bridge_host = rospy.get_param('~master_bridge_host', 'localhost')
+
+            # RabbitMQ server port
+            bridge_port = rospy.get_param('~master_bridge_port', '5672')
+
+            # Topics to relay
+            # relay_topics = rospy.get_param('~topics', [])
+
+            # Topics to send to the bridge/other masters
+            self.send_topics = rospy.get_param('~send_topics', [])
+
+            # Topic publish new tasks to the auctioneer
+            self.new_task_topic = '/tasks/new'
+
+            # Receive messages from the bridge and republish them locally
+            self.init_publisher(self.new_task_topic)
+
+            # Connect to the bridge
+            self.connection = self.connect(bridge_host, bridge_port)
+
+            # channel.basic_consume(on_bridge_message,
+            #                       queue=queue_name,
+            #                       no_ack=True)
+
+            self.connection.ioloop.start()
+
+            # channel.start_consuming()
+
+            # while not rospy.is_shutdown():
+            #     rate.sleep()
+
+        # except rospy.ROSInterruptException:
+        except:
+            exc_info = sys.exc_info()
+            rospy.loginfo("General error: {0}, {1}".format(exc_info[0], exc_info[1]))
+            traceback.print_exc()
+
+        finally:
+            # if channel:
+            #     channel.stop_consuming()
+            print "Disconnecting from bridge..."
+            self.disconnect()
+
+        print('######## {0} exiting ########'.format(self.node_name))
+
+    def start_consuming(self):
+        self.channel.basic_consume(self.on_bridge_message, queue=self.queue_name)
+
+    def on_bindok(self, unused_frame):
+        print "Queue bound"
+        self.start_consuming()
+
+    def on_queue_declareok(self, frame):
+        print "Queue declared: {0}".format(frame)
+        print "Binding {0} to {1}".format(self.queue_name, self.exchange_name)
+
+        self.channel.queue_bind(self.on_bindok,
+                                queue=self.queue_name,
+                                exchange=self.exchange_name)
+
+    def setup_queue(self):
+        print "Declaring {0}".format(self.queue_name)
+        self.channel.queue_declare(self.on_queue_declareok,
+                                   self.queue_name,
+                                   exclusive=False)
+
+    def on_exchange_declareok(self, unused_frame):
+        print "Exchange declared"
+        self.setup_queue()
+
+    def setup_exchange(self):
+        self.channel.exchange_declare(self.on_exchange_declareok,
+                                      exchange=self.exchange_name,
+                                      type='fanout')
+
+    def on_channel_open(self, new_channel):
+        print "Channel open"
+
+        self.channel = new_channel
+        self.setup_exchange()
+
+        # result = self.channel.queue_declare(exclusive=True, callback=self.on_queue_declared)
+        # print "result: {0}".format(result)
+        # # queue_name = result.method.queue
+        #
+        # self.channel.queue_bind(callback=None,
+        #                         queue=self.queue_name,
+        #                         exchange=self.exchange_name)
+
+    def on_connection_open(self, new_connection):
+        print "Connection open"
+        new_connection.channel(self.on_channel_open)
+
+    def connect(self, host, port):
+        """ Connect to the bridge (RabbitMQ) """
+
+        # A blocking connection
+        # connection = pika.BlockingConnection(pika.ConnectionParameters(host=host, port=port))
+
+        # A non-blocking connection
+        return pika.SelectConnection(parameters=pika.ConnectionParameters(host=host, port=port),
+                                     on_open_callback=self.on_connection_open)
+
+        # channel = connection.channel()
+        # channel.exchange_declare(exchange=exchange_name, type='fanout')
+        #
+        # result = channel.queue_declare(exclusive=True)
+        # queue_name = result.method.queue
+        #
+        # channel.queue_bind(exchange=exchange_name,
+        #                    queue=queue_name)
+
+    def disconnect(self):
+        """ Disconnect from the bridge (RabbitMQ) """
+        self.connection.close()
+
+    def init_publisher(self, new_task_topic):
+        """ Initialize publisher objects for local messages (to roscore) """
+
+        self.new_task_publisher = rospy.Publisher(new_task_topic,
+                                                  mrta.msg.SensorSweepTask,
+                                                  queue_size=5)
+
+    def on_bridge_message(self, channel, method_frame, header_frame, body):
+        """ Called when a message from the bridge (RabbitMQ) is received ("consumed") """
+
+        # print "Message received from bridge."
+        # print message
+
+        try:
+            (task_x, task_y, floor) = body.split(';')
+
+            print "task_x: {0}, task_y: {1}, floor: {2}".format(task_x, task_y, floor)
+
+            new_task_msg = mrta.msg.SensorSweepTask()
+            new_task_msg.task.task_id = "kinbago_task_{0}".format(self.kinbago_task_id)
+            new_task_msg.task.depends = []
+            new_task_msg.task.type = 'SENSOR_SWEEP'
+            new_task_msg.task.num_robots = 1
+            new_task_msg.task.duration = 0
+            new_task_msg.location.x = task_x
+            new_task_msg.location.y = task_y
+            new_task_msg.location.z = 0
+
+            self.new_task_publisher.publish(new_task_msg)
+
+            self.kinbago_task_id += 1
+
+        except Exception:
+            exc_info = sys.exc_info()
+            rospy.loginfo("Error on receiving message from bridge: {0}, {1}".format(exc_info[0], exc_info[1]))
+            traceback.print_exc()
+
+
+if __name__ == '__main__':
+    argv = rospy.myargv(argv=sys.argv[1:])
+    # print "arguments: {0}".format(argv)
+    relay = MRTeAmRelay()
+    # print("rc final state: {0}".format(rc.fsm.current))
