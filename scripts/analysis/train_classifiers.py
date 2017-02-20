@@ -26,12 +26,17 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticD
 
 import pickle
 
-
 robot_names = ['ROBOT1', 'ROBOT2', 'ROBOT3']
 
 names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree",
          "Random Forest", "AdaBoost", "Naive Bayes"]
          # , "Linear Discriminant Analysis","Quadratic Discriminant Analysis"]
+
+drop_columns = ['WINNER_DIFFERENCE',
+                'MAXIMUM_ROBOT_DISTANCE',
+                'EXECUTION_PHASE_TIME',
+                'TOTAL_DISTANCE',
+                'TOTAL_RUN_TIME']
 
 classifiers = [
     KNeighborsClassifier(3),
@@ -57,12 +62,12 @@ def train_classifiers(in_csv, output):
         # input_frame = input_frame[input_frame.WINNER_DIFFERENCE > input_frame.WINNER_DIFFERENCE.std()]
 
         # Drop the 'WINNER_DIFFERENCE' column
-        input_frame = input_frame.drop('WINNER_DIFFERENCE', 1)
-
-        input_frame = input_frame.drop('MAXIMUM_ROBOT_DISTANCE', 1)
-        input_frame = input_frame.drop('EXECUTION_PHASE_TIME', 1)
-        input_frame = input_frame.drop('TOTAL_DISTANCE', 1)
-        input_frame = input_frame.drop('TOTAL_RUN_TIME', 1)
+        for column in drop_columns:
+            try:
+                input_frame = input_frame.drop(column, 1)
+            except ValueError:
+                # print("Column {0} not found".format(column))
+                continue
 
         for robot_name in robot_names:
             input_frame = input_frame.drop('{0}_DISTANCE_TO_ASSIGNED_MEDIAN'.format(robot_name), 1)
@@ -119,7 +124,7 @@ def train_classifiers(in_csv, output):
                                       ('feat', top_feat),
                                       # ('clf', SVC())])
                                       ('clf', RandomForestClassifier())])
-                                      #('clf', KNeighborsClassifier())])
+                                      # ('clf', KNeighborsClassifier())])
                                       # ('clf', DecisionTreeClassifier())])
 
             # SVC parameters
