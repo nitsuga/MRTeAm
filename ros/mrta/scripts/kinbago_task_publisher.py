@@ -30,6 +30,7 @@ RATE = 10
 # Base node name. We'll add a unique suffix to this.
 NODE_BASE = 'kinbago_task_publisher'
 
+KINBAGO_ROUTING_KEY = 'kinbago'
 
 class MRTeAmRelay:
 
@@ -134,7 +135,8 @@ class MRTeAmRelay:
 
         self.channel.queue_bind(self.on_bindok,
                                 queue=self.queue_name,
-                                exchange=self.exchange_name)
+                                exchange=self.exchange_name,
+                                routing_key=KINBAGO_ROUTING_KEY)
 
     def setup_queue(self):
         print "Declaring {0}".format(self.queue_name)
@@ -149,7 +151,7 @@ class MRTeAmRelay:
     def setup_exchange(self):
         self.channel.exchange_declare(self.on_exchange_declareok,
                                       exchange=self.exchange_name,
-                                      type='fanout')
+                                      type='topic')
 
     def on_channel_open(self, new_channel):
         print "Channel open"
