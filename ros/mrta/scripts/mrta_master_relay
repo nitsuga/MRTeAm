@@ -180,7 +180,8 @@ class MRTeAmRelay:
         print "Declaring {0}".format(self.queue_name)
         self.channel.queue_declare(self.on_queue_declareok,
                                    self.queue_name,
-                                   exclusive=False)
+                                   exclusive=False,
+                                   passive=True)
 
     def on_exchange_declareok(self, unused_frame):
         print "Exchange declared"
@@ -189,7 +190,8 @@ class MRTeAmRelay:
     def setup_exchange(self):
         self.channel.exchange_declare(self.on_exchange_declareok,
                                       exchange=self.exchange_name,
-                                      type='fanout')
+                                      type='fanout',
+                                      passive=True)
 
     def on_channel_open(self, new_channel):
         print "Channel open"

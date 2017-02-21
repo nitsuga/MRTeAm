@@ -1315,6 +1315,7 @@ class Auctioneer:
                                         float(new_task_msg.location.x),
                                         float(new_task_msg.location.y))
         self.tasks.append(new_task)
+        self.tasks_by_id[new_task_msg.task.task_id] = new_task
 
     def publish_task_marker(self, task):
         marker_msg = visualization_msgs.msg.Marker()

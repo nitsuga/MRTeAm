@@ -40,7 +40,7 @@ class MRTeAmRelay:
         # Exchange name. All relayed messages are published to/consumed from this
         self.exchange_name = 'mrta_bridge'
         # queue_name = None
-        self.queue_name = 'mrta_bridge_queue'
+        self.queue_name = 'kinbago'
 
         self.connection = None
         self.channel = None
@@ -142,7 +142,8 @@ class MRTeAmRelay:
         print "Declaring {0}".format(self.queue_name)
         self.channel.queue_declare(self.on_queue_declareok,
                                    self.queue_name,
-                                   exclusive=False)
+                                   exclusive=False,
+                                   passive=True)
 
     def on_exchange_declareok(self, unused_frame):
         print "Exchange declared"
@@ -151,7 +152,8 @@ class MRTeAmRelay:
     def setup_exchange(self):
         self.channel.exchange_declare(self.on_exchange_declareok,
                                       exchange=self.exchange_name,
-                                      type='topic')
+                                      type='topic',
+                                      passive=True)
 
     def on_channel_open(self, new_channel):
         print "Channel open"
@@ -178,7 +180,7 @@ class MRTeAmRelay:
         # connection = pika.BlockingConnection(pika.ConnectionParameters(host=host, port=port))
 
         # A non-blocking connection
-        return pika.SelectConnection(parameters=pika.ConnectionParameters(host=host, port=port),
+        return pika.SelectConnection(parameters=pika.ConnectionParameters(host=host, port=int(port)),
                                      on_open_callback=self.on_connection_open)
 
         # channel = connection.channel()
@@ -205,10 +207,15 @@ class MRTeAmRelay:
         """ Called when a message from the bridge (RabbitMQ) is received ("consumed") """
 
         # print "Message received from bridge."
-        # print message
+        print "message body: {0}".format(body)
 
         try:
-            (task_x, task_y, floor) = body.split(';')
+            message_elements = body.split(';')
+#            (task_x, task_y, floor) = body.split(';')
+            task_x = message_elements[0]
+            task_y = message_elements[1]
+            floor  = message_elements[2]
+            task_type = message_elements[3]
 
             print "task_x: {0}, task_y: {1}, floor: {2}".format(task_x, task_y, floor)
 
@@ -217,11 +224,12 @@ class MRTeAmRelay:
             new_task_msg.task.depends = []
             new_task_msg.task.type = 'SENSOR_SWEEP'
             new_task_msg.task.num_robots = 1
-            new_task_msg.task.duration = 0
-            new_task_msg.location.x = task_x
-            new_task_msg.location.y = task_y
-            new_task_msg.location.z = 0
+            new_task_msg.task.duration = 0.0
+            new_task_msg.location.x = float(task_x)
+            new_task_msg.location.y = float(task_y)
+            new_task_msg.location.z = 0.0
 
+            rospy.loginfo("Publishing new task on {0}".format(self.new_task_topic))
             self.new_task_publisher.publish(new_task_msg)
 
             self.kinbago_task_id += 1

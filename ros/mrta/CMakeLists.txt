@@ -156,6 +156,7 @@ add_library(mrta_obstacle_layer
 
 catkin_install_python(PROGRAMS
   scripts/mrta_master_relay
+  scripts/kinbago_task_publisher
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
