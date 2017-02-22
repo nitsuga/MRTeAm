@@ -121,7 +121,7 @@ def get_random_poses(image, num_poses, buffer_size, occupy):
     return random_poses
 
 
-def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=15):
+def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3):
 
     # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
     #                                                               num_poses,
@@ -156,6 +156,9 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=15):
 
             if not task_id:
                 task_id = 1
+
+            # Scale the poses
+            pose = [float(p) * 6.65 for p in pose]
 
             task_entry = task_template.format(task_id, pose[0], pose[1])
 

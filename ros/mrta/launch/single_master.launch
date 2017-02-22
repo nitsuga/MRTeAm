@@ -13,7 +13,7 @@
     <!--  <node name="rviz" pkg="rviz" type="rviz" /> -->
 
     <!-- Map server -->
-    <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01"
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file)"
           respawn="false"/>
 
     <!-- Stage -->

@@ -40,7 +40,10 @@ robots = [{'name': 'robot_1',
            'port': '11314'}]
 
 maps = {'brooklyn': 'brooklyn_lab.png',
-        'smartlab': 'smartlab_ugv_arena_v2.png'}
+        'smartlab': {'image': 'smartlab_ugv_arena_v2.png',
+                     'yaml': 'smartlab_ugv_arena.yaml'},
+        'strand': {'image': 'map-strand-first-floor-restricted-5cm.png',
+                   'yaml': 'map-strand-first-floor-restricted-5cm.yaml'}}
 
 world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
                             'distributed': 'brooklyn_arena_3_robots_distributed.world',
@@ -53,7 +56,9 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'start3': 'smartlab_ugv_arena_3_robots_start3.world',
                             'start4': 'smartlab_ugv_arena_3_robots_start4.world',
                             'start5': 'smartlab_ugv_arena_3_robots_start5.world',
-                            'start6': 'smartlab_ugv_arena_3_robots_start6.world'}}
+                            'start6': 'smartlab_ugv_arena_3_robots_start6.world'},
+
+               'strand': {'clustered': 'strand_restricted_3_robots_clustered.world'}}
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
@@ -99,7 +104,7 @@ def on_exp_event(exp_event_msg):
         exp_running = False
 
 
-def launch_experiment(mechanism, map_file, world_file, task_file, args):
+def launch_experiment(mechanism, map_image, map_yaml, world_file, task_file, args):
     rospack = rospkg.RosPack()
 
     global exp_running
@@ -133,7 +138,9 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
             os.remove(random_poses.DEFAULT_START_POSE_FILE)
         except OSError:
             pass
-        random_poses.generate_and_write_random_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
+        # random_poses.generate_and_write_random_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
+        random_poses.generate_and_write_random_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_image),
+                                                      buffer_size=14)
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
@@ -141,7 +148,7 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
                                   "nogui_flag:={0}".format(nogui_flag),
                                   "reallocate:={0}".format(reallocate_flag),
                                   # "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
-                                  "map_file:={0}".format(map_file),
+                                  "map_file:={0}".format(map_yaml),
                                   "world_file:={0}".format(world_file),
                                   "task_file:={0}".format(task_file),
                                   "mechanism:={0}".format(mechanism),
@@ -216,7 +223,7 @@ if __name__ == '__main__':
                         choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX', 'SEL'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
-                        choices=['brooklyn', 'smartlab'],
+                        choices=['brooklyn', 'smartlab', 'strand'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
                         choices=['clustered', 'distributed', 'random',
@@ -237,8 +244,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     mechanism = args.mechanism
-    map_file = maps[args.map]
+    map_image = maps[args.map]['image']
+    map_yaml = maps[args.map]['yaml']
     world_file = world_files[args.map][args.start_config]
     task_file = args.task_file
 
-    launch_experiment(mechanism, map_file, world_file, task_file, args)
+    launch_experiment(mechanism, map_image, map_yaml, world_file, task_file, args)

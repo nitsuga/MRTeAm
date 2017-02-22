@@ -7,6 +7,7 @@ the purpose of finding global plans and their costs.
 
 # Standard Python modules
 import math
+import sys
 import time
 
 # ROS stuff

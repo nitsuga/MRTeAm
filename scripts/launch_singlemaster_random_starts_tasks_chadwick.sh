@@ -20,10 +20,10 @@ do
     TASK_FILE="$($SCRIPT_DIR/random_poses.py tasks `rospack find mrta`/config/maps/smartlab_ugv_arena_v2.png --num_poses 16)"
 
     # Generate a set of random start poses
-    $SCRIPT_DIR/random_poses.py starts `rospack find mrta`/config/maps/smartlab_ugv_arena_v2.png
+    ${SCRIPT_DIR}/random_poses.py starts `rospack find mrta`/config/maps/smartlab_ugv_arena_v2.png
 
     for mechanism in SSI SEL #PSI OSI
     do
-	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng -rs ${mechanism} smartlab random ${TASK_FILE}
+	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -ng -rs ${mechanism} smartlab random ${TASK_FILE}
     done # end "mechanism"
 done # end "run"
