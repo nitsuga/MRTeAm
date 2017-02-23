@@ -58,7 +58,8 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'start5': 'smartlab_ugv_arena_3_robots_start5.world',
                             'start6': 'smartlab_ugv_arena_3_robots_start6.world'},
 
-               'strand': {'clustered': 'strand_restricted_3_robots_clustered.world'}}
+               'strand': {'clustered': 'strand_restricted_3_robots_clustered.world',
+                          'random': 'strand_restricted_3_robots_random.world'}}
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 

@@ -91,9 +91,9 @@ def get_random_poses(image, num_poses, buffer_size, occupy):
 
     for i in range(num_poses):
         # Have we found a valid point for the robot?
-        valid_point = False
+        point_is_valid = False
 
-        while not valid_point:
+        while not point_is_valid:
 
             candidate_x = random.randint(0, im_width + 1)
             # Y-coordinates start at the top of the image, not the bottom
@@ -195,9 +195,9 @@ def generate_and_write_random_starts(map_image_file, num_poses=3, buffer_size=70
 
         for i, pose in enumerate(random_poses):
             # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
-            output_file.write("turtlebot ( pose [ {0} {1} {2} {3} ] color \"{4}\" )\n".format(pose[0],
-                                                                                              pose[1],
-                                                                                              pose[2],
+            output_file.write("turtlebot ( pose [ {0} {1} {2} {3} ] color \"{4}\" )\n".format(float(pose[0]) * 6.65,
+                                                                                              float(pose[1]) * 6.65,
+                                                                                              float(pose[2]) * 6.65,
                                                                                               pose[3],
                                                                                               robot_colors[i]))
         output_file.close()

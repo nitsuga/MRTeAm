@@ -240,7 +240,7 @@ def draw_target_points(ctx, target_points, run_msgs):
         ctx.transform(cairo.Matrix(yy=-1, y0=IMG_HEIGHT))
 
         # Draw p-medians as circles
-        #if i == 2 or i == 11 or i == 13:
+        # if i == 2 or i == 11 or i == 13:
         if task_id in median_task_ids:
             print "task {0} is a median".format(task_id)
             ctx.set_source_rgb(.36, .36, 1.0)
