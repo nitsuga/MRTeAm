@@ -97,6 +97,10 @@ RATE = 10
 pp = pprint.PrettyPrinter(indent=2)
 
 
+ROBOT_COLORS = {'robot_1': [1.0, 0.0, 0.0],
+                'robot_2': [0.0, 1.0, 0.0],
+                'robot_3': [0.0, 0.0, 1.0]}
+
 def on_sigint(signal):
     print('Caught SIGINT, shutting down...')
     sys.exit(0)
@@ -291,6 +295,10 @@ class AuctionOSI(Auction):
             stamp(award_msg)
             self.auctioneer.award_pub.publish(award_msg)
 
+            # Remove/republish task marker with winning robot's color
+            self.auctioneer.remove_task_marker(won_task.task_id)
+            self.auctioneer.publish_task_marker(won_task, ROBOT_COLORS[winner_id])
+
             won_task.num_robots_allocated += 1
 
         # Mark the task as awarded if the task has been awarded to its required
@@ -417,6 +425,10 @@ class AuctionPSI(Auction):
                 self.auctioneer.award_pub.publish(award_msg)
 
                 rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
+
+                # Remove/republish task marker with winning robot's color
+                self.auctioneer.remove_task_marker(won_task.task_id)
+                self.auctioneer.publish_task_marker(won_task, ROBOT_COLORS[winner_id])
 
             # Mark the task as awarded
             won_task.awarded = True
@@ -595,6 +607,10 @@ class AuctionSSI(Auction):
             stamp(award_msg)
             self.auctioneer.award_pub.publish(award_msg)
 
+            # Remove/republish task marker with winning robot's color
+            self.auctioneer.remove_task_marker(won_task.task_id)
+            self.auctioneer.publish_task_marker(won_task, ROBOT_COLORS[winner_id])
+
             won_task.num_robots_allocated += 1
 
         # Mark the task as awarded if the task has been awarded to its required
@@ -664,6 +680,10 @@ class AuctionRR(Auction):
 
                 stamp(award_msg)
                 self.auctioneer.award_pub.publish(award_msg)
+
+                # Remove/republish task marker with winning robot's color
+                self.auctioneer.remove_task_marker(task.task_id)
+                self.auctioneer.publish_task_marker(task, ROBOT_COLORS[award_msg.robot_id])
 
                 task.num_robots_allocated += 1
 
@@ -1070,6 +1090,10 @@ class AuctionMAN(Auction):
                 stamp(award_msg)
                 self.auctioneer.award_pub.publish(award_msg)
 
+                # Remove/republish task marker with winning robot's color
+                self.auctioneer.remove_task_marker(won_task.task_id)
+                self.auctioneer.publish_task_marker(won_task, ROBOT_COLORS[winner_id])
+
                 won_task.num_robots_allocated += 1
 
                 self.auctioneer.awarded[task_id].extend(winner_id)
@@ -1317,13 +1341,13 @@ class Auctioneer:
         self.tasks.append(new_task)
         self.tasks_by_id[new_task_msg.task.task_id] = new_task
 
-    def publish_task_marker(self, task):
+    def publish_task_marker(self, task, color=[0.5, 0.5, 0.5]):
         marker_msg = visualization_msgs.msg.Marker()
 
         marker_msg.header.frame_id = '/map'
         marker_msg.header.stamp = rospy.Time()
         marker_msg.ns = 'mrta'
-        marker_msg.id = self.marker_id
+        marker_msg.id = int(task.task_id)
         marker_msg.type = visualization_msgs.msg.Marker.CUBE
         marker_msg.action = visualization_msgs.msg.Marker.ADD
 
@@ -1335,14 +1359,14 @@ class Auctioneer:
         marker_msg.pose.orientation.z = 0.0
         marker_msg.pose.orientation.w = 1.0
 
-        marker_msg.scale.x = 0.08
-        marker_msg.scale.y = 0.08
-        marker_msg.scale.z = 0.08
+        marker_msg.scale.x = 0.2
+        marker_msg.scale.y = 0.2
+        marker_msg.scale.z = 0.2
 
         marker_msg.color.a = 1.0
-        marker_msg.color.r = 0.0
-        marker_msg.color.g = 1.0
-        marker_msg.color.b = 0.0
+        marker_msg.color.r = color[0]
+        marker_msg.color.g = color[1]
+        marker_msg.color.b = color[2]
 
         marker_msg.text = task.task_id
 
@@ -1355,21 +1379,21 @@ class Auctioneer:
         marker_text_msg.header.frame_id = '/map'
         marker_text_msg.header.stamp = rospy.Time()
         marker_text_msg.ns = 'mrta'
-        marker_text_msg.id = self.marker_id
+        marker_text_msg.id = int(task.task_id) + 100
         marker_text_msg.type = visualization_msgs.msg.Marker.TEXT_VIEW_FACING
         marker_text_msg.action = visualization_msgs.msg.Marker.ADD
 
         marker_text_msg.pose.position.x = task.location.x
-        marker_text_msg.pose.position.y = task.location.y - 0.12
+        marker_text_msg.pose.position.y = task.location.y - 0.25
         marker_text_msg.pose.position.z = 0
         marker_text_msg.pose.orientation.x = 0.0
         marker_text_msg.pose.orientation.y = 0.0
         marker_text_msg.pose.orientation.z = 0.0
         marker_text_msg.pose.orientation.w = 1.0
 
-        marker_text_msg.scale.x = 0.1
-        marker_text_msg.scale.y = 0.1
-        marker_text_msg.scale.z = 0.1
+        marker_text_msg.scale.x = 0.2
+        marker_text_msg.scale.y = 0.2
+        marker_text_msg.scale.z = 0.2
 
         marker_text_msg.color.a = 1.0
         marker_text_msg.color.r = 1.0
@@ -1381,6 +1405,25 @@ class Auctioneer:
         self.marker_pub.publish(marker_text_msg)
 
         self.marker_id += 1
+
+    def remove_task_marker(self, task_id):
+        marker_msg = visualization_msgs.msg.Marker()
+        marker_msg.header.frame_id = '/map'
+        marker_msg.header.stamp = rospy.Time()
+        marker_msg.ns = 'mrta'
+        marker_msg.id = int(task_id)
+        marker_msg.action = visualization_msgs.msg.Marker.DELETE
+
+        self.marker_pub.publish(marker_msg)
+
+        marker_text_msg = visualization_msgs.msg.Marker()
+        marker_text_msg.header.frame_id = '/map'
+        marker_text_msg.header.stamp = rospy.Time()
+        marker_text_msg.ns = 'mrta'
+        marker_text_msg.id = int(task_id) + 100
+        marker_text_msg.action = visualization_msgs.msg.Marker.DELETE
+
+        self.marker_pub.publish(marker_text_msg)
 
     def add_scripted_task(self, task_id):
         rospy.loginfo("'Adding' scripted task {0}...".format(task_id))
