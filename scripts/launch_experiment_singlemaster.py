@@ -41,9 +41,17 @@ robots = [{'name': 'robot_1',
 
 maps = {'brooklyn': 'brooklyn_lab.png',
         'smartlab': {'image': 'smartlab_ugv_arena_v2.png',
-                     'yaml': 'smartlab_ugv_arena.yaml'},
-        'strand': {'image': 'map-strand-first-floor-restricted-5cm.png',
-                   'yaml': 'map-strand-first-floor-restricted-5cm.yaml'}}
+                     'yaml': 'smartlab_ugv_arena.yaml',
+                     'robot_buffer': 70,
+                     'scale': 1.0},
+        'strand': {'image': 'map-strand-first-floor-5cm.png',
+                   'yaml': 'map-strand-first-floor-5cm.yaml',
+                   'robot_buffer': 10,
+                   'scale': 6.65},
+        'strand-restricted': {'image': 'map-strand-first-floor-restricted-5cm.png',
+                              'yaml': 'map-strand-first-floor-restricted-5cm.yaml',
+                              'robot_buffer': 10,
+                              'scale': 6.65}}
 
 world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
                             'distributed': 'brooklyn_arena_3_robots_distributed.world',
@@ -59,7 +67,9 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'start6': 'smartlab_ugv_arena_3_robots_start6.world'},
 
                'strand': {'clustered': 'strand_restricted_3_robots_clustered.world',
-                          'random': 'strand_restricted_3_robots_random.world'}}
+                          'random': 'strand_restricted_3_robots_random.world'},
+               'strand-restricted': {'clustered': 'strand_restricted_3_robots_clustered.world',
+                                     'random': 'strand_restricted_3_robots_random.world'}}
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
@@ -105,7 +115,7 @@ def on_exp_event(exp_event_msg):
         exp_running = False
 
 
-def launch_experiment(mechanism, map_image, map_yaml, world_file, task_file, args):
+def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, world_file, task_file, args):
     rospack = rospkg.RosPack()
 
     global exp_running
@@ -139,9 +149,10 @@ def launch_experiment(mechanism, map_image, map_yaml, world_file, task_file, arg
             os.remove(random_poses.DEFAULT_START_POSE_FILE)
         except OSError:
             pass
-        # random_poses.generate_and_write_random_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_file))
+
         random_poses.generate_and_write_random_starts("{0}/config/maps/{1}".format(rospack.get_path('mrta'), map_image),
-                                                      buffer_size=14)
+                                                      buffer_size=robot_buffer,
+                                                      scale=map_scale)
 
     main_proc = subprocess.Popen([ROSLAUNCH,
                                   main_pkg,
@@ -224,7 +235,7 @@ if __name__ == '__main__':
                         choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX', 'SEL'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
-                        choices=['brooklyn', 'smartlab', 'strand'],
+                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
                         choices=['clustered', 'distributed', 'random',
@@ -234,7 +245,6 @@ if __name__ == '__main__':
                         help='Name of the file containing task point locations.')
     parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
     parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
-    # parser.add_argument("-dm", "--dynamic_mechanism", help="Choose a mechanism dynamically (via proximity to task medians)", action="store_true")
     parser.add_argument("-rs", "--reuse_starts",
                         help="If using random starting locations, don't generate new locations. Rely on a previously generated start config written to {0}".format(random_poses.DEFAULT_START_POSE_FILE),
                         action="store_true")
@@ -247,7 +257,9 @@ if __name__ == '__main__':
     mechanism = args.mechanism
     map_image = maps[args.map]['image']
     map_yaml = maps[args.map]['yaml']
+    robot_buffer = maps[args.map]['robot_buffer']
+    map_scale = maps[args.map]['scale']
     world_file = world_files[args.map][args.start_config]
     task_file = args.task_file
 
-    launch_experiment(mechanism, map_image, map_yaml, world_file, task_file, args)
+    launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, world_file, task_file, args)

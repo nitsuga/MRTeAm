@@ -121,7 +121,7 @@ def get_random_poses(image, num_poses, buffer_size, occupy):
     return random_poses
 
 
-def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3):
+def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1.0):
 
     # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
     #                                                               num_poses,
@@ -157,10 +157,9 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3):
             if not task_id:
                 task_id = 1
 
-            # Scale the poses
-            pose = [float(p) * 6.65 for p in pose]
-
-            task_entry = task_template.format(task_id, pose[0], pose[1])
+            task_entry = task_template.format(task_id,
+                                              float(pose[0]) * scale,
+                                              float(pose[1]) * scale)
 
             output_file.write(task_entry)
             task_id += 1
@@ -172,7 +171,7 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3):
         sys.exit(1)
 
 
-def generate_and_write_random_starts(map_image_file, num_poses=3, buffer_size=70, output_filename=DEFAULT_START_POSE_FILE):
+def generate_and_write_random_starts(map_image_file, num_poses=3, buffer_size=70, scale=1.0, output_filename=DEFAULT_START_POSE_FILE):
 
     # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
     #                                                               num_poses,
@@ -195,9 +194,9 @@ def generate_and_write_random_starts(map_image_file, num_poses=3, buffer_size=70
 
         for i, pose in enumerate(random_poses):
             # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
-            output_file.write("turtlebot ( pose [ {0} {1} {2} {3} ] color \"{4}\" )\n".format(float(pose[0]) * 6.65,
-                                                                                              float(pose[1]) * 6.65,
-                                                                                              float(pose[2]) * 6.65,
+            output_file.write("turtlebot ( pose [ {0} {1} {2} {3} ] color \"{4}\" )\n".format(float(pose[0]) * scale,
+                                                                                              float(pose[1]) * scale,
+                                                                                              float(pose[2]) * scale,
                                                                                               pose[3],
                                                                                               robot_colors[i]))
         output_file.close()
@@ -255,9 +254,13 @@ if __name__ == '__main__':
                         help='The number of robots/poses to generate',
                         default=3)
 
-    parser.add_argument('-s', '--buffer_size',
+    parser.add_argument('-b', '--buffer_size',
                         help='(Square) footprint around a pose to avoid picking subsequent poses (in cm/pixels)',
                         default=70)
+
+    parser.add_argument('-s', '--scale',
+                        help='Pixel to cm scaling factor',
+                        default=1.0)
 
     parser.add_argument('-o', '--output_file',
                         help='Name of the Stage .inc file to write robot poses.',
@@ -268,10 +271,11 @@ if __name__ == '__main__':
     map_image_file = args.map_image_file
     num_poses = int(args.num_poses)
     buffer_size = int(args.buffer_size)
+    scale = float(args.scale)
     output_file = args.output_file
 
     if args.pose_type == 'starts':
-        generate_and_write_random_starts(map_image_file, num_poses, buffer_size, output_file)
+        generate_and_write_random_starts(map_image_file, num_poses, buffer_size, scale, output_file)
     elif args.pose_type == 'tasks':
-        generate_and_write_tasks(map_image_file, num_poses, buffer_size)
+        generate_and_write_tasks(map_image_file, num_poses, buffer_size, scale)
 
