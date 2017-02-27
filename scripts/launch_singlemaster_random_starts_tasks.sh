@@ -27,7 +27,7 @@ do
     # Generate a set of random start poses
     ${SCRIPT_DIR}/random_poses.py starts `rospack find mrta`/config/maps/${MAP_IMAGE} --buffer ${ROBOT_BUFFER} --scale ${MAP_SCALE}
 
-    for mechanism in PSI SSI # SEL OSI
+    for mechanism in SSI PSI # SEL OSI
     do
 	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -rs ${mechanism} ${MAP_NAME} ${START_CONFIG} ${TASK_FILE}
     done # end "mechanism"

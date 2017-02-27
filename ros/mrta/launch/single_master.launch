@@ -129,6 +129,8 @@
             <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/mrta_dwa_local_planner_params.yaml"
                       command="load"/>
 
+            <param name="MRTADWAPlannerROS/global_frame_id" value="robot_1/odom" />
+
             <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml"
                       command="load" ns="GlobalPlanner"/>
 
@@ -219,6 +221,8 @@
             <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/mrta_dwa_local_planner_params.yaml"
                       command="load"/>
 
+            <param name="MRTADWAPlannerROS/global_frame_id" value="robot_2/odom" />
+
             <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml"
                       command="load" ns="GlobalPlanner"/>
 
@@ -308,6 +312,8 @@
 
             <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/mrta_dwa_local_planner_params.yaml"
                       command="load"/>
+
+            <param name="MRTADWAPlannerROS/global_frame_id" value="robot_3/odom" />
 
             <rosparam file="$(find mrta_robot_controller)/param/move_base_generic/global_planner_params.yaml"
                       command="load" ns="GlobalPlanner"/>
