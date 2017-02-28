@@ -51,6 +51,7 @@ from partitionsets import ordered_set, partition
 import pickle
 import pprint
 import re
+import scipy.spatial
 from sets import Set
 import signal
 import sys
@@ -1610,7 +1611,7 @@ class Auctioneer:
         # Teitz-Bart
         return p_medians
 
-    def get_team_diameter(self):
+    def build_robot_graph(self):
         robot_graph = igraph.Graph()
         robot_graph.add_vertices(self.team_members)
 
@@ -1645,8 +1646,7 @@ class Auctioneer:
         #                                                     robot_graph_mst.es['weight']))
         # print task_graph_mst
         team_diameter = robot_graph.diameter(directed=False, weights='weight')
-        print "team diameter: {0}".format(team_diameter)
-        return team_diameter
+        return robot_graph
 
     def get_greedy_median_count(self, median_tasks):
 
@@ -1867,7 +1867,27 @@ class Auctioneer:
 
         total_median_distance_spread = max_distance_to_any_median - min_distance_to_any_median
 
-        team_diameter = self.get_team_diameter()
+        robot_graph = self.build_robot_graph()
+
+        team_diameter = robot_graph.diameter(directed=False, weights='weight')
+        print "team diameter: {0}".format(team_diameter)
+
+        average_teammate_distance = np.mean(robot_graph.es['weight'])
+        print "average teammate distance: {0}".format(average_teammate_distance)
+
+        # Find the euclidean center of the team, then measure the average team
+        # member distance to that center.
+        team_centroid_x = sum([self.team_poses[rn].position.x for rn in self.team_members]) * 1. / len(self.team_members)
+        team_centroid_y = sum([self.team_poses[rn].position.y for rn in self.team_members]) * 1. / len(self.team_members)
+
+        total_team_centroid_distance = 0.0
+        for robot_name in self.team_members:
+            robot_x = self.team_poses[robot_name].position.x
+            robot_y = self.team_poses[robot_name].position.y
+            total_team_centroid_distance += scipy.spatial.distance.euclidean((robot_x, robot_y), (team_centroid_x, team_centroid_y))
+
+        average_team_centroid_distance = total_team_centroid_distance * 1. / len(self.team_members)
+        print "average team centroid distance: {0}".format(average_team_centroid_distance)
 
         # features = [greedy_median_count_spread,
         #             min_distance_to_assigned_median,
@@ -1907,6 +1927,8 @@ class Auctioneer:
                         'GREEDY_MEDIAN_COUNT_SPREAD': greedy_median_count_spread,
                         'TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS': total_dist_to_assigned_medians,
                         'TEAM_DIAMETER': team_diameter,
+                        'AVERAGE_TEAMMATE_DISTANCE': average_teammate_distance,
+                        'AVERAGE_TEAM_CENTROID_DISTANCE': average_team_centroid_distance,
                         'PSI_SPREAD': psi_spread}
 
         features = np.reshape([features_map[f] for f in self.feature_names], (1, -1))
