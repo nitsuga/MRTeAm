@@ -195,6 +195,12 @@ install(DIRECTORY launch
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
+# Mark config directory for installation
+install(DIRECTORY
+  config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
 #############
 ## Testing ##
 #############
