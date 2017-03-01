@@ -63,18 +63,19 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'ROBOT3_STARTX',
                   'ROBOT3_STARTY',
                   'WINNER_DIFFERENCE',
-                  'MECHANISM',
                   'MAXIMUM_ROBOT_DISTANCE',
                   'EXECUTION_PHASE_TIME',
                   'TOTAL_DISTANCE',
-                  'TOTAL_RUN_TIME']
+                  'TOTAL_RUN_TIME',
+                  'MECHANISM']
 
 ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
 
-BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
+# BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
+BAG_ROOT_DEFAULT = '/home/eric/Google Drive/research/MRTeAm/bags/chadwick'
 
 # Key is a task filename, value is a dict, where
 #  key is a task_id, value is an (x, y) pair of coordinates
@@ -90,8 +91,13 @@ ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 LAUNCH_PKG = 'mrta'
 LAUNCHFILE = 'stage_dummy_robot.launch'
 DUMMY_ROBOT_NAME = 'robot_0'
-MAP_FILE = 'smartlab_ugv_arena_v2.png'
-WORLD_FILE = 'smartlab_ugv_arena_dummy_robot.world'
+
+# MAP_FILE = 'smartlab_ugv_arena_v2.png'
+# WORLD_FILE = 'smartlab_ugv_arena_dummy_robot.world'
+
+MAP_FILE = 'map-strand-first-floor-restricted-5cm.yaml'
+WORLD_FILE = 'strand_restricted_dummy_robot.world'
+
 # NOGUI_FLAG = ''
 NOGUI_FLAG = '-g'
 
