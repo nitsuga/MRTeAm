@@ -62,6 +62,7 @@ OUT_FIELDNAMES = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
                   'ROBOT3_DISTANCE_TO_ALL_MEDIANS',
                   'ROBOT3_STARTX',
                   'ROBOT3_STARTY',
+                  'TASK_FILE',
                   'WINNER_DIFFERENCE',
                   'MAXIMUM_ROBOT_DISTANCE',
                   'EXECUTION_PHASE_TIME',
@@ -75,7 +76,6 @@ ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
 
 BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
-# BAG_ROOT_DEFAULT = '/home/eric/Google Drive/research/MRTeAm/bags/chadwick'
 
 # Key is a task filename, value is a dict, where
 #  key is a task_id, value is an (x, y) pair of coordinates
@@ -382,7 +382,7 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
 
             print("robot_graph: {0}, distances: {1}".format(robot_graph.summary(),
                                                             robot_graph.es['weight']))
-            #print("Distance-weighted adjacency matrix: {0}".format(pp.pformat(dist_matrix)))
+            # print("Distance-weighted adjacency matrix: {0}".format(pp.pformat(dist_matrix)))
 
             # robot_graph_mst = robot_graph.spanning_tree(weights=robot_graph.es['weight'])
             # print("robot_graph_mst: {0}, distances: {1}".format(robot_graph_mst.summary(),
@@ -503,7 +503,11 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                 row['MIN_DISTANCE_TO_ANY_MEDIAN'] = min_distance_to_any_median
                 row['TOTAL_MEDIAN_DISTANCE_SPREAD'] = max_distance_to_any_median - min_distance_to_any_median
 
-                row['MAXIMUM_ROBOT_DISTANCE'] = max(row['ROBOT1_DISTANCE'], row['ROBOT2_DISTANCE'], row['ROBOT3_DISTANCE'])
+                row['MAXIMUM_ROBOT_DISTANCE'] = max(row['ROBOT1_DISTANCE'],
+                                                    row['ROBOT2_DISTANCE'],
+                                                    row['ROBOT3_DISTANCE'])
+
+                row['TASK_FILE'] = task_file
 
             out_dist_csv.writerow([min_dist_row[f] for f in OUT_FIELDNAMES])
             out_run_time_csv.writerow([min_run_time_row[f] for f in OUT_FIELDNAMES])
