@@ -42,6 +42,20 @@ def stats_summary(input_filename, output_filename):
 
             out_csv.writerow(out_row)
 
+        for name, group in stats_frame.groupby(['MECHANISM']):
+            out_row = []
+
+            out_row.extend(['COMBINED', name])
+            out_row.append(group.EXECUTION_PHASE_TIME.mean())
+            out_row.append(group.EXECUTION_PHASE_TIME.std())
+            out_row.append(group.MAXIMUM_ROBOT_DISTANCE.mean())
+            out_row.append(group.MAXIMUM_ROBOT_DISTANCE.std())
+
+            out_csv.writerow(out_row)
+
+        out_file.close()
+
+
         out_file.close()
 
     except:

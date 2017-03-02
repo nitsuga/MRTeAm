@@ -5,10 +5,13 @@ import csv
 import pandas as pd
 import sys
 
+from sklearn import preprocessing
+
 from imblearn.combine import SMOTEENN
 from imblearn.under_sampling import ClusterCentroids
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.under_sampling import TomekLinks
+from imblearn.ensemble import EasyEnsemble
 
 
 def balance_training(in_file, out_file, method, significant=False):
@@ -17,9 +20,21 @@ def balance_training(in_file, out_file, method, significant=False):
     if significant:
         df = df[df.WINNER_DIFFERENCE > df.WINNER_DIFFERENCE.std()]
 
+    # Encode labels as integers
+    le = preprocessing.LabelEncoder()
+
+    # df_x = df.drop(['MECHANISM'], axis=1)
+    # df_x = df_x.ix[:, :].values.tolist()
     df_x = df.ix[:, :-1].values.tolist()
 #    df_y = df.ix[:, -1:].values.flatten().tolist()
     df_y = df.ix[:, 'MECHANISM'].values.flatten().tolist()
+
+    # print("df_y: {0}".format(df_y))
+    #
+    # le.fit(df_y)
+    # df_y_encoded = le.transform(df_y)
+    #
+    # print("df_y_encoded: {0}".format(df_y_encoded))
 
     # Resampler
     rs = None
@@ -34,18 +49,22 @@ def balance_training(in_file, out_file, method, significant=False):
         rs = TomekLinks()
     elif method == 'CC':
         rs = ClusterCentroids()
+    elif method == 'EE':
+        rs = EasyEnsemble()
     else:
         print "Unsupported method: {0}".format(method)
         sys.exit(1)
 
     x_resampled, y_resampled = rs.fit_sample(df_x, df_y)
+    # x_resampled, y_resampled = rs.fit_sample(df_x, df_y_encoded)
 
     x_resampled = x_resampled.tolist()
     y_resampled = y_resampled.tolist()
+    # y_resampled = le.inverse_transform(y_resampled).tolist()
 
     with open(out_file, 'wb') as csvfile:
         writer = csv.writer(csvfile)
-        #writer.writerow(OUT_FIELDNAMES)
+        # writer.writerow(OUT_FIELDNAMES)
         writer.writerow(df.columns.tolist())
         for i in range(len(x_resampled)):
             print "writing row {0}".format(i)
@@ -62,7 +81,7 @@ if __name__ == '__main__':
                         help='The balanced csv file to write.')
 
     parser.add_argument('method',
-                        choices=['UR', 'SE', 'TL', 'CC'],
+                        choices=['UR', 'SE', 'TL', 'CC', 'EE'],
                         help='Method to balance training sets. UR: Undersample-random, SE: SMOTE-ENN')
 
     parser.add_argument("-s", "--significant", help="Drop instances where WINNER_DISTANCE is not significant.",

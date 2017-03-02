@@ -22,7 +22,17 @@ import yaml
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-IMG_WIDTH, IMG_HEIGHT = 800, 600
+# smartlab arena
+# IMG_WIDTH, IMG_HEIGHT = 800, 600
+
+# strand map
+# IMG_WIDTH, IMG_HEIGHT = 376, 868
+IMG_WIDTH, IMG_HEIGHT = 1880, 4338
+
+# Every pixel of our '5cm' map represents 6.65cm. To convert from ROS coordinates
+# to pixels we need the inverse of that
+# SCALING_FACTOR = 0.15037594
+SCALING_FACTOR = 0.751879699
 
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
@@ -86,6 +96,17 @@ def read_point_configs(task_dir):
         print "Reading points from {0}...".format(task_file_path)
         task_file = open(task_file_path, "rb")
         target_point_configs[task_filename] = _read_points(task_file)
+
+
+def read_point_config(task_dir, task_filename):
+    global target_point_configs
+
+    task_file_path = join(task_dir, task_filename)
+
+    print "Reading points from {0}...".format(task_file_path)
+    task_file = open(task_file_path, "rb")
+    target_point_configs[task_filename] = _read_points(task_file)
+    print("target_point_configs[{0}] == {1}".format(task_filename, target_point_configs[task_filename]))
 
 
 def draw_arena(ctx):
@@ -183,8 +204,8 @@ def draw_start_locs(ctx, start_config, run_msgs):
 
     # Draw start locations
     for i, start_loc in enumerate(start_locations[start_config]):
-        start_loc_x = start_loc[0]
-        start_loc_y = start_loc[1]
+        start_loc_x = start_loc[0] * SCALING_FACTOR
+        start_loc_y = start_loc[1] * SCALING_FACTOR
 
         # E.g., "robot-1"
         stroke_color = stroke_colors["robot_%d" % (i + 1)]
@@ -204,7 +225,7 @@ def draw_target_points(ctx, target_points, run_msgs):
     # Font style for printing points
     ctx.select_font_face('Sans', cairo.FONT_SLANT_NORMAL,
                          cairo.FONT_WEIGHT_BOLD)
-    ctx.set_font_size(14. / IMG_WIDTH)
+    ctx.set_font_size(12. / IMG_WIDTH)
 
     ctx.set_line_width((1. / IMG_WIDTH))
 
@@ -225,8 +246,8 @@ def draw_target_points(ctx, target_points, run_msgs):
 
     for i, target_point in enumerate(target_points):
         task_id = target_point[0]
-        task_x = target_point[1]
-        task_y = target_point[2]
+        task_x = target_point[1] * SCALING_FACTOR
+        task_y = target_point[2] * SCALING_FACTOR
 
         print "plotting task {0}".format(task_id)
 
@@ -313,14 +334,15 @@ def draw_paths_to_medians(ctx, start_config, run_msgs, target_points):
 
         for target_point in target_points:
             task_id = target_point[0]
-            task_x = target_point[1]
-            task_y = target_point[2]
+            task_x = target_point[1] * SCALING_FACTOR
+            task_y = target_point[2] * SCALING_FACTOR
 
             if task_id == median_task_id:
                 end_loc = (task_x, task_y)
 
         # Draw a line from the robot start location to its median
-        ctx.move_to(start_loc[0] / IMG_WIDTH, start_loc[1] / IMG_HEIGHT)
+        ctx.move_to(start_loc[0] * SCALING_FACTOR / IMG_WIDTH,
+                    start_loc[1] * SCALING_FACTOR / IMG_HEIGHT)
         ctx.line_to(end_loc[0] / IMG_WIDTH, end_loc[1] / IMG_HEIGHT)
         ctx.stroke()
 
@@ -384,7 +406,7 @@ def draw_trajectories(ctx, run_msgs):
 
         last_pose = None
 
-        for i,amcl_msg in list(enumerate(run_msgs['/{0}/amcl_pose'.format(r_name)])):
+        for i, amcl_msg in list(enumerate(run_msgs['/{0}/amcl_pose'.format(r_name)])):
 
             # alpha = i*1. / num_poses
 
@@ -416,26 +438,30 @@ def draw_trajectories(ctx, run_msgs):
                 continue
 
             if last_pose is None:
-                ctx.move_to(pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT)
+                ctx.move_to(pose_x * SCALING_FACTOR * 100. / IMG_WIDTH,
+                            pose_y * SCALING_FACTOR * 100. / IMG_HEIGHT)
                 # print "{0} start_pose: {1}:".format(r_name, start_pose)
             else:
-                ctx.move_to(last_pose.position.x * 100. / IMG_WIDTH, last_pose.position.y * 100. / IMG_HEIGHT)
+                ctx.move_to(last_pose.position.x * SCALING_FACTOR * 100. / IMG_WIDTH,
+                            last_pose.position.y * SCALING_FACTOR * 100. / IMG_HEIGHT)
 
-            ctx.line_to(pose_x * 100. / IMG_WIDTH, pose_y * 100. / IMG_HEIGHT)
+            ctx.line_to(pose_x * SCALING_FACTOR * 100. / IMG_WIDTH,
+                        pose_y * SCALING_FACTOR * 100. / IMG_HEIGHT)
 
             ctx.stroke()
 
             last_pose = amcl_pose
 
 
-def plot_trajectory(bag_paths, task_dir):
+def plot_trajectory(bag_paths, task_dir, map_file):
+    global target_point_configs
 
     # Create the './trajectories' directory if it doesn't already exist
     traj_dir = './trajectories'
     if not os.path.exists(traj_dir):
         os.makedirs(traj_dir)
 
-    read_point_configs(task_dir)
+    # read_point_configs(task_dir)
 
     for bag_path in bag_paths:
         print("Reading {0}".format(bag_path))
@@ -470,8 +496,14 @@ def plot_trajectory(bag_paths, task_dir):
         bag_filename = os.path.basename(bag_path)
         (map, start_config, mechanism, task_file, remainder) = bag_filename.split('__')
 
+        if task_file not in target_point_configs:
+            read_point_config(task_dir, task_file)
+
         # Create a Cairo surface and get a handle to its context
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
+        # surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
+        print("Opening map file {0}".format(map_file))
+        surface = cairo.ImageSurface.create_from_png(map_file)
+
         ctx = cairo.Context(surface)
 
         # Invert the y-axis to make life easier
@@ -480,11 +512,11 @@ def plot_trajectory(bag_paths, task_dir):
         ctx.scale(IMG_WIDTH, IMG_HEIGHT)
 
         # Paint a white background
-        ctx.set_source_rgb(1.0, 1.0, 1.0)
-        ctx.rectangle(0, 0, 1.0, 1.0)
-        ctx.fill()
+        # ctx.set_source_rgb(1.0, 1.0, 1.0)
+        # ctx.rectangle(0, 0, 1.0, 1.0)
+        # ctx.fill()
 
-        draw_arena(ctx)
+        # draw_arena(ctx)
 
         # Draw target points
         target_points = target_point_configs[task_file]
@@ -529,10 +561,14 @@ if __name__ == "__main__":
                         default=TASK_FILES_DEFAULT,
                         help="Location of task configuration (target point) files")
 
+    parser.add_argument('--map_file', '-m',
+                        help="Path to the map file to draw on top of")
+
     args = parser.parse_args()
 
     bag_files = args.bag_file
     task_dir = args.task_dir
+    map_file = args.map_file
 
 #    pp.pprint(bag_files)
 
@@ -547,4 +583,4 @@ if __name__ == "__main__":
 
     print("task_dir: {0}".format(task_dir))
 
-    plot_trajectory(bag_paths, task_dir)
+    plot_trajectory(bag_paths, task_dir, map_file)
