@@ -32,7 +32,8 @@ names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree",
          "Random Forest", "AdaBoost", "Naive Bayes"]
          # , "Linear Discriminant Analysis","Quadratic Discriminant Analysis"]
 
-drop_columns = ['WINNER_DIFFERENCE',
+drop_columns = ['TASK_FILE',
+                'WINNER_DIFFERENCE',
                 'MAXIMUM_ROBOT_DISTANCE',
                 'EXECUTION_PHASE_TIME',
                 'TOTAL_DISTANCE',
@@ -47,7 +48,7 @@ classifiers = [
     AdaBoostClassifier(),
     GaussianNB()] #,
     # LinearDiscriminantAnalysis(),
-    #QuadraticDiscriminantAnalysis()]
+    # QuadraticDiscriminantAnalysis()]
 
 # For K-fold stratification
 FOLDS = 10
