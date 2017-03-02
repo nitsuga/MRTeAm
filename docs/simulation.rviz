@@ -8,10 +8,10 @@ Panels:
         - /Status1
         - /Task Markers1/Namespaces1
         - /robots1
+        - /robots1/robot_11
         - /robots1/robot_11/Global1
         - /robots1/robot_11/Local1
         - /robots1/robot_11/Local1/DWA Trajectory Cloud1
-        - /robots1/robot_21
         - /robots1/robot_21/Local1
         - /robots1/robot_31
         - /robots1/robot_31/Local1
@@ -35,7 +35,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: DWA Trajectory Cloud
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -219,7 +219,7 @@ Visualization Manager:
                   Color: 255; 255; 255
                   Color Transformer: Intensity
                   Decay Time: 0
-                  Enabled: false
+                  Enabled: true
                   Invert Rainbow: true
                   Max Color: 255; 255; 255
                   Max Intensity: 22.9328
@@ -236,7 +236,7 @@ Visualization Manager:
                   Unreliable: false
                   Use Fixed Frame: true
                   Use rainbow: false
-                  Value: false
+                  Value: true
               Enabled: true
               Name: Local
             - Angle Tolerance: 0.1
@@ -731,11 +731,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 35.4408
+      Scale: 77.2201
       Target Frame: map
       Value: TopDownOrtho (rviz)
-      X: 13.0089
-      Y: 37.9715
+      X: 8.69278
+      Y: 43.2639
     Saved: ~
 Window Geometry:
   Displays:

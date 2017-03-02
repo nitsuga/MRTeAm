@@ -27,11 +27,11 @@ MRTADWAPlannerROS:
   # latch_xy_goal_tolerance: false
 
 # Forward Simulation Parameters
-  sim_time: 3.5       # 1.7
+  sim_time: 4.0       # 1.7
 #  vx_samples: 10       # 3
-  vx_samples: 10      # 3
+  vx_samples: 20      # 3
   vy_samples: 0       # diff drive robot
-  vtheta_samples: 20  # 20
+  vtheta_samples: 40  # 20
 
 # Trajectory Scoring Parameters
 #  path_distance_bias: 32.0      # 32.0   - weighting for how much it should stick to the global path plan
@@ -57,4 +57,4 @@ MRTADWAPlannerROS:
 
   use_dwa: false
   prune_plan: true
-  sum_scores: true
+  # sum_scores: true
