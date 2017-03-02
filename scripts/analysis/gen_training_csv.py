@@ -74,8 +74,8 @@ ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
 
-# BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
-BAG_ROOT_DEFAULT = '/home/eric/Google Drive/research/MRTeAm/bags/chadwick'
+BAG_ROOT_DEFAULT = '/home/eric/nitsy76@gmail.com/research/MRTeAm/bags/chadwick'
+# BAG_ROOT_DEFAULT = '/home/eric/Google Drive/research/MRTeAm/bags/chadwick'
 
 # Key is a task filename, value is a dict, where
 #  key is a task_id, value is an (x, y) pair of coordinates
@@ -142,8 +142,9 @@ def stop_ros():
     global main_proc
     try:
         # proc.terminate()
-        main_proc.send_signal(signal.SIGINT)
-        main_proc.wait()
+        if main_proc:
+            main_proc.send_signal(signal.SIGINT)
+            main_proc.wait()
     except rospy.exceptions.ROSException as e:
         print(e)
         print("Error: {0}".format(sys.exc_info()[0]))
@@ -224,6 +225,8 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
         # read_point_configs(task_dir)
 
         stats_frame = pd.read_csv(in_file)
+
+        start_ros()
 
         # Only look at PSI and SSI for now
         psi_ssi = stats_frame[stats_frame.MECHANISM.isin(['PSI', 'SSI'])]
@@ -512,9 +515,8 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
 
     except IOError:
         print "Something went wrong!"
+    finally:
         stop_ros()
-        time.sleep(3)
-        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -561,6 +563,4 @@ if __name__ == '__main__':
 
     print(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
 
-    start_ros()
     write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root)
-    stop_ros()
