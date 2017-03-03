@@ -8,7 +8,7 @@ import scipy.stats as st
 import sys
 
 MECHANISMS = ['PSI', 'SSI', 'SEL']
-METRICS = ['EXECUTION_PHASE_TIME', 'MAXIMUM_ROBOT_DISTANCE']
+METRICS = ['EXECUTION_PHASE_TIME', 'TOTAL_RUN_TIME', 'MAXIMUM_ROBOT_DISTANCE']
 
 
 # From http://stackoverflow.com/questions/15033511/compute-a-confidence-interval-from-sample-data

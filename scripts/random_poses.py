@@ -229,9 +229,12 @@ def generate_and_write_starts(map_image_file, poses, output_filename=DEFAULT_STA
             # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
             output_file.write("turtlebot ( pose [ {0} {1} {2} {3} ] color \"{4}\" )\n".format(pose[0],
                                                                                               pose[1],
-                                                                                              pose[2],
-                                                                                              pose[3],
+                                                                                              # pose[2],
+                                                                                              0,
+                                                                                              # pose[3],
+                                                                                              0,
                                                                                               robot_colors[i]))
+
         output_file.close()
 
     except IOError:
@@ -243,7 +246,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a stage world file containing random starting poses.')
 
     parser.add_argument('pose_type',
-                        choices=['starts', 'tasks'],
+                        choices=['starts', 'tasks', 'manual-starts'],
                         help='The type of random poses to generate.')
 
     # Fix this
@@ -266,6 +269,11 @@ if __name__ == '__main__':
                         help='Name of the Stage .inc file to write robot poses.',
                         default="/tmp/robot_random_starts.inc")
 
+    parser.add_argument('-p', '--poses',
+                        help='A space-separated list of (x,y) pairs of robot start positions.',
+                        nargs='+', type=float,
+                        default=[])
+
     args = parser.parse_args()
 
     map_image_file = args.map_image_file
@@ -273,9 +281,20 @@ if __name__ == '__main__':
     buffer_size = int(args.buffer_size)
     scale = float(args.scale)
     output_file = args.output_file
+    poses = args.poses
+
+    print("num_poses: {0}".format(num_poses))
+    print("poses: {0}".format(poses))
+
+
 
     if args.pose_type == 'starts':
         generate_and_write_random_starts(map_image_file, num_poses, buffer_size, scale, output_file)
     elif args.pose_type == 'tasks':
         generate_and_write_tasks(map_image_file, num_poses, buffer_size, scale)
+    elif args.pose_type == 'manual-starts':
+        pose_list = []
+        for i in range(num_poses):
+            pose_list.append((poses[i*2], poses[i*2+1]))
+        generate_and_write_starts(map_image_file, pose_list, output_file)
 

@@ -73,7 +73,7 @@
         <node pkg="move_base" type="move_base" name="move_base_node" output="screen" respawn="false" required="true">
             <remap from="map" to="/map"/>
 
-            <!--<param name="controller_frequency" value="5.0"/>-->
+            <param name="controller_frequency" value="10.0"/>
             <param name="shutdown_costmaps" value="false"/>
 
             <!--<param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
@@ -165,7 +165,7 @@
         <node pkg="move_base" type="move_base" name="move_base_node" output="screen" respawn="false" required="true">
             <remap from="map" to="/map"/>
 
-            <!--<param name="controller_frequency" value="5.0"/>-->
+            <param name="controller_frequency" value="10.0"/>
             <param name="shutdown_costmaps" value="false"/>
 
             <!--<param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
@@ -257,7 +257,7 @@
         <node pkg="move_base" type="move_base" name="move_base_node" output="screen" respawn="false" required="true">
             <remap from="map" to="/map"/>
 
-            <!--<param name="controller_frequency" value="5.0"/>-->
+            <param name="controller_frequency" value="10.0"/>
             <param name="shutdown_costmaps" value="false"/>
 
             <!--<param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />-->
