@@ -412,7 +412,7 @@ def parse_stats(bag_paths, output):
                 #
                 # print("{0}'s task list: {1}".format(award_msg.robot_id, pp.pformat(robots[award_msg.robot_id].tasks)))
 
-        incomplete_tasks = False
+        inconsistent_tasks = False
 
         # per-robot stats
         for r_name in ROBOT_NAMES:
@@ -517,14 +517,18 @@ def parse_stats(bag_paths, output):
                     # On success, we should remove this task (id) from the robot's task list
                     if status_msg.status == mrta.msg.TaskStatus.SUCCESS:
                         print "Removing task {0}".format(status_msg.task_id)
-                        robot.tasks.remove(status_msg.task_id)
+                        try:
+                            robot.tasks.remove(status_msg.task_id)
+                        except ValueError:
+                            print("Robot 'successfully completed' a task that was not in its agenda.")
+                            inconsistent_tasks = True
 
                 if status_msg.status == mrta.msg.TaskStatus.PAUSE:
                     robot.collisions += 1
 
             if robot.tasks:
                 print("{0} was awarded tasks {1} but there is no record of successful completion!".format(r_name, pp.pformat(robot.tasks)))
-                incomplete_tasks = True
+                inconsistent_tasks = True
 
             if not robot.exec_phase_begin_stamp or not robot.exec_phase_end_stamp:
                 print("Can not determine beginning or end time of {0}'s exec phase!".format(r_name))
@@ -577,8 +581,8 @@ def parse_stats(bag_paths, output):
             total_collisions += robot.collisions
             total_distance_to_assigned_medians += robot.distance_to_median
 
-        if incomplete_tasks:
-            print("There is no record of successful completion of one or more tasks. Skipping this run!")
+        if inconsistent_tasks:
+            print("A robot either did not complete tasks it was awarded or vice versa. Skipping this run!")
             continue
 
         print("total_collisions: {0}".format(total_collisions))

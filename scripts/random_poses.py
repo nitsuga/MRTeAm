@@ -131,7 +131,7 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1
     # Generate a random task file name
     r = rospkg.RosPack()
     pkg_path = r.get_path('mrta_auctioneer')
-    filename = 'SR-IT-SA-{0}-16task.yaml'.format(id_generator())
+    filename = 'SR-IT-SA-{0}-{1}task.yaml'.format(id_generator(), num_poses)
     full_path = os.path.join(pkg_path, 'task_files', filename)
 
     print filename
@@ -285,8 +285,6 @@ if __name__ == '__main__':
 
     print("num_poses: {0}".format(num_poses))
     print("poses: {0}".format(poses))
-
-
 
     if args.pose_type == 'starts':
         generate_and_write_random_starts(map_image_file, num_poses, buffer_size, scale, output_file)
