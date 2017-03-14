@@ -283,8 +283,8 @@ if __name__ == '__main__':
     output_file = args.output_file
     poses = args.poses
 
-    print("num_poses: {0}".format(num_poses))
-    print("poses: {0}".format(poses))
+    # print("num_poses: {0}".format(num_poses))
+    # print("poses: {0}".format(poses))
 
     if args.pose_type == 'starts':
         generate_and_write_random_starts(map_image_file, num_poses, buffer_size, scale, output_file)

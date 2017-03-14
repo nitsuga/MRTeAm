@@ -438,8 +438,8 @@ def main(argv):
                       attr_name='MAXIMUM_ROBOT_DISTANCE',
                       title=plot_title,
                       y_label='meters',
-                      out_filename=plot_filename,
-                      y_limit=40)
+                      out_filename=plot_filename)
+                      # y_limit=40)
 
     # Near Collisions
     plot_title = 'Near Collisions'

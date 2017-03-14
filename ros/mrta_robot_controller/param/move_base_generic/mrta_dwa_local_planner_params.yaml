@@ -38,8 +38,9 @@ MRTADWAPlannerROS:
   path_distance_bias: 32.0       # 32.0   - weighting for how much it should stick to the global path plan
 #  goal_distance_bias: 24.0      # 24.0   - wighting for how much it should attempt to reach its goal
   goal_distance_bias: 8.0      # 24.0   - wighting for how much it should attempt to reach its goal
-  occdist_scale: 0.01           # 0.01   - weighting for how much the controller should avoid obstacles
-  forward_point_distance: 0.175 # 0.325  - how far along to place an additional scoring point
+  occdist_scale: 0.05           # 0.01   - weighting for how much the controller should avoid obstacles
+#  forward_point_distance: 0.175 # 0.325  - how far along to place an additional scoring point
+  forward_point_distance: 0.0 # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
   scaling_speed: 0.2           # 0.25   - absolute velocity at which to start scaling the robot's footprint
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
@@ -56,5 +57,5 @@ MRTADWAPlannerROS:
   holonomic_robot: false
 
   use_dwa: false
-  prune_plan: true
+  prune_plan: false
   # sum_scores: true

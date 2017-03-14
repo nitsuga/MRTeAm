@@ -6,17 +6,19 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Arena Map1
         - /Task Markers1/Namespaces1
         - /robots1
-        - /robots1/robot_11
         - /robots1/robot_11/Global1
         - /robots1/robot_11/Local1
         - /robots1/robot_11/Local1/DWA Trajectory Cloud1
-        - /robots1/robot_21/Local1
+        - /robots1/robot_21
+        - /robots1/robot_21/Local1/DWA Trajectory Cloud1
         - /robots1/robot_31
         - /robots1/robot_31/Local1
+        - /robots1/robot_31/Local1/DWA Trajectory Cloud1
       Splitter Ratio: 0.688953
-    Tree Height: 934
+    Tree Height: 907
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -35,7 +37,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: DWA Trajectory Cloud
 Visualization Manager:
   Class: ""
   Displays:
@@ -57,7 +59,7 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 0.7
+    - Alpha: 1
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: true
@@ -71,7 +73,7 @@ Visualization Manager:
       Marker Topic: visualization_marker
       Name: Task Markers
       Namespaces:
-        mrta: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Group
@@ -80,7 +82,7 @@ Visualization Manager:
           Displays:
             - Class: rviz/Group
               Displays:
-                - Alpha: 0.5
+                - Alpha: 0.3
                   Class: rviz/Map
                   Color Scheme: costmap
                   Draw Behind: true
@@ -207,7 +209,7 @@ Visualization Manager:
                   Use Fixed Frame: true
                   Use rainbow: true
                   Value: false
-                - Alpha: 0.5
+                - Alpha: 0.05
                   Autocompute Intensity Bounds: true
                   Autocompute Value Bounds:
                     Max Value: 0
@@ -220,18 +222,18 @@ Visualization Manager:
                   Color Transformer: Intensity
                   Decay Time: 0
                   Enabled: true
-                  Invert Rainbow: true
+                  Invert Rainbow: false
                   Max Color: 255; 255; 255
-                  Max Intensity: 22.9328
+                  Max Intensity: 12812.2
                   Min Color: 255; 0; 0
-                  Min Intensity: 3.1385
+                  Min Intensity: 5.2
                   Name: DWA Trajectory Cloud
                   Position Transformer: XYZ
                   Queue Size: 3
                   Selectable: true
                   Size (Pixels): 3
                   Size (m): 0.02
-                  Style: Points
+                  Style: Flat Squares
                   Topic: /robot_1/move_base_node/MRTADWAPlannerROS/trajectory_cloud
                   Unreliable: false
                   Use Fixed Frame: true
@@ -411,7 +413,7 @@ Visualization Manager:
                   Use Fixed Frame: true
                   Use rainbow: false
                   Value: false
-                - Alpha: 0.5
+                - Alpha: 0.05
                   Autocompute Intensity Bounds: true
                   Autocompute Value Bounds:
                     Max Value: 0
@@ -423,12 +425,12 @@ Visualization Manager:
                   Color: 255; 255; 255
                   Color Transformer: Intensity
                   Decay Time: 0
-                  Enabled: false
+                  Enabled: true
                   Invert Rainbow: false
                   Max Color: 255; 255; 255
-                  Max Intensity: 25.4177
+                  Max Intensity: 8.04125
                   Min Color: 0; 255; 0
-                  Min Intensity: 7.429
+                  Min Intensity: 0.5275
                   Name: DWA Trajectory Cloud
                   Position Transformer: XYZ
                   Queue Size: 1
@@ -440,7 +442,7 @@ Visualization Manager:
                   Unreliable: false
                   Use Fixed Frame: true
                   Use rainbow: false
-                  Value: false
+                  Value: true
               Enabled: true
               Name: Local
             - Angle Tolerance: 0.1
@@ -615,7 +617,7 @@ Visualization Manager:
                   Use Fixed Frame: true
                   Use rainbow: false
                   Value: false
-                - Alpha: 0.5
+                - Alpha: 0.05
                   Autocompute Intensity Bounds: true
                   Autocompute Value Bounds:
                     Max Value: 0
@@ -627,12 +629,12 @@ Visualization Manager:
                   Color: 255; 255; 255
                   Color Transformer: Intensity
                   Decay Time: 0
-                  Enabled: false
+                  Enabled: true
                   Invert Rainbow: false
                   Max Color: 255; 255; 255
-                  Max Intensity: 1604.49
+                  Max Intensity: 2560.16
                   Min Color: 0; 0; 255
-                  Min Intensity: 8.9815
+                  Min Intensity: 3.35575
                   Name: DWA Trajectory Cloud
                   Position Transformer: XYZ
                   Queue Size: 1
@@ -644,7 +646,7 @@ Visualization Manager:
                   Unreliable: false
                   Use Fixed Frame: true
                   Use rainbow: false
-                  Value: false
+                  Value: true
               Enabled: true
               Name: Local
             - Angle Tolerance: 0.1
@@ -731,19 +733,19 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 77.2201
+      Scale: 35.5507
       Target Frame: map
       Value: TopDownOrtho (rviz)
-      X: 8.69278
-      Y: 43.2639
+      X: 11.2356
+      Y: 37.9813
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1172
+  Height: 1145
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000435fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000004100000435000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d0065007200610000000000ffffffff0000000000000000000000010000010f000003f1fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000041000003f1000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000006100000043500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a0000041afc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000410000041a000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d0065007200610000000000ffffffff0000000000000000000000010000010f000003f1fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000041000003f1000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d0065000000000000000780000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000006100000041a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -753,5 +755,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1920
-  X: 1920
-  Y: 0
+  X: 0
+  Y: 27
