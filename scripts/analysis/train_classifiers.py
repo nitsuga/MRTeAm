@@ -37,7 +37,8 @@ drop_columns = ['TASK_FILE',
                 'MAXIMUM_ROBOT_DISTANCE',
                 'EXECUTION_PHASE_TIME',
                 'TOTAL_DISTANCE',
-                'TOTAL_RUN_TIME']
+                'TOTAL_RUN_TIME',
+                'MISSION_ID']
 
 classifiers = [
     KNeighborsClassifier(3),
