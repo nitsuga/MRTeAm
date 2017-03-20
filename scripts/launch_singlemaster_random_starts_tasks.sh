@@ -47,7 +47,7 @@ do
 
     ${SCRIPT_DIR}/random_poses.py manual-starts `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses 3 --poses ${r1x} ${r1y} ${r2x} ${r2y} ${r3x} ${r3y}
 
-    for mechanism in SEL PSI SSI # OSI
+    for mechanism in OSI PSI SSI # OSI
     do
 	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -ng -rs -cl ${CLASSIFIER} ${mechanism} ${MAP_NAME} ${START_CONFIG} ${TASK_FILE}
     done # end "mechanism"

@@ -33,6 +33,7 @@
       <w>proc</w>
       <w>procs</w>
       <w>pset</w>
+      <w>readonce</w>
       <w>resampled</w>
       <w>respawn</w>
       <w>rosbag</w>
@@ -48,6 +49,7 @@
       <w>timelines</w>
       <w>turtlebot</w>
       <w>undersample</w>
+      <w>writeonce</w>
       <w>yaml</w>
       <w>ymin</w>
     </words>
