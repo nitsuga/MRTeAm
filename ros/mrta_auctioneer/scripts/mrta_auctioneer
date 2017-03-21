@@ -83,6 +83,7 @@ import visualization_msgs.msg
 
 # MRTeAm-specific stuff
 import mrta
+import mrta.file_db
 import mrta.msg
 
 import mrta.mrta_planner_proxy
@@ -91,6 +92,9 @@ import mrta.mrta_planner_proxy
 from p_median import pmed_greedy
 from p_median import teitz_bart
 
+
+# Name of the file-based database that stores tasks
+TASKS_DB_FILENAME = 'tasks.db'
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 10
@@ -101,6 +105,7 @@ pp = pprint.PrettyPrinter(indent=2)
 ROBOT_COLORS = {'robot_1': [1.0, 0.0, 0.0],
                 'robot_2': [0.0, 1.0, 0.0],
                 'robot_3': [0.0, 0.0, 1.0]}
+
 
 def on_sigint(signal):
     print('Caught SIGINT, shutting down...')

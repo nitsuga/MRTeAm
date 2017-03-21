@@ -9,22 +9,14 @@ import sys
 
 import rospkg
 
+import mrta.file_db
+
+TASKS_DB_FILENAME = 'tasks.db'
+
 DEFAULT_START_POSE_FILE = '/tmp/robot_random_starts.inc'
 
-task_template = """
-- task_id: '{0}'
-  type: SENSOR_SWEEP
-  location:
-    x: {1}
-    y: {2}
-  arrival_time: 0
-  num_robots: 1
-  duration: 0
-  depends: []
-"""
 
-
-def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
+def generate_unique_id(size=8, chars=string.ascii_uppercase + string.digits):
     """ Taken from
     http://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits-in-python
     """
@@ -128,13 +120,21 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1
     #                                                               buffer_size,
     #                                                               output_filename)
 
-    # Generate a random task file name
-    r = rospkg.RosPack()
-    pkg_path = r.get_path('mrta_auctioneer')
-    filename = 'SR-IT-SA-{0}-{1}task.yaml'.format(id_generator(), num_poses)
-    full_path = os.path.join(pkg_path, 'task_files', filename)
+    try:
+        # Save the poses in the tasks database
+        task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
+    except IOError:
+        print "Couldn't write tasks to {0}! Exiting.".format(TASKS_DB_FILENAME)
+        sys.exit(1)
 
-    print filename
+    unique_id = generate_unique_id()
+    scenario_id = 'SR-IT-SA-{0}-{1}task'.format(unique_id, num_poses)
+
+    while task_db.exists(scenario_id):
+        unique_id = generate_unique_id()
+        scenario_id = 'SR-IT-SA-{0}-{1}task'.format(unique_id, num_poses)
+
+    print scenario_id
 
     try:
         map_image = Image.open(map_image_file)
@@ -144,31 +144,33 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1
 
     random_poses = get_random_poses(map_image, num_poses, buffer_size, occupy=True)
 
-    # Write the poses to output_file
-    try:
-        output_file = open(full_path, 'wb')
+    task_list = []
+    task_id = None
+    for i, pose in enumerate(random_poses):
+        # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
 
-        output_file.write('---\n')
+        if not task_id:
+            task_id = 1
 
-        task_id = None
-        for i, pose in enumerate(random_poses):
-            # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
+        # new_task = mrta.SensorSweepTask(task_id,
+        #                                 float(pose[0]) * scale,   # x
+        #                                 float(pose[1]) * scale,   # y
+        #                                 0.0,                      # z
+        #                                 1,                        # num_robots
+        #                                 0.0,                      # duration
+        #                                 [])                       # depends
 
-            if not task_id:
-                task_id = 1
+        # A SR-IT-SA task
+        new_task = mrta.SensorSweepTask(task_id,
+                                        float(pose[0]) * scale,   # x
+                                        float(pose[1]) * scale)   # y
 
-            task_entry = task_template.format(task_id,
-                                              float(pose[0]) * scale,
-                                              float(pose[1]) * scale)
+        task_list.append(new_task)
 
-            output_file.write(task_entry)
-            task_id += 1
+        task_id += 1
 
-        output_file.close()
-
-    except IOError:
-        print "Couldn't open {0} for writing! Exiting.".format(full_path)
-        sys.exit(1)
+    task_db[scenario_id] = task_list
+    task_db.close()
 
 
 def generate_and_write_random_starts(map_image_file, num_poses=3, buffer_size=70, scale=1.0, output_filename=DEFAULT_START_POSE_FILE):

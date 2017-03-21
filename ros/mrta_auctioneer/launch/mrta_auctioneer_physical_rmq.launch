@@ -10,6 +10,9 @@
     <arg name="dummy_robot_name" default="robot_0" />
     <arg name="classifier_name" default="clf_execution_phase_time_random_forest" />
 
+    <arg name="task_file" default=""/>
+    <arg name="scenario_id" default=""/>
+
     <!-- BEGIN Dummy Robot -->
     <group ns="$(arg dummy_robot_name)">
         <param name="tf_prefix" value="$(arg dummy_robot_name)" />
@@ -47,6 +50,7 @@
 
     <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" output="screen">
         <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)" />
+        <param name="scenario_id" value="$(arg scenario_id)"/>
         <param name="mechanism" value="$(arg mechanism)" />
         <param name="reallocate" value="$(arg reallocate)" />
         <param name="dynamic_mechanism" value="True" />

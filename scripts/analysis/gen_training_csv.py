@@ -27,9 +27,11 @@ import rospy
 import rosbag
 
 import mrta
+import mrta.file_db
 import mrta.msg
 import mrta.mrta_planner_proxy
 
+TASKS_DB_FILENAME = 'tasks.db'
 
 IN_CSV_FILENAME = 'stats.csv'
 OUT_DIST_CSV_FILENAME = 'team_distance.csv'
@@ -161,45 +163,16 @@ def sig_handler(sig, frame):
 signal.signal(signal.SIGINT, sig_handler)
 
 
-def _read_points(task_file):
-    points = {}
-
-    # YAML config file
-    if task_file.name.endswith('yaml'):
-        yaml_tasks = yaml.load(task_file)
-
-        for yaml_task in yaml_tasks:
-            task_loc = yaml_task['location']
-            x, y = float(task_loc['x']), float(task_loc['y'])
-            points[yaml_task['task_id']] = (x, y)
-
-    return points
-
-
-def read_point_configs(task_dir):
+def read_point_config(task_db, scenario_id):
     global target_point_configs
 
-    task_filenames = [f for f in listdir(task_dir) if isfile(join(task_dir, f))]
+    print "Reading points from {0}...".format(scenario_id)
 
-    for task_filename in task_filenames:
-        task_file_path = join(task_dir, task_filename)
+    scenario = task_db[scenario_id]
 
-        print "Reading points from {0}...".format(task_file_path)
-        task_file = open(task_file_path, "rb")
-        target_point_configs[task_filename] = _read_points(task_file)
-
-
-def read_point_config(task_dir, task_filename):
-    global target_point_configs
-
-    # task_filenames = [f for f in listdir(task_dir) if isfile(join(task_dir, f))]
-
-    # for task_filename in task_filenames:
-    task_file_path = join(task_dir, task_filename)
-
-    print "Reading points from {0}...".format(task_file_path)
-    task_file = open(task_file_path, "rb")
-    target_point_configs[task_filename] = _read_points(task_file)
+    target_point_configs[scenario_id] = {}
+    for task in scenario:
+        target_point_configs[scenario_id][task.task_id] = (task.locaion.x, task.location.y)
 
 
 def get_psi_spread(psi_bag):
@@ -220,10 +193,8 @@ def get_psi_spread(psi_bag):
 
 
 def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_time, out_minimax, task_dir, bag_root):
-    global planner_proxy
+    global planner_proxy, target_point_configs
     try:
-
-        # read_point_configs(task_dir)
 
         stats_frame = pd.read_csv(in_file)
 
@@ -244,15 +215,23 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
         out_minimax_csv = csv.writer(open(out_minimax, 'wb'))
         out_minimax_csv.writerow(OUT_FIELDNAMES)
 
-        # for name, group in stats_frame.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
+        # for scenario_id, group in stats_frame.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
 
         # Group by start positions
-        # for name, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
+        # for scenario_id, group in psi_ssi.groupby([stats_frame.ROBOT1_STARTX, stats_frame.ROBOT1_STARTY]):
+
+        task_db = None
+        try:
+            # Save the poses in the tasks database
+            task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
+        except IOError:
+            print "Couldn't read tasks from {0}! Exiting.".format(TASKS_DB_FILENAME)
+            sys.exit(1)
 
         # Group by task file
-        for name, group in psi_ssi.groupby([stats_frame.TASK_FILE]):
+        for scenario_id, group in psi_ssi.groupby([stats_frame.SCENARIO_ID]):
 
-            print name
+            print scenario_id
 
             # # Only record a training instance if runs for all three mechanisms (PSI, SSI, OSI) succeeded
             # if group.ROBOT1_STARTX.count() < 3:
@@ -262,10 +241,8 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
             if group.ROBOT1_STARTX.count() < 2:
                 continue
 
-            # Read the task file
-            task_file = name
-            if task_file not in target_point_configs:
-                read_point_config(task_dir, task_file)
+            if scenario_id not in target_point_configs:
+                read_point_config(task_db, scenario_id)
 
             # We only have two rows in this group (one per PSI and SSI)
             first_row = group.iloc[0]
@@ -438,14 +415,14 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
 
             median_task_ids = min_dist_row.MEDIAN_TASK_IDS.split('-')
 
-            task_dict = target_point_configs[min_dist_row.TASK_FILE]
+            task_dict = target_point_configs[min_dist_row.SCENARIO_ID]
 
             for median_task_id in median_task_ids:
                 min_robot_id = None
                 min_robot_distance = None
 
-                source_point = mrta.Point(task_dict[median_task_id][0],
-                                          task_dict[median_task_id][1])
+                source_point = mrta.Point(task_dict[median_task_id][0],   # x
+                                          task_dict[median_task_id][1])   # y
                 source_pose = planner_proxy._point_to_pose(source_point)
 
                 for robot_name in ROBOT_NAMES:
@@ -508,7 +485,7 @@ def write_training_files(in_file, out_dist, out_run_time, out_execution_phase_ti
                                                     row['ROBOT2_DISTANCE'],
                                                     row['ROBOT3_DISTANCE'])
 
-                row['TASK_FILE'] = task_file
+                row['SCENARIO_ID'] = scenario_id
 
             out_dist_csv.writerow([min_dist_row[f] for f in OUT_FIELDNAMES])
             out_run_time_csv.writerow([min_run_time_row[f] for f in OUT_FIELDNAMES])

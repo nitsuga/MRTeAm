@@ -42,7 +42,7 @@ def check_complete(bag_paths):
         #     print('...Creating {0}'.format(failed_dirname))
         #     os.mkdir(failed_dirname)
 
-        (map, start_config, mechanism, task_file, remainder) = bag_filename.split('__')
+        (map, start_config, mechanism, scenario_id, remainder) = bag_filename.split('__')
 
         # Date/time
         dt_match = dt_re.search(remainder)
@@ -60,7 +60,7 @@ def check_complete(bag_paths):
             # print msg
             exp_msgs[msg.event] = msg
 
-        print('{0} {1} ({2}):'.format(task_file, mechanism, dt_string)),
+        print('{0} {1} ({2}):'.format(scenario_id, mechanism, dt_string)),
 
         if mrta.msg.ExperimentEvent.END_EXPERIMENT in exp_msgs:
             print('  COMPLETE!')

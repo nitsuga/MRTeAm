@@ -21,6 +21,6 @@ do
 
     for mechanism in SSI PSI #OSI
     do
-	    $SCRIPT_DIR/launch_experiment_singlemaster.py -dm -rs ${mechanism} smartlab random SR-IT-SA-scenario3-16task.yaml
+	    $SCRIPT_DIR/launch_experiment_singlemaster.py -dm -rs ${mechanism} smartlab random SR-IT-SA-scenario3-16task
 	done # end "mechanism"
 done # end "run"

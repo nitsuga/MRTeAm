@@ -3,6 +3,7 @@
     <arg name="reallocate" default="False"/>
 
     <arg name="task_file" default=""/>
+    <arg name="scenario_id" default=""/>
 
     <arg name="dummy_robot_name" default="robot_0"/>
 
@@ -56,6 +57,7 @@
 
     <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" required="true" output="screen">
         <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)"/>
+        <param name="scenario_id" value="$(arg scenario_id)" />
         <param name="mechanism" value="$(arg mechanism)"/>
         <param name="reallocate" value="$(arg reallocate)"/>
         <param name="dynamic_mechanism" value="True"/>

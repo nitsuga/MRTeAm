@@ -73,9 +73,6 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
-# task_files = [ 'brooklyn_tasks_A.txt',
-#                'tasks_A.txt' ]
-
 # Topics to record with rosbag
 record_topics = ['/experiment', '/tasks/announce', '/tasks/bid',
                  '/tasks/award', '/tasks/status', '/tasks/new', '/debug']
@@ -115,7 +112,7 @@ def on_exp_event(exp_event_msg):
         exp_running = False
 
 
-def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, world_file, task_file, args):
+def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, world_file, scenario_id, args):
     rospack = rospkg.RosPack()
 
     global exp_running
@@ -162,7 +159,7 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
                                   # "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
                                   "map_file:={0}".format(map_yaml),
                                   "world_file:={0}".format(world_file),
-                                  "task_file:={0}".format(task_file),
+                                  "scenario_id:={0}".format(scenario_id),
                                   "mechanism:={0}".format(mechanism),
                                   "classifier_name:={0}".format(args.classifier_name)])
     running_procs.append(main_proc)
@@ -181,12 +178,12 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
 
     print('######## Launching rosbag record ########')
     rosbag_args = [ROSBAG, 'record']
-    rosbag_args.extend([ '-j',   # compress
-                         '-o',   # prepend world, mech and task to filename
+    rosbag_args.extend([ '-j',  # compress
+                         '-o',  # prepend world, mech and task to filename
                          "{0}__{1}__{2}__{3}_".format(args.map,
-                                                  args.start_config,
-                                                  mechanism,
-                                                  task_file)])
+                                                      args.start_config,
+                                                      mechanism,
+                                                      scenario_id)])
     rosbag_args.extend(record_topics)
                                                 
     rosbag_proc = subprocess.Popen(rosbag_args)
@@ -241,8 +238,8 @@ if __name__ == '__main__':
                         choices=['clustered', 'distributed', 'random',
                                  'start1', 'start2', 'start3', 'start4', 'start5', 'start6'],
                         help='Starting locations of the robots.')
-    parser.add_argument('task_file',
-                        help='Name of the file containing task point locations.')
+    parser.add_argument('scenario_id',
+                        help='Name of the scenario that defines task locations (and other properties).')
     parser.add_argument("-ng", "--nogui", help="Disable the Stage GUI", action="store_true")
     parser.add_argument("-ra", "--reallocate", help="Re-allocate unfinished tasks", action="store_true")
     parser.add_argument("-rs", "--reuse_starts",
@@ -260,6 +257,6 @@ if __name__ == '__main__':
     robot_buffer = maps[args.map]['robot_buffer']
     map_scale = maps[args.map]['scale']
     world_file = world_files[args.map][args.start_config]
-    task_file = args.task_file
+    scenario_id = args.scenario_id
 
-    launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, world_file, task_file, args)
+    launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, world_file, scenario_id, args)

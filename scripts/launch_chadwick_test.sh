@@ -15,7 +15,7 @@ SCRIPT_DIR=~/GIT/mrta/scripts
 
 for map in smartlab
 do
-    for task_file in three-corners.yaml
+    for scenario_id in three-corners.yaml
     do
 	for mechanism in RR
 	do
@@ -23,7 +23,7 @@ do
 	    do
 		for run in `seq 1 ${RUN_COUNT}`
 		do
-		    $SCRIPT_DIR/launch_experiment.py -ng ${mechanism} ${map} ${start_config} ${task_file}
+		    $SCRIPT_DIR/launch_experiment.py -ng ${mechanism} ${map} ${start_config} ${scenario_id}
 
 		done # end "run"
 
@@ -31,6 +31,6 @@ do
 
 	done # end "mechanism"
 
-    done # end "task_file"
+    done # end "scenario_id"
 
 done # end "map"

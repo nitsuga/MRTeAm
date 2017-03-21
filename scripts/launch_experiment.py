@@ -49,9 +49,7 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                             'distributed_A': 'smartlab_ugv_arena_3_robots_distributed_A.world'}}
 
 
-mechanisms = [ 'OSI', 'PSI', 'SSI', 'RR' ]
-
-# task_files = [ 'brooklyn_tasks_A.txt', 'tasks_A.txt' ]
+mechanisms = ['OSI', 'PSI', 'SSI', 'RR']
 
 # Topics to record with rosbag
 record_topics = ['/experiment', '/tasks/announce', '/tasks/bid',
@@ -93,7 +91,7 @@ def on_exp_event(exp_event_msg):
         exp_running = False
 
 
-def launch_experiment(mechanism, map_file, world_file, task_file, relay_type, args):
+def launch_experiment(mechanism, map_file, world_file, scenario_id, relay_type, args):
     global exp_running
     exp_running = True
 
@@ -151,12 +149,12 @@ def launch_experiment(mechanism, map_file, world_file, task_file, relay_type, ar
 
     print('######## Launching rosbag record ########')
     rosbag_args = [ROSBAG, 'record']
-    rosbag_args.extend([ '-j',   # compress
-                         '-o',   # prepend world, mech and task to filename
+    rosbag_args.extend([ '-j',  # compress
+                         '-o',  # prepend world, mech and task to filename
                          "{0}__{1}__{2}__{3}_".format(args.map,
-                                                  args.start_config,
-                                                  mechanism,
-                                                  task_file)])
+                                                      args.start_config,
+                                                      mechanism,
+                                                      scenario_id)])
     rosbag_args.extend(record_topics)
                                                 
     rosbag_proc = subprocess.Popen(rosbag_args)
@@ -191,13 +189,13 @@ def launch_experiment(mechanism, map_file, world_file, task_file, relay_type, ar
 
     auc_port = '11315'
     mechanism = mechanism
-    task_file = task_file
+    scenario_id = scenario_id
     auc_proc = subprocess.Popen([ROSLAUNCH,
                                  auc_pkg,
                                  auc_launchfile,
                                  '-p', auc_port,
                                  "mechanism:={0}".format(mechanism),
-                                 "task_file:={0}".format(task_file),
+                                 "scenario_id:={0}".format(scenario_id),
                                  "map_file:={0}".format(map_file),
                                  "classifier_name:={0}".format(args.classifier_name)])
 
@@ -237,7 +235,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Launch a multirobot task-allocation experiment.')
 
     parser.add_argument('mechanism',
-                        choices=['OSI','PSI','SSI','RR'],
+                        choices=['OSI', 'PSI', 'SSI', 'RR'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
                         choices=['brooklyn','smartlab'],
@@ -245,8 +243,8 @@ if __name__ == '__main__':
     parser.add_argument('start_config',
                         choices=['clustered','distributed','distributed_A'],
                         help='Starting locations of the robots.')
-    parser.add_argument('task_file',
-                        help='Name of the file containing task point locations.')
+    parser.add_argument('scenario_id',
+                        help='Name of the scenario that defines task locations (and other properties).')
     parser.add_argument('relay_type',
                         choices=['fkie', 'rmq'],
                         help='Method to relay messages between ROS masters.')
@@ -265,8 +263,8 @@ if __name__ == '__main__':
     mechanism = args.mechanism
     map_file = maps[args.map]
     world_file = world_files[args.map][args.start_config]
-    task_file = args.task_file
+    scenario_id = args.scenario_id
     relay_type = args.relay_type
 
-    launch_experiment(mechanism, map_file, world_file, task_file, relay_type, args)
+    launch_experiment(mechanism, map_file, world_file, scenario_id, relay_type, args)
 

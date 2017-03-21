@@ -35,20 +35,20 @@ template_filename = 'stat_summary.tex'
 legend_filename = 'timeline_legend.pdf'
 
 
-def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
-    pp.pprint(task_file)
+def gen_docs(scenario_id, bag_paths, hostname, script_dir, template_dir):
+    pp.pprint(scenario_id)
     pp.pprint(bag_paths)
     pp.pprint(hostname)
     pp.pprint(script_dir)
     pp.pprint(template_dir)
 
-    task_file_base = task_file.replace('.yaml', '')
+    task_file_base = scenario_id.replace('.yaml', '')
     task_file_base = task_file_base.replace('.txt', '')
 
     # 1. Run plot_stats.py to plot statistics for the given task file
     plot_path = os.path.join(script_dir, plot_stats_script)
     print("plot_path: {0}".format(plot_path))
-    subprocess.check_call([plot_path, 'stats.csv', task_file], shell=False)
+    subprocess.check_call([plot_path, 'stats.csv', scenario_id], shell=False)
 
     # # 2. Run plot_trajectory.py to plot trajectories
     # trajectory_path = os.path.join(script_dir, trajectory_script)
@@ -104,7 +104,7 @@ def gen_docs(task_file, bag_paths, hostname, script_dir, template_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate a PDF document with summary statistics, trajectories, and timelines for a given experimental configuration.')
 
-    parser.add_argument('-t', '--task_file',
+    parser.add_argument('scenario_id',
                         type=str,
                         required=True,
                         help='Task file to document.')
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     bag_files = args.bag_file
-    task_file = args.task_file
+    scenario_id = args.scenario_id
     hostname = args.hostname
     script_dir = args.script_dir
     template_dir = args.template_dir
@@ -144,4 +144,4 @@ if __name__ == "__main__":
     for path_arg in bag_files:
         bag_paths.extend(glob.glob(path_arg))
 
-    gen_docs(task_file, bag_paths, hostname, script_dir, template_dir)
+    gen_docs(scenario_id, bag_paths, hostname, script_dir, template_dir)

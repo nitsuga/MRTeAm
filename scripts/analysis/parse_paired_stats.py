@@ -32,7 +32,7 @@ def print_grouped_stats(stats_csv):
     mech_group_stats = pd.DataFrame()
 
     mission_id = 1000000
-    for name, group in group_stats.groupby('TASK_FILE'):
+    for name, group in group_stats.groupby('SCENARIO_ID'):
         # print name
         # print len(group)
 

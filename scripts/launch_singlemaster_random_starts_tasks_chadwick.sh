@@ -33,14 +33,14 @@ START_CONFIG=random
 for run in `seq 1 ${RUN_COUNT}`
 do
     # Generate a set of random tasks
-    TASK_FILE="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE})"
+    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE})"
 
     # Generate a set of random start poses
     ${SCRIPT_DIR}/random_poses.py starts `rospack find mrta`/config/maps/${MAP_IMAGE} --buffer ${ROBOT_BUFFER} --scale ${MAP_SCALE}
 
     for mechanism in SSI PSI # OSI
     do
-	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -ng -rs ${mechanism} ${MAP_NAME} ${START_CONFIG} ${TASK_FILE}
+	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -ng -rs ${mechanism} ${MAP_NAME} ${START_CONFIG} ${SCENARIO_ID}
     done # end "mechanism"
 done # end "run"
 

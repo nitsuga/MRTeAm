@@ -89,7 +89,7 @@ def on_exp_event(exp_event_msg):
         exp_running = False
 
 
-def launch_experiment(mechanism, map_file, world_file, task_file, args):
+def launch_experiment(mechanism, map_file, world_file, scenario_id, args):
     global exp_running
     exp_running = True
 
@@ -115,12 +115,12 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
 
     print('######## Launching rosbag record ########')
     rosbag_args = [ROSBAG, 'record']
-    rosbag_args.extend([ '-j',   # compress
-                         '-o',   # prepend world, mech and task to filename
+    rosbag_args.extend([ '-j',  # compress
+                         '-o',  # prepend world, mech and task to filename
                          "{0}__{1}__{2}__{3}_".format(args.map,
-                                                  args.start_config,
-                                                  mechanism,
-                                                  task_file)])
+                                                      args.start_config,
+                                                      mechanism,
+                                                      scenario_id)])
     rosbag_args.extend(record_topics)
                                                 
     rosbag_proc = subprocess.Popen(rosbag_args)
@@ -133,13 +133,13 @@ def launch_experiment(mechanism, map_file, world_file, task_file, args):
     auc_launchfile = 'mrta_auctioneer_physical_fkie.launch'
     auc_port = '11315'
     mechanism = mechanism
-    task_file = task_file
+    scenario_id = scenario_id
     auc_proc = subprocess.Popen([ROSLAUNCH,
                                  auc_pkg,
                                  auc_launchfile,
                                  '-p', auc_port,
                                  "mechanism:={0}".format(mechanism),
-                                 "task_file:={0}".format(task_file)])
+                                 "scenario_id:={0}".format(scenario_id)])
 
     running_procs.append(auc_proc)
 
@@ -186,15 +186,15 @@ if __name__ == '__main__':
     parser.add_argument('start_config',
                         choices=['clustered', 'distributed', 'distributed_A'],
                         help='Starting locations of the robots.')
-    parser.add_argument('task_file',
-                        help='Name of the file containing task point locations.')
+    parser.add_argument('scenario_id',
+                        help='Name of the scenario that defines task locations (and other properties).')
 
     args = parser.parse_args()
 
     mechanism = args.mechanism
     map_file = maps[args.map]
     world_file = world_files[args.map][args.start_config]
-    task_file = args.task_file
+    scenario_id = args.scenario_id
 
-    launch_experiment(mechanism, map_file, world_file, task_file, args)
+    launch_experiment(mechanism, map_file, world_file, scenario_id, args)
 

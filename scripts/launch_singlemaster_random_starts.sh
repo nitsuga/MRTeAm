@@ -18,6 +18,6 @@ for run in `seq 1 ${RUN_COUNT}`
 do
     for mechanism in SSI PSI OSI
     do
-	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng -dm ${mechanism} smartlab random SR-IT-SA-scenario3-16task.yaml
+	    $SCRIPT_DIR/launch_experiment_singlemaster.py -ng -dm ${mechanism} smartlab random SR-IT-SA-scenario3-16task
 	done # end "mechanism"
 done # end "run"

@@ -24,7 +24,7 @@ field_names = [
     'MAP',
     'START_CONFIG',
     'MECHANISM',
-    'TASK_FILE',
+    'SCENARIO_ID',
     # 'RUN_NUM',
     # 'ATTEMPT_NUM',
     'TOTAL_RUN_TIME',
@@ -299,18 +299,18 @@ def parse_stats(bag_paths, output):
         row_fields['BAG_FILENAME'] = bag_filename
 
         print("bag_filename: {0}".format(bag_filename))
-        (map, start_config, mechanism, task_file, remainder) = bag_filename.split('__')
+        (map, start_config, mechanism, scenario_id, remainder) = bag_filename.split('__')
 
         # Date/time
         dt_match = dt_re.search(remainder)
         row_fields['DATETIME'] = dt_match.group(1)
 
-        # 'START_CONFIG', 'MECHANSIM', 'TASK_FILE'
-#        row_fields.extend([map, start_config, mechanism, task_file])
+        # 'START_CONFIG', 'MECHANSIM', 'SCENARIO_ID'
+#        row_fields.extend([map, start_config, mechanism, scenario_id])
         row_fields['MAP'] = map
         row_fields['START_CONFIG'] = start_config
         row_fields['MECHANISM'] = mechanism
-        row_fields['TASK_FILE'] = task_file
+        row_fields['SCENARIO_ID'] = scenario_id
 
         run_msgs = defaultdict(list)
 

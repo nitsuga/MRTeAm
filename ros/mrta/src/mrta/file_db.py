@@ -89,3 +89,6 @@ class FileDB:
             raise IOError
 
         self.db[key] = item
+
+    def exists(self, key):
+        return key in self.db
