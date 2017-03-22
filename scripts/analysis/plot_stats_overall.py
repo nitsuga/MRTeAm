@@ -6,11 +6,13 @@ import math
 import sys
 
 # Stats/plotting libraries
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pprint
 from scipy import stats
+# import seaborn
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -32,6 +34,8 @@ colors = ([0.0, 1.0, 0.0],  # 'green'
           [0.0, 0.0, 1.0],  # 'blue'
           [0.5, 0.0, 1.0])  # 'violet'
 
+mpl.rcParams['patch.force_edgecolor'] = True
+mpl.rcParams['patch.facecolor'] = 'b'
 
 class Experiment(object):
     def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None):
@@ -125,8 +129,8 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    plt.title(title)
-    plt.ylabel(y_label)
+    # plt.title(title)
+    # plt.ylabel(y_label)
     stat1_means = []
     stat2_means = []
     stat1_errors = []
@@ -199,8 +203,8 @@ def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_f
     bar_width = 0.25
     x_start = 0.25
     x_pos = np.arange(x_start, len(mechanisms) + x_start)
-    plt.title(title)
-    plt.ylabel(y_label)
+    # plt.title(title)
+    # plt.ylabel(y_label)
 
     stat_means = defaultdict(list)
     stat_errors = defaultdict(list)
@@ -338,8 +342,8 @@ def main(argv):
                       attr_name='TOTAL_RUN_TIME',
                       title=plot_title,
                       y_label='Seconds',
-                      out_filename=plot_filename,
-                      y_limit=600)
+                      out_filename=plot_filename)
+                      # y_limit=600)
 
     # Deliberation time
     plot_title = 'Deliberation Time'
@@ -368,8 +372,8 @@ def main(argv):
                       attr_name='EXECUTION_PHASE_TIME',
                       title=plot_title,
                       y_label='Seconds',
-                      out_filename=plot_filename,
-                      y_limit=600)
+                      out_filename=plot_filename)
+                      # y_limit=600)
 
     # Nap time
     plot_title = 'Nap Time'
@@ -501,192 +505,192 @@ def main(argv):
                         out_filename=plot_filename)  # ,
     # y_limit=35)
 
-    # Stats for all point configs, grouped by start config { CLUSTERED, DISTRIBUTED }
-    for start_config in start_configs:
-
-        start_stats = stats[stats.START_CONFIG == start_config]
-
-        # Total run time stacked: deliberation time + execution time
-        # Total run time
-        plot_title = 'Total Run Time, {0} start'.format(start_config)
-        plot_filename = 'stacked-run-time-{0}.pdf'.format(start_config)
-        plot_stacked_stats(af=start_stats,
-                           attr1_name='DELIBERATION_TIME',
-                           attr2_name='EXECUTION_PHASE_TIME',
-                           title=plot_title,
-                           y_label='Seconds',
-                           out_filename=plot_filename)  # ,
-        # y_limit=300)
-
-        # Total run time
-        plot_title = 'Total Run Time, {0} start'.format(start_config)
-        plot_filename = 'run-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_RUN_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename,
-                          y_limit=600)
-
-        # Deliberation time
-        plot_title = 'Deliberation Time, {0} start'.format(start_config)
-        plot_filename = 'deliberation-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='DELIBERATION_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename)  # ,
-        # y_limit=20)
-
-        # Mechanism selection time
-        plot_title = 'Mechanism Selection Time, {0} start'.format(start_config)
-        plot_filename = 'mechanism-selection-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=stats,
-                          attr_name='MECHANISM_SELECTION_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename)  # ,
-        # y_limit=20)
-
-        # Execution time
-        plot_title = 'Execution Phase Time, {0} start'.format(start_config)
-        plot_filename = 'execution-phase-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='EXECUTION_PHASE_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename,
-                          y_limit=600)
-
-        # Nap time
-        plot_title = 'Nap Time, {0} start'.format(start_config)
-        plot_filename = 'nap-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='NAP_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename)
-        #                               y_limit=450)
-
-        # Movement time
-        plot_title = 'Movement Time, {0} start'.format(start_config)
-        plot_filename = 'movement-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_MOVEMENT_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename)  # ,
-        # y_limit=300)
-
-        # Waiting time
-        plot_title = 'Waiting Time, {0} start'.format(start_config)
-        plot_filename = 'waiting-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_WAITING_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename),
-        # y_limit=160)
-
-        # Idle time
-        plot_title = 'Idle Time, {0} start'.format(start_config)
-        plot_filename = 'idle-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_IDLE_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename)  # ,
-        # y_limit=150)
-
-        # Delay time
-        plot_title = 'Delay Time, {0} start'.format(start_config)
-        plot_filename = 'delay-time-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_DELAY_TIME',
-                          title=plot_title,
-                          y_label='Seconds',
-                          out_filename=plot_filename)  # ,
-        # y_limit=40)
-
-        # Distance Travelled
-        plot_title = 'Team Distance Travelled, {0} start'.format(start_config)
-        plot_filename = 'team-distance-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_DISTANCE',
-                          title=plot_title,
-                          y_label='meters',
-                          out_filename=plot_filename)
-        # y_limit=80)
-
-        # Maximum Robot Distance
-        plot_title = 'Maximum Robot Distance, {0} start'.format(start_config)
-        plot_filename = 'maximum-robot-distance-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='MAXIMUM_ROBOT_DISTANCE',
-                          title=plot_title,
-                          y_label='meters',
-                          out_filename=plot_filename,
-                          y_limit=40)
-
-        # Near Collisions
-        plot_title = 'Near Collisions, {0} start'.format(start_config)
-        plot_filename = 'near-collisions-{0}.pdf'.format(start_config)
-        plot_overall_stat(af=start_stats,
-                          attr_name='TOTAL_COLLISIONS',
-                          title=plot_title,
-                          y_label='',
-                          out_filename=plot_filename)  # ,
-        # y_limit=6)
-
-        # Distance travelled per robot
-        plot_title = 'Distance per Robot: {0} start'.format(start_config)
-        plot_filename = 'distance-per-robot-{0}.pdf'.format(start_config)
-        plot_per_robot_stat(af=start_stats,
-                            attr_name='DISTANCE',
-                            title=plot_title,
-                            y_label='cm',
-                            out_filename=plot_filename)  # ,
-        # y_limit=35)
-
-        # Stacked execution phase times per robot
-        plot_title = 'Execution phase time per robot: {0} start'.format(start_config)
-        plot_filename = 'execution-phase-time-per-robot-{0}.pdf'.format(start_config)
-        plot_stacked_per_robot_stat(af=start_stats,
-                                    attr_names=['MOVEMENT_TIME', 'WAITING_TIME', 'DELAY_TIME', 'IDLE_TIME'],
-                                    title=plot_title,
-                                    y_label='seconds',
-                                    out_filename=plot_filename)  # ,
-        # y_limit=250)
-
-        # Movement time per robot
-        plot_title = 'Movement time per robot: {0} start'.format(start_config)
-        plot_filename = 'movement-per-robot-{0}.pdf'.format(start_config)
-        plot_per_robot_stat(af=start_stats,
-                            attr_name='MOVEMENT_TIME',
-                            title=plot_title,
-                            y_label='Seconds',
-                            out_filename=plot_filename)  # ,
-        # y_limit=250)
-
-        # Idle time per robot
-        plot_title = 'Idle time per Robot: {0} start'.format(start_config)
-        plot_filename = 'idle-time-per-robot-{0}.pdf'.format(start_config)
-        plot_per_robot_stat(af=start_stats,
-                            attr_name='IDLE_TIME',
-                            title=plot_title,
-                            y_label='Seconds',
-                            out_filename=plot_filename)  # ,
-        # y_limit=80)
-
-        # Delay time per robot
-        plot_title = 'Delay time per Robot: {0} start'.format(start_config)
-        plot_filename = 'delay-time-per-robot-{0}.pdf'.format(start_config)
-        plot_per_robot_stat(af=start_stats,
-                            attr_name='DELAY_TIME',
-                            title=plot_title,
-                            y_label='Seconds',
-                            out_filename=plot_filename)  # ,
-        # y_limit=35)
+    # # Stats for all point configs, grouped by start config { CLUSTERED, DISTRIBUTED }
+    # for start_config in start_configs:
+    #
+    #     start_stats = stats[stats.START_CONFIG == start_config]
+    #
+    #     # Total run time stacked: deliberation time + execution time
+    #     # Total run time
+    #     plot_title = 'Total Run Time, {0} start'.format(start_config)
+    #     plot_filename = 'stacked-run-time-{0}.pdf'.format(start_config)
+    #     plot_stacked_stats(af=start_stats,
+    #                        attr1_name='DELIBERATION_TIME',
+    #                        attr2_name='EXECUTION_PHASE_TIME',
+    #                        title=plot_title,
+    #                        y_label='Seconds',
+    #                        out_filename=plot_filename)  # ,
+    #     # y_limit=300)
+    #
+    #     # Total run time
+    #     plot_title = 'Total Run Time, {0} start'.format(start_config)
+    #     plot_filename = 'run-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_RUN_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename,
+    #                       y_limit=600)
+    #
+    #     # Deliberation time
+    #     plot_title = 'Deliberation Time, {0} start'.format(start_config)
+    #     plot_filename = 'deliberation-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='DELIBERATION_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename)  # ,
+    #     # y_limit=20)
+    #
+    #     # Mechanism selection time
+    #     plot_title = 'Mechanism Selection Time, {0} start'.format(start_config)
+    #     plot_filename = 'mechanism-selection-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=stats,
+    #                       attr_name='MECHANISM_SELECTION_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename)  # ,
+    #     # y_limit=20)
+    #
+    #     # Execution time
+    #     plot_title = 'Execution Phase Time, {0} start'.format(start_config)
+    #     plot_filename = 'execution-phase-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='EXECUTION_PHASE_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename,
+    #                       y_limit=600)
+    #
+    #     # Nap time
+    #     plot_title = 'Nap Time, {0} start'.format(start_config)
+    #     plot_filename = 'nap-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='NAP_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename)
+    #     #                               y_limit=450)
+    #
+    #     # Movement time
+    #     plot_title = 'Movement Time, {0} start'.format(start_config)
+    #     plot_filename = 'movement-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_MOVEMENT_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename)  # ,
+    #     # y_limit=300)
+    #
+    #     # Waiting time
+    #     plot_title = 'Waiting Time, {0} start'.format(start_config)
+    #     plot_filename = 'waiting-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_WAITING_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename),
+    #     # y_limit=160)
+    #
+    #     # Idle time
+    #     plot_title = 'Idle Time, {0} start'.format(start_config)
+    #     plot_filename = 'idle-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_IDLE_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename)  # ,
+    #     # y_limit=150)
+    #
+    #     # Delay time
+    #     plot_title = 'Delay Time, {0} start'.format(start_config)
+    #     plot_filename = 'delay-time-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_DELAY_TIME',
+    #                       title=plot_title,
+    #                       y_label='Seconds',
+    #                       out_filename=plot_filename)  # ,
+    #     # y_limit=40)
+    #
+    #     # Distance Travelled
+    #     plot_title = 'Team Distance Travelled, {0} start'.format(start_config)
+    #     plot_filename = 'team-distance-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_DISTANCE',
+    #                       title=plot_title,
+    #                       y_label='meters',
+    #                       out_filename=plot_filename)
+    #     # y_limit=80)
+    #
+    #     # Maximum Robot Distance
+    #     plot_title = 'Maximum Robot Distance, {0} start'.format(start_config)
+    #     plot_filename = 'maximum-robot-distance-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='MAXIMUM_ROBOT_DISTANCE',
+    #                       title=plot_title,
+    #                       y_label='meters',
+    #                       out_filename=plot_filename,
+    #                       y_limit=40)
+    #
+    #     # Near Collisions
+    #     plot_title = 'Near Collisions, {0} start'.format(start_config)
+    #     plot_filename = 'near-collisions-{0}.pdf'.format(start_config)
+    #     plot_overall_stat(af=start_stats,
+    #                       attr_name='TOTAL_COLLISIONS',
+    #                       title=plot_title,
+    #                       y_label='',
+    #                       out_filename=plot_filename)  # ,
+    #     # y_limit=6)
+    #
+    #     # Distance travelled per robot
+    #     plot_title = 'Distance per Robot: {0} start'.format(start_config)
+    #     plot_filename = 'distance-per-robot-{0}.pdf'.format(start_config)
+    #     plot_per_robot_stat(af=start_stats,
+    #                         attr_name='DISTANCE',
+    #                         title=plot_title,
+    #                         y_label='cm',
+    #                         out_filename=plot_filename)  # ,
+    #     # y_limit=35)
+    #
+    #     # Stacked execution phase times per robot
+    #     plot_title = 'Execution phase time per robot: {0} start'.format(start_config)
+    #     plot_filename = 'execution-phase-time-per-robot-{0}.pdf'.format(start_config)
+    #     plot_stacked_per_robot_stat(af=start_stats,
+    #                                 attr_names=['MOVEMENT_TIME', 'WAITING_TIME', 'DELAY_TIME', 'IDLE_TIME'],
+    #                                 title=plot_title,
+    #                                 y_label='seconds',
+    #                                 out_filename=plot_filename)  # ,
+    #     # y_limit=250)
+    #
+    #     # Movement time per robot
+    #     plot_title = 'Movement time per robot: {0} start'.format(start_config)
+    #     plot_filename = 'movement-per-robot-{0}.pdf'.format(start_config)
+    #     plot_per_robot_stat(af=start_stats,
+    #                         attr_name='MOVEMENT_TIME',
+    #                         title=plot_title,
+    #                         y_label='Seconds',
+    #                         out_filename=plot_filename)  # ,
+    #     # y_limit=250)
+    #
+    #     # Idle time per robot
+    #     plot_title = 'Idle time per Robot: {0} start'.format(start_config)
+    #     plot_filename = 'idle-time-per-robot-{0}.pdf'.format(start_config)
+    #     plot_per_robot_stat(af=start_stats,
+    #                         attr_name='IDLE_TIME',
+    #                         title=plot_title,
+    #                         y_label='Seconds',
+    #                         out_filename=plot_filename)  # ,
+    #     # y_limit=80)
+    #
+    #     # Delay time per robot
+    #     plot_title = 'Delay time per Robot: {0} start'.format(start_config)
+    #     plot_filename = 'delay-time-per-robot-{0}.pdf'.format(start_config)
+    #     plot_per_robot_stat(af=start_stats,
+    #                         attr_name='DELAY_TIME',
+    #                         title=plot_title,
+    #                         y_label='Seconds',
+    #                         out_filename=plot_filename)  # ,
+    #     # y_limit=35)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

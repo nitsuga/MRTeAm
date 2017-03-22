@@ -7,7 +7,7 @@ import scipy as sp
 import scipy.stats as st
 import sys
 
-MECHANISMS = ['PSI', 'SSI']
+MECHANISMS = ['PSI', 'SSI', 'SEL']
 METRICS = ['EXECUTION_PHASE_TIME',
            'TOTAL_RUN_TIME',
            'MAXIMUM_ROBOT_DISTANCE',
@@ -39,7 +39,7 @@ def print_grouped_stats(stats_csv):
         group_valid = True
 
         if len(group) < len(MECHANISMS):
-            print("At least one (mechanism) run for this mission failed, skipping...")
+            print("At least one (mechanism) run for this scenario ({0}) failed, skipping...".format(name))
             group_valid = False
             continue
 

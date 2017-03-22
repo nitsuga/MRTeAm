@@ -49,6 +49,6 @@ do
 
     for mechanism in OSI PSI SSI # OSI
     do
-	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -ng -rs -cl ${CLASSIFIER} ${mechanism} ${MAP_NAME} ${START_CONFIG} ${SCENARIO_ID}
+	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -rs -cl ${CLASSIFIER} ${mechanism} ${MAP_NAME} ${START_CONFIG} ${SCENARIO_ID}
     done # end "mechanism"
 done # end "run"

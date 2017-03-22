@@ -22,6 +22,9 @@ X_features = ['TOTAL_DISTANCE_TO_ASSIGNED_MEDIANS',
               'TOTAL_MEDIAN_DISTANCE_SPREAD',
               'TEAM_DIAMETER',
               'GREEDY_MEDIAN_COUNT_SPREAD',
+              'AVERAGE_TEAMMATE_DISTANCE',
+              'AVERAGE_TEAM_CENTROID_DISTANCE',
+              'PSI_SPREAD',
               'MECHANISM']
 
 Y_metrics = ['MAXIMUM_ROBOT_DISTANCE',
@@ -70,6 +73,8 @@ def plot_features(training_dir, csv_file, output_dir):
         stats = pd.read_csv(input_path)
 
         stats = stats.ix[:, X_features]
+
+        # print("stats: {0}".format(stats))
 
         pairgrid = sns.pairplot(stats, hue='MECHANISM', hue_order=['PSI', '', 'SSI'], palette='bright', size=4)
 
