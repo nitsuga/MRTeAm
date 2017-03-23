@@ -9,11 +9,15 @@ import sys
 
 import rospkg
 
+import pprint
+
 import mrta.file_db
 
 TASKS_DB_FILENAME = 'tasks.db'
 
 DEFAULT_START_POSE_FILE = '/tmp/robot_random_starts.inc'
+
+pp = pprint.PrettyPrinter(indent=4)
 
 
 def generate_unique_id(size=8, chars=string.ascii_uppercase + string.digits):
@@ -113,7 +117,12 @@ def get_random_poses(image, num_poses, buffer_size, occupy):
     return random_poses
 
 
-def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1.0):
+def generate_and_write_tasks(map_image_file,
+                             num_poses=8,
+                             buffer_size=3,
+                             scale=1.0,
+                             multirobot=False,
+                             constrained=False):
 
     # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
     #                                                               num_poses,
@@ -127,12 +136,16 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1
         print "Couldn't write tasks to {0}! Exiting.".format(TASKS_DB_FILENAME)
         sys.exit(1)
 
-    unique_id = generate_unique_id()
-    scenario_id = 'SR-IT-SA-{0}-{1}task'.format(unique_id, num_poses)
-
-    while task_db.exists(scenario_id):
+    scenario_id = None
+    scenario_in_db = True
+    while scenario_in_db:
         unique_id = generate_unique_id()
-        scenario_id = 'SR-IT-SA-{0}-{1}task'.format(unique_id, num_poses)
+        scenario_in_db = task_db.exists(scenario_id)
+
+    scenario_id = '{0}-{1}-SA-{2}-{3}task'.format('MR' if multirobot else 'SR',
+                                                  'CT' if constrained else 'IT',
+                                                  unique_id,
+                                                  num_poses)
 
     print scenario_id
 
@@ -152,23 +165,31 @@ def generate_and_write_tasks(map_image_file, num_poses=8, buffer_size=3, scale=1
         if not task_id:
             task_id = 1
 
-        # new_task = mrta.SensorSweepTask(task_id,
-        #                                 float(pose[0]) * scale,   # x
-        #                                 float(pose[1]) * scale,   # y
-        #                                 0.0,                      # z
-        #                                 1,                        # num_robots
-        #                                 0.0,                      # duration
-        #                                 [])                       # depends
+        # MR vs SR
+        if multirobot:
+            num_robots = random.randint(1, 2)
+        else:
+            num_robots = 1
 
-        # A SR-IT-SA task
-        new_task = mrta.SensorSweepTask(task_id,
-                                        float(pose[0]) * scale,   # x
-                                        float(pose[1]) * scale)   # y
+        depends = []
+        if constrained:
+            # Flip a coin to determine if this task should be precedence-constrained to
+            # a previous task. Don't try to add a constraint if this is the first task
+            # in the list.
+            if random.randint(0, 1) == 1 and task_list:
+                random_predecessor = random.choice(task_list)
+                depends.append(random_predecessor.task_id)
+
+        new_task = mrta.SensorSweepTask(_task_id=str(task_id),
+                                        x=float(pose[0]) * scale,   # x
+                                        y=float(pose[1]) * scale,   # y
+                                        _num_robots=num_robots,
+                                        _depends=depends)
 
         task_list.append(new_task)
-
         task_id += 1
 
+    # print("Tasks: {0}".format(pp.pformat(task_list)))
     task_db[scenario_id] = task_list
     task_db.close()
 
@@ -276,6 +297,14 @@ if __name__ == '__main__':
                         nargs='+', type=float,
                         default=[])
 
+    parser.add_argument('-m', '--multirobot',
+                        help='For each task, randomly decide the number of robots required (currently either 1 or 2).',
+                        action="store_true")
+
+    parser.add_argument('-c', '--constrained',
+                        help='For each task, randomly choose a previously-defined task for this task to depend on.',
+                        action="store_true")
+
     args = parser.parse_args()
 
     map_image_file = args.map_image_file
@@ -284,6 +313,8 @@ if __name__ == '__main__':
     scale = float(args.scale)
     output_file = args.output_file
     poses = args.poses
+    multirobot = args.multirobot
+    constrained = args.constrained
 
     # print("num_poses: {0}".format(num_poses))
     # print("poses: {0}".format(poses))
@@ -291,7 +322,7 @@ if __name__ == '__main__':
     if args.pose_type == 'starts':
         generate_and_write_random_starts(map_image_file, num_poses, buffer_size, scale, output_file)
     elif args.pose_type == 'tasks':
-        generate_and_write_tasks(map_image_file, num_poses, buffer_size, scale)
+        generate_and_write_tasks(map_image_file, num_poses, buffer_size, scale, multirobot, constrained)
     elif args.pose_type == 'manual-starts':
         pose_list = []
         for i in range(num_poses):

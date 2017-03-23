@@ -18,7 +18,7 @@ class Point:
 
 class Task(object):
 
-    def __init__(self, _task_id='1', _type=None, _num_robots=1, _duration=0, _depends=[]):
+    def __init__(self, _task_id='1', _type=None, _num_robots=1, _duration=0, _depends=[], _arrival_time=0):
 
         # The instantiator is responsible for coming up with a
         # task_id that is unique/valid/etc.
@@ -40,6 +40,9 @@ class Task(object):
         # Time required to complete the task, in seconds
         self.duration = _duration
 
+        # Number of seconds after the start of an experiment that the task 'arrives'
+        self.arrival_time = _arrival_time
+
         # Has the task been awarded (assigned) to a robot?
         self.awarded = False
 
@@ -52,3 +55,25 @@ class SensorSweepTask(Task):
     def __init__(self, _task_id='1', x=0.0, y=0.0, z=0.0, _num_robots=1, _duration=0, _depends=[]):
         super(SensorSweepTask, self).__init__(_task_id, 'SENSOR_SWEEP', _num_robots, _duration, _depends)
         self.location = Point(x, y, z)
+
+    def __repr__(self):
+
+        try:
+            self.arrival_time
+        except AttributeError:
+            self.arrival_time = 0
+
+        repr_str = """
+        task_id: {0}
+        type: {1}
+        location:
+          x: {2}
+          y: {3}
+        arrival_time: {4}
+        num_robots: {5}
+        duration: {6}
+        depends: {7}
+        """.format(self.task_id, self.type, self.location.x, self.location.y,
+                   self.arrival_time, self.num_robots, self.duration, self.depends)
+
+        return repr_str

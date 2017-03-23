@@ -40,7 +40,7 @@ class FileDB:
     def open(self, filename):
         filepath = os.path.join(self._get_base_path(), filename)
 
-        print("Opening file database {0}".format(filepath))
+        # print("Opening file database {0}".format(filepath))
 
         self.lock = LockFile(filepath)
         while not self.lock.i_am_locking():

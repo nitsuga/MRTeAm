@@ -1164,14 +1164,24 @@ class Auctioneer:
         # self.mechanism all the time)?
         self.dynamic_mechanism = rospy.get_param('~dynamic_mechanism', False)
 
-        # Tasks are loaded from a configuration file, rather than
-        # created dynamically (for now)
-        # self.task_file = task_file
-        self.task_file = None
+        # # Tasks are loaded from a configuration file, rather than
+        # # created dynamically (for now)
+        # # self.task_file = task_file
+        # self.task_file = None
+        # try:
+        #     self.task_file = rospy.get_param('~task_file')
+        # except KeyError:
+        #     rospy.logerr("Parameter 'task_file' has no value!")
+
+        # Tasks are loaded from a file-based database (keyed by scenario id)
+        self.scenario_id = None
         try:
-            self.task_file = rospy.get_param('~task_file')
+            self.scenario_id = rospy.get_param('~scenario_id')
+
+            # (Legacy cleanup) remove .yaml extension if it is present
+            self.scenario_id = self.scenario_id.replace('.yaml', '')
         except KeyError:
-            rospy.logerr("Parameter 'task_file' has no value!")
+            rospy.logerr("Parameter 'scenario_id' has no value!")
 
         # Do we reallocate tasks or not?
         try:
@@ -1447,6 +1457,62 @@ class Auctioneer:
         rospy.loginfo("add_scripted_task(): current state=={0}".format(self.fsm.current))
 
     def load_tasks(self, data):
+        # self.load_tasks_from_file()
+        self.load_tasks_from_db()
+
+        rospy.loginfo("Scripted Tasks:\n{0}".format(pp.pformat(self.scripted_tasks_by_id)))
+
+        # Start timers
+        for task_timer in self.task_timers:
+            task_timer.start()
+            # Sleep a tiny bit to make sure they're loaded
+            time.sleep(0.1)
+
+        self.fsm.tasks_loaded()
+
+    def load_tasks_from_db(self):
+        rospy.loginfo("Loading tasks from {0}...".format(TASKS_DB_FILENAME))
+
+        if not self.scenario_id:
+            rospy.logerror("No scenario_id given!")
+            return
+
+        try:
+            task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
+
+            loaded_tasks = task_db[self.scenario_id]
+
+            for loaded_task in loaded_tasks:
+
+                rospy.loginfo("auctioneer: task '{0}' depends on {1}".format(loaded_task.task_id, loaded_task.depends))
+
+                self.scripted_tasks.append(loaded_task)
+                self.scripted_tasks_by_id[loaded_task.task_id] = loaded_task
+
+                # Some stord instances of SensorSweep task might not have had the
+                # arrival_time attribute defined
+                try:
+                    loaded_task.arrival_time
+                except AttributeError:
+                    loaded_task.arrival_time = 0.0
+
+                self.task_timers.append(Timer(loaded_task.arrival_time,
+                                              self.add_scripted_task,
+                                              [loaded_task.task_id]))
+
+            # Necessary to log this?
+            debug_msg = mrta.msg.Debug()
+            debug_msg.key = 'auctioneer-scenario-id'
+            debug_msg.value = self.scenario_id
+            self.debug_pub.publish(debug_msg)
+
+        except Exception as e:
+            rospy.logerr("Can't open/parse scenario {0}!".format(self.scenario_id))
+            e_type, e_value, e_traceback = sys.exc_info()
+            rospy.logerr("{0}: {1}".format(e_type, e_value))
+            # rospy.logerr("{0}".format(e_traceback.format_exc()))
+
+    def load_tasks_from_file(self):
         rospy.loginfo("Loading tasks from {0}...".format(self.task_file))
 
         if not self.task_file:
@@ -1466,7 +1532,7 @@ class Auctioneer:
                 new_task = mrta.SensorSweepTask(str(yaml_task['task_id']),
                                                 float(yaml_task['location']['x']),
                                                 float(yaml_task['location']['y']),
-                                                0.0, # z
+                                                0.0,  # z
                                                 int(yaml_task['num_robots']),
                                                 float(yaml_task['duration']),
                                                 yaml_task['depends'])
@@ -1491,16 +1557,6 @@ class Auctioneer:
             e_type, e_value, e_traceback = sys.exc_info()
             rospy.logerr("{0}: {1}".format(e_type, e_value))
             # rospy.logerr("{0}".format(e_traceback.format_exc()))
-
-        rospy.loginfo("Scripted Tasks:\n{0}".format(pp.pformat(self.scripted_tasks_by_id)))
-
-        # Start timers
-        for task_timer in self.task_timers:
-            task_timer.start()
-            # Sleep a tiny bit to make sure they're loaded
-            time.sleep(0.1)
-
-        self.fsm.tasks_loaded()
 
     def on_teammate_pose_received(self, amcl_pose_msg, r_name):
         rospy.logdebug("(Auctioneer) on_teammate_pose_received ({0})".format(r_name))
