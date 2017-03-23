@@ -23,5 +23,6 @@ local_costmap:
   origin_y: 0.0
   transform_tolerance: 0.5
 
-  cost_scaling_factor: 1.0
+#  cost_scaling_factor: 1.0
+  cost_scaling_factor: 2.0
   inflation_radius: 1.0
