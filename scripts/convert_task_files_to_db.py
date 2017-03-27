@@ -18,7 +18,10 @@ def convert_task_files(task_dir):
 
     for task_file in glob.glob(os.path.join(task_dir, '*.yaml')):
         # print("task filename: {0}".format(task_file))
+
+        # Get the filename and remove the '.yaml' extension
         scenario_name = os.path.splitext(os.path.basename(task_file))[0]
+
         # print("scenario_name: {0}".format(scenario_name))
 
         if not task_db.exists(scenario_name):

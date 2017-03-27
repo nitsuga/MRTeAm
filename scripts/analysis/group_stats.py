@@ -17,6 +17,8 @@ METRICS = ['EXECUTION_PHASE_TIME',
 
 metric_valid_threshold = 10000
 
+OUTPUT_FILE = 'grouped_stats.csv'
+
 
 def print_grouped_stats(stats_csv):
     try:
@@ -65,7 +67,7 @@ def print_grouped_stats(stats_csv):
 
     print("{0} groups of {1}".format(len(mech_group_stats)/len(MECHANISMS), len(MECHANISMS)))
 
-    mech_group_stats.to_csv('paired_stats.csv', index=False)
+    mech_group_stats.to_csv(OUTPUT_FILE, index=False)
 
 
 if __name__ == '__main__':
