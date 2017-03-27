@@ -1,0 +1,201 @@
+---
+
+- task_id: '1'
+  type: SENSOR_SWEEP
+  location:
+    x: 6.916
+    y: 43.0255
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '2'
+  type: SENSOR_SWEEP
+  location:
+    x: 9.576
+    y: 35.112
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '3'
+  type: SENSOR_SWEEP
+  location:
+    x: 14.763
+    y: 34.713
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '4'
+  type: SENSOR_SWEEP
+  location:
+    x: 8.8445
+    y: 44.023
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '5'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.6625
+    y: 46.683
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '6'
+  type: SENSOR_SWEEP
+  location:
+    x: 2.926
+    y: 41.629
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '7'
+  type: SENSOR_SWEEP
+  location:
+    x: 2.1945
+    y: 24.605
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '8'
+  type: SENSOR_SWEEP
+  location:
+    x: 9.044
+    y: 26.2675
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '9'
+  type: SENSOR_SWEEP
+  location:
+    x: 9.2435
+    y: 43.225
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '10'
+  type: SENSOR_SWEEP
+  location:
+    x: 17.157
+    y: 33.25
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '11'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.596
+    y: 42.826
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '12'
+  type: SENSOR_SWEEP
+  location:
+    x: 14.1645
+    y: 47.082
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '13'
+  type: SENSOR_SWEEP
+  location:
+    x: 6.9825
+    y: 45.353
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '14'
+  type: SENSOR_SWEEP
+  location:
+    x: 16.359
+    y: 36.7745
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '15'
+  type: SENSOR_SWEEP
+  location:
+    x: 2.394
+    y: 43.225
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '16'
+  type: SENSOR_SWEEP
+  location:
+    x: 11.3715
+    y: 25.536
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '17'
+  type: SENSOR_SWEEP
+  location:
+    x: 5.453
+    y: 25.0705
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '18'
+  type: SENSOR_SWEEP
+  location:
+    x: 4.522
+    y: 40.0995
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '19'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.995
+    y: 41.23
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '20'
+  type: SENSOR_SWEEP
+  location:
+    x: 4.9875
+    y: 33.9815
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
