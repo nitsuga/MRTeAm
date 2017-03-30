@@ -8,7 +8,7 @@ import scipy.stats as st
 import sys
 
 MECHANISMS = ['PSI', 'SSI', 'SEL']
-METRICS = ['EXECUTION_PHASE_TIME', 'TOTAL_RUN_TIME', 'MAXIMUM_ROBOT_DISTANCE']
+METRICS = ['EXECUTION_PHASE_TIME', 'TOTAL_RUN_TIME', 'MAXIMUM_ROBOT_DISTANCE', 'TOTAL_DISTANCE']
 
 
 # From http://stackoverflow.com/questions/15033511/compute-a-confidence-interval-from-sample-data
@@ -33,7 +33,8 @@ def print_grouped_stats(stats_csv):
     # with all mechanisms in MECHANISMS succeeded
     mech_group_stats = pd.DataFrame()
 
-    for name, group in group_stats.groupby('TASK_FILE'):
+    # for name, group in group_stats.groupby('TASK_FILE'):
+    for name, group in group_stats.groupby('SCENARIO_ID'):
         # print name
         # print len(group)
         if len(group) == len(MECHANISMS):
@@ -41,14 +42,14 @@ def print_grouped_stats(stats_csv):
 
     print("{0} groups of {1}".format(len(mech_group_stats)/len(MECHANISMS), len(MECHANISMS)))
 
-    mech_start_group_stats = pd.DataFrame()
-    for name, group in group_stats.groupby(['TASK_FILE', 'START_CONFIG']):
-        # print name
-        # print len(group)
-        if len(group) == len(MECHANISMS):
-            mech_start_group_stats = mech_start_group_stats.append([group.iloc[idx] for idx in range(len(MECHANISMS))])
-
-    print("{0} groups of {1}".format(len(mech_start_group_stats)/len(MECHANISMS), len(MECHANISMS)))
+    # mech_start_group_stats = pd.DataFrame()
+    # for name, group in group_stats.groupby(['TASK_FILE', 'START_CONFIG']):
+    #     # print name
+    #     # print len(group)
+    #     if len(group) == len(MECHANISMS):
+    #         mech_start_group_stats = mech_start_group_stats.append([group.iloc[idx] for idx in range(len(MECHANISMS))])
+    #
+    # print("{0} groups of {1}".format(len(mech_start_group_stats)/len(MECHANISMS), len(MECHANISMS)))
 
     for mechanism in MECHANISMS:
 

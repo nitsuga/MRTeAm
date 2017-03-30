@@ -1,5 +1,6 @@
 default_tolerance: 0.5
-cost_factor: 0.8
+#cost_factor: 0.8
+cost_factor: 0.55
 neutral_cost: 50
 lethal_cost: 253
 visualize_potential: true

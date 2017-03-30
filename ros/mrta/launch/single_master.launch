@@ -70,6 +70,10 @@
     <group ns="robot_1">
         <param name="tf_prefix" value="robot_1"/>
 
+        <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">-->
+            <!--<param name="publish_frequency" type="double" value="15.0" />-->
+        <!--</node>-->
+
         <node pkg="move_base" type="move_base" name="move_base_node" output="screen" respawn="false" required="true">
             <remap from="map" to="/map"/>
 

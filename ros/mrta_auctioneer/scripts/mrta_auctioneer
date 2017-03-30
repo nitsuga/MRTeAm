@@ -1364,7 +1364,12 @@ class Auctioneer:
         marker_msg.header.stamp = rospy.Time()
         marker_msg.ns = 'mrta'
         marker_msg.id = int(task.task_id)
-        marker_msg.type = visualization_msgs.msg.Marker.CUBE
+
+        if task.num_robots > 1:
+            marker_msg.type = visualization_msgs.msg.Marker.CUBE
+        else:
+            marker_msg.type = visualization_msgs.msg.Marker.SPHERE
+
         marker_msg.action = visualization_msgs.msg.Marker.ADD
 
         marker_msg.pose.position.x = task.location.x

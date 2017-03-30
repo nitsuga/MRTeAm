@@ -12,6 +12,7 @@ METRICS = ['EXECUTION_PHASE_TIME',
            'TOTAL_RUN_TIME',
            'MAXIMUM_ROBOT_DISTANCE',
            'DELIBERATION_TIME',
+           'MEAN_MSG_TIME',
            'MECHANISM_SELECTION_TIME']
 
 

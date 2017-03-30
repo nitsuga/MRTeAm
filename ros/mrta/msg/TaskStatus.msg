@@ -11,3 +11,4 @@ uint8 SUCCESS				= 5 # Task successfully executed
 uint8 FAILURE				= 6 # Task failed
 uint8 ALL_TASKS_COMPLETE 	= 7 # All tasks have been completed
 uint8 AGENDA_CLEARED        = 8 # This robot's agenda has been cleared
+uint8 ABANDONED             = 9 # Gave up on moving toward this task

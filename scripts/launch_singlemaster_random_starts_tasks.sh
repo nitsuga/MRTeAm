@@ -16,7 +16,7 @@ MAP_NAME=strand-restricted
 MAP_IMAGE=map-strand-first-floor-restricted-5cm.png
 MAP_SCALE=6.65
 ROBOT_BUFFER=15
-TASK_BUFFER=10
+TASK_BUFFER=20
 START_CONFIG=random
 
 CLASSIFIER=strand-restricted/smote-enn/clf_execution_phase_time_random_forest
@@ -27,12 +27,12 @@ RUN_COUNT=1
 for run in `seq 0 $((${RUN_COUNT} - 1))`
 do
     # Generate a set of random tasks
-    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE} --multirobot)"
+    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE} --multirobot --constrained)"
 
     # Generate a set of random start poses
     ${SCRIPT_DIR}/random_poses.py starts `rospack find mrta`/config/maps/${MAP_IMAGE} --buffer ${ROBOT_BUFFER} --scale ${MAP_SCALE}
 
-    for mechanism in PSI # PSI SSI # OSI
+    for mechanism in SSI # PSI SSI # OSI
     do
 	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -rs -cl ${CLASSIFIER} ${mechanism} ${MAP_NAME} ${START_CONFIG} ${SCENARIO_ID}
     done # end "mechanism"

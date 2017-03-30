@@ -336,6 +336,7 @@ class RobotController:
                 ('goal_chosen', 'choose_task', 'send_goal'),
                 ('no_reachable_tasks', 'choose_task', 'idle'),
                 ('goal_sent', 'send_goal', 'moving'),
+                ('partner_waiting', 'moving', 'choose_task'),
 
                 # Goal success/failure
                 ('goal_reached', '*', 'arrived'),
@@ -1121,7 +1122,7 @@ class RobotController:
         debug_msg.key = "status-{0}".format(self.robot_name)
         debug_msg.value = str(msg_diff)
         self.debug_pub.publish(debug_msg)
-        pp.pprint(debug_msg)
+        # pp.pprint(debug_msg)
 
         # Update our little databse of robot statuses
         self.robot_status[status_msg.robot_id] = status_msg.status
@@ -1134,17 +1135,36 @@ class RobotController:
                                                                                 status_msg.task_id))
 
         # Update the number of robots that have arrived at a task location
-        if status_msg.status == mrta.msg.TaskStatus.ARRIVED:
+        elif status_msg.status == mrta.msg.TaskStatus.ARRIVED:
             self.arrived_count[status_msg.task_id] += 1
             self.moving_count[status_msg.task_id] -= 1
             rospy.loginfo("({0}): {1} robots have arrived at task {2}".format(self.robot_name,
                                                                               self.arrived_count[status_msg.task_id],
                                                                               status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.PAUSE:
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): robot {1} has paused moving towards task {2}".format(self.robot_name,
+                                                                                       status_msg.robot_id,
+                                                                                       status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.RESUME:
+            self.moving_count[status_msg.task_id] += 1
+            rospy.loginfo("({0}): robot {1} has resumed moving towards task {2}".format(self.robot_name,
+                                                                                        status_msg.robot_id,
+                                                                                        status_msg.task_id))
+
         elif status_msg.status == mrta.msg.TaskStatus.SUCCESS:
             self.task_complete[status_msg.task_id] = True
             rospy.loginfo("({0}): {1} has completed task {2}".format(self.robot_name,
                                                                      status_msg.robot_id,
                                                                      status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.ABANDONED:
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): robot {1} has abandoned moving towards task {2}".format(self.robot_name,
+                                                                                          status_msg.robot_id,
+                                                                                          status_msg.task_id))
 
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
@@ -1220,7 +1240,11 @@ class RobotController:
 
         rospy.loginfo("({0}): enroute_tasks: {1}".format(self.robot_name, pp.pformat(enroute_tasks)))
 
-        # Any tasks are waiting for more robots become the new list of candidates
+        # # Prioritize tasks that have other robots moving towards them if
+        # # they are present in our 'least constrained' set
+        # lc_and_er = set(candidate_tasks) & set(enroute_tasks)
+        # if lc_and_er:
+        #     candidate_tasks = list(lc_and_er)
         if enroute_tasks:
             candidate_tasks = enroute_tasks
 
@@ -1233,7 +1257,11 @@ class RobotController:
 
         rospy.loginfo("({0}): waiting_tasks: {1}".format(self.robot_name, pp.pformat(waiting_tasks)))
 
-        # Any tasks are waiting for more robots become the new list of candidates
+        # # Prioritize tasks that have other robots moving towards them if
+        # # they are present in our 'least constrained' set
+        # lc_and_waiting = set(candidate_tasks) & set(waiting_tasks)
+        # if lc_and_waiting:
+        #     candidate_tasks = list(lc_and_waiting)
         if waiting_tasks:
             candidate_tasks = waiting_tasks
 
@@ -1270,6 +1298,8 @@ class RobotController:
             else:
                 rospy.loginfo("({0}) event: no_tasks".format(self.robot_name))
                 self.fsm.no_tasks()
+        else:
+            rospy.loginfo("({0}) Task {1} chosen".format(self.robot_name, self.current_task.task_id))
 
         # If the minimum cost (closest task) is sys.maxint, then
         # we don't have any valid paths
@@ -1372,12 +1402,7 @@ class RobotController:
                 self.agenda = [t for t in self.agenda if t.completed]
 
                 # Send a message to signal that we are clearing our agenda of incomplete tasks
-                agenda_cleared_msg = mrta.msg.TaskStatus()
-                agenda_cleared_msg.robot_id = self.robot_name
-                agenda_cleared_msg.task_id = '-1'
-                agenda_cleared_msg.status = mrta.msg.TaskStatus.AGENDA_CLEARED
-                stamp(agenda_cleared_msg)
-                self.task_status_pub.publish(agenda_cleared_msg)
+                self.publish_task_status('-1', mrta.msg.TaskStatus.AGENDA_CLEARED)
 
         elif event_msg.event == mrta.msg.ExperimentEvent.BEGIN_EXECUTION:
             rospy.loginfo("({0}) BEGIN_EXECUTION: ok_to_execute==True".format(self.robot_name))
@@ -1424,12 +1449,7 @@ class RobotController:
         goal_task = self.current_task
 
         # Send a message to signal that we are moving toward the task
-        begin_task_msg = mrta.msg.TaskStatus()
-        begin_task_msg.robot_id = self.robot_name
-        begin_task_msg.task_id = goal_task.task_id
-        begin_task_msg.status = mrta.msg.TaskStatus.MOVING
-        stamp(begin_task_msg)
-        self.task_status_pub.publish(begin_task_msg)
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.MOVING)
 
         # Construct the goal message to send to the move_base service
         goal_msg = move_base_msgs.msg.MoveBaseGoal()
@@ -1447,6 +1467,14 @@ class RobotController:
 
         self.fsm.goal_sent()
 
+    def publish_task_status(self, task_id, task_status):
+        status_msg = mrta.msg.TaskStatus()
+        status_msg.robot_id = self.robot_name
+        status_msg.task_id = task_id
+        status_msg.status = task_status
+        stamp(status_msg)
+        self.task_status_pub.publish(status_msg)
+
     def collision_pause(self, e):
         rospy.loginfo("({0}) state: collision_pause".format(self.robot_name))
 
@@ -1454,12 +1482,7 @@ class RobotController:
         self.aclient.cancel_goal()
 
         # Mark a pause in this task's execution
-        pause_task_msg = mrta.msg.TaskStatus()
-        pause_task_msg.robot_id = self.robot_name
-        pause_task_msg.task_id = self.current_task.task_id
-        pause_task_msg.status = mrta.msg.TaskStatus.PAUSE
-        stamp(pause_task_msg)
-        self.task_status_pub.publish(pause_task_msg)
+        self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.PAUSE)
 
         while self.in_collision:
             self.rate.sleep()
@@ -1478,12 +1501,7 @@ class RobotController:
         rospy.loginfo("({0}) Resuming...".format(self.robot_name))
 
         # Mark a resumption of this task's execution
-        resume_task_msg = mrta.msg.TaskStatus()
-        resume_task_msg.robot_id = self.robot_name
-        resume_task_msg.task_id = self.current_task.task_id
-        resume_task_msg.status = mrta.msg.TaskStatus.RESUME
-        stamp(resume_task_msg)
-        self.task_status_pub.publish(resume_task_msg)
+        self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.RESUME)
 
         self.fsm.collision_resolved()
 
@@ -1509,6 +1527,20 @@ class RobotController:
             if self.in_collision:
                 self.fsm.collision_detected()
                 return
+
+            # For each (unfinished) task in our agenda, if another robot
+            # is waiting at the task location then return true
+            for task in self.agenda:
+                if self.arrived_count[task.task_id] > 0 \
+                        and not task.completed \
+                        and not self.arrived_count[self.current_task.task_id] > 0:
+                    rospy.loginfo("({0}) Abandoning task {1} to meet a teammate at task {2}".format(self.robot_name,
+                                                                                                    self.current_task.task_id,
+                                                                                                    task.task_id))
+
+                    self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.ABANDONED)
+                    self.fsm.partner_waiting()
+                    return
 
             # rospy.loginfo("({0}) aclient state==ACTIVE and NOT self.in_collision.".format(self.robot_name))
 
@@ -1542,12 +1574,7 @@ class RobotController:
         # Send a message to mark the beginning of this task's 'execution'
         rospy.loginfo("({0}) publishing 'ARRIVED' to /tasks/status".format(self.robot_name))
 
-        end_task_msg = mrta.msg.TaskStatus()
-        end_task_msg.robot_id = self.robot_name
-        end_task_msg.task_id = goal_task.task_id
-        end_task_msg.status = mrta.msg.TaskStatus.ARRIVED
-        stamp(end_task_msg)
-        self.task_status_pub.publish(end_task_msg)
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.ARRIVED)
 
         # Wait for the task's required number of robots to arrive
         rospy.loginfo("({0}): waiting for {1} robots to arrive at task {2}".format(self.robot_name,
@@ -1587,14 +1614,9 @@ class RobotController:
         # Send a message to mark the beginning of this task's 'execution'
         rospy.loginfo("({0}) publishing 'BEGIN' to /tasks/status".format(self.robot_name))
 
-        end_task_msg = mrta.msg.TaskStatus()
-        end_task_msg.robot_id = self.robot_name
-        end_task_msg.task_id = goal_task.task_id
-        end_task_msg.status = mrta.msg.TaskStatus.BEGIN
-        stamp(end_task_msg)
-        self.task_status_pub.publish(end_task_msg)
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.BEGIN)
 
-        # Possibly wait for other robots to arrive
+        # Possibly wait for other robots to arrive?
 
         # 'Execute' the task: sleep for the required time
         time.sleep(goal_task.duration)
@@ -1609,15 +1631,10 @@ class RobotController:
 
         goal_task = self.current_task
 
+        # Send a message to mark the end of this task's execution
         rospy.loginfo("({0}) publishing 'SUCCESS' to /tasks/status".format(self.robot_name))
 
-        # Send a message to mark the end of this task's execution
-        end_task_msg = mrta.msg.TaskStatus()
-        end_task_msg.robot_id = self.robot_name
-        end_task_msg.task_id = goal_task.task_id
-        end_task_msg.status = mrta.msg.TaskStatus.SUCCESS
-        stamp(end_task_msg)
-        self.task_status_pub.publish(end_task_msg)
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.SUCCESS)
 
         goal_task.completed = True
         self.current_task = None
@@ -1634,12 +1651,7 @@ class RobotController:
         rospy.loginfo("({0}) publishing 'FAILURE' to /tasks/status".format(self.robot_name))
 
         # Send a message to mark the end of this task's execution
-        end_task_msg = mrta.msg.TaskStatus()
-        end_task_msg.robot_id = self.robot_name
-        end_task_msg.task_id = goal_task.task_id
-        end_task_msg.status = mrta.msg.TaskStatus.FAILURE
-        stamp(end_task_msg)
-        self.task_status_pub.publish(end_task_msg)
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.FAILURE)
 
         goal_task.completed = False
         self.current_task = None
