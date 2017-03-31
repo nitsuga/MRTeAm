@@ -15,9 +15,9 @@ global_costmap:
   static_map: true
   rolling_window: false
 
-  footprint_padding: 0.02
+  footprint_padding: 0.01
 
-  cost_scaling_factor: 2.5
+  cost_scaling_factor: 2.0
   inflation_radius: 2.5
 
   obstacle_layer:

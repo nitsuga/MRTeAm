@@ -11,10 +11,12 @@ Panels:
         - /robots1
         - /robots1/robot_11
         - /robots1/robot_11/Global1
-        - /robots1/robot_11/Local1
+        - /robots1/robot_11/Local1/DWA plan1
+        - /robots1/robot_21/Local1
+        - /robots1/robot_21/Local1/DWA plan1
         - /robots1/robot_21/Local1/DWA Trajectory Cloud1
         - /robots1/robot_31/Local1
-        - /robots1/robot_31/Local1/DWA Trajectory Cloud1
+        - /robots1/robot_31/Local1/DWA plan1
       Splitter Ratio: 0.688953
     Tree Height: 934
   - Class: rviz/Selection
@@ -35,7 +37,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: DWA Trajectory Cloud
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -163,7 +165,7 @@ Visualization Manager:
                   Head Diameter: 0.3
                   Head Length: 0.2
                   Length: 0.3
-                  Line Style: Billboards
+                  Line Style: Lines
                   Line Width: 0.03
                   Name: DWA plan
                   Offset:
@@ -367,7 +369,7 @@ Visualization Manager:
                   Head Diameter: 0.3
                   Head Length: 0.2
                   Length: 0.3
-                  Line Style: Billboards
+                  Line Style: Lines
                   Line Width: 0.03
                   Name: DWA plan
                   Offset:
@@ -571,7 +573,7 @@ Visualization Manager:
                   Head Diameter: 0.3
                   Head Length: 0.2
                   Length: 0.3
-                  Line Style: Billboards
+                  Line Style: Lines
                   Line Width: 0.03
                   Name: DWA plan
                   Offset:
@@ -731,11 +733,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 35.5507
+      Scale: 32.5962
       Target Frame: map
       Value: TopDownOrtho (rviz)
-      X: 11.2356
-      Y: 37.9813
+      X: 11.3321
+      Y: 37.3888
     Saved: ~
 Window Geometry:
   Displays:

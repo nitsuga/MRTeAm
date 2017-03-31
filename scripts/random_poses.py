@@ -122,7 +122,8 @@ def generate_and_write_tasks(map_image_file,
                              buffer_size=3,
                              scale=1.0,
                              multirobot=False,
-                             constrained=False):
+                             constrained=False,
+                             dynamic_rate=0):
 
     # print "map = {0}, num = {1}, size = {2}, output = {3}".format(map_image_file,
     #                                                               num_poses,
@@ -157,8 +158,15 @@ def generate_and_write_tasks(map_image_file,
 
     random_poses = get_random_poses(map_image, num_poses, buffer_size, occupy=True)
 
+    dynamic = False
+    if dynamic_rate > 0:
+        dynamic = True
+        # 'lambd' is the lambda parameter of a poisson distribution
+        lambd = 1.0 / dynamic_rate
+
     task_list = []
     task_id = None
+    arrival_time = 0
     for i, pose in enumerate(random_poses):
         # print "pose: [{0}, {1}, {2}, {3}]".format(*pose)
 
@@ -184,7 +192,11 @@ def generate_and_write_tasks(map_image_file,
                                         x=float(pose[0]) * scale,   # x
                                         y=float(pose[1]) * scale,   # y
                                         _num_robots=num_robots,
-                                        _depends=depends)
+                                        _depends=depends,
+                                        _arrival_time=arrival_time)
+
+        if dynamic:
+            arrival_time += random.expovariate(lambd)
 
         task_list.append(new_task)
         task_id += 1
@@ -305,6 +317,12 @@ if __name__ == '__main__':
                         help='For each task, randomly choose a previously-defined task for this task to depend on.',
                         action="store_true")
 
+    parser.add_argument('-d', '--dynamic_rate',
+                        help='Rate at which dynamic tasks should appear, in seconds. E.g., \'30\' means a task ' +
+                        'should appear, on average, every 30 seconds. A value of 0 means all tasks are static.',
+                        type=float,
+                        default=0)
+
     args = parser.parse_args()
 
     map_image_file = args.map_image_file
@@ -315,6 +333,7 @@ if __name__ == '__main__':
     poses = args.poses
     multirobot = args.multirobot
     constrained = args.constrained
+    dynamic_rate = args.dynamic_rate
 
     # print("num_poses: {0}".format(num_poses))
     # print("poses: {0}".format(poses))
@@ -322,7 +341,7 @@ if __name__ == '__main__':
     if args.pose_type == 'starts':
         generate_and_write_random_starts(map_image_file, num_poses, buffer_size, scale, output_file)
     elif args.pose_type == 'tasks':
-        generate_and_write_tasks(map_image_file, num_poses, buffer_size, scale, multirobot, constrained)
+        generate_and_write_tasks(map_image_file, num_poses, buffer_size, scale, multirobot, constrained, dynamic_rate)
     elif args.pose_type == 'manual-starts':
         pose_list = []
         for i in range(num_poses):

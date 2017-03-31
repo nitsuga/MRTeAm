@@ -1487,6 +1487,8 @@ class Auctioneer:
 
             loaded_tasks = task_db[self.scenario_id]
 
+            rospy.loginfo("{0}: {1}".format(self.scenario_id, pp.pformat(loaded_tasks)))
+
             for loaded_task in loaded_tasks:
 
                 rospy.loginfo("auctioneer: task '{0}' depends on {1}".format(loaded_task.task_id, loaded_task.depends))
@@ -2183,7 +2185,13 @@ class Auctioneer:
 
         elif status == mrta.msg.TaskStatus.SUCCESS:
             rospy.loginfo("{0} has completed task {1}".format(robot_id, task_id))
-            self.tasks_by_id[task_id].completed = True
+
+            completed_task = self.tasks_by_id[task_id]
+            completed_task.completed = True
+
+            # Remove/republish task marker to indicate completion (colored white?).
+            self.remove_task_marker(completed_task.task_id)
+            self.publish_task_marker(completed_task, (1.0, 1.0, 1.0))
 
         elif status == mrta.msg.TaskStatus.AGENDA_CLEARED:
             robot_id = status_msg.robot_id

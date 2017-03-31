@@ -52,8 +52,8 @@ class Task(object):
 
 class SensorSweepTask(Task):
 
-    def __init__(self, _task_id='1', x=0.0, y=0.0, z=0.0, _num_robots=1, _duration=0, _depends=[]):
-        super(SensorSweepTask, self).__init__(_task_id, 'SENSOR_SWEEP', _num_robots, _duration, _depends)
+    def __init__(self, _task_id='1', x=0.0, y=0.0, z=0.0, _num_robots=1, _duration=0, _depends=[], _arrival_time=0):
+        super(SensorSweepTask, self).__init__(_task_id, 'SENSOR_SWEEP', _num_robots, _duration, _depends, _arrival_time)
         self.location = Point(x, y, z)
 
     def __repr__(self):

@@ -1528,8 +1528,8 @@ class RobotController:
                 self.fsm.collision_detected()
                 return
 
-            # For each (unfinished) task in our agenda, if another robot
-            # is waiting at the task location then return true
+            # For each (unfinished) task in our agenda, if another robot is waiting at the task location
+            # then publish an 'abandoned' status, fire a 'partner waiting' event and return.
             for task in self.agenda:
                 if self.arrived_count[task.task_id] > 0 \
                         and not task.completed \
