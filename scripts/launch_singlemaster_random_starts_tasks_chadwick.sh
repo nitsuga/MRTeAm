@@ -3,7 +3,7 @@
 #$ -j y
 #$ -pe smp 16
 #$ -l exclusive
-#$ -t 1-40
+#$ -t 1-85
 #$ -V
 #$ -M eric.schneider@liverpool.ac.uk
 #$ -m abe
@@ -11,7 +11,7 @@
 source /home/esch/.bashrc
 export ROS_OS_OVERRIDE=rhel
 
-RUN_COUNT=25
+RUN_COUNT=12
 SCRIPT_DIR=~/GIT/mrta/scripts
 
 NUM_TASKS=20
@@ -33,7 +33,7 @@ START_CONFIG=random
 for run in `seq 1 ${RUN_COUNT}`
 do
     # Generate a set of random tasks
-    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE})"
+    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE} --dynamic_rate 45)"
 
     # Generate a set of random start poses
     ${SCRIPT_DIR}/random_poses.py starts `rospack find mrta`/config/maps/${MAP_IMAGE} --buffer ${ROBOT_BUFFER} --scale ${MAP_SCALE}
