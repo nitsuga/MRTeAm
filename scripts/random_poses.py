@@ -143,10 +143,11 @@ def generate_and_write_tasks(map_image_file,
         unique_id = generate_unique_id()
         scenario_in_db = task_db.exists(scenario_id)
 
-    scenario_id = '{0}-{1}-SA-{2}-{3}task'.format('MR' if multirobot else 'SR',
-                                                  'CT' if constrained else 'IT',
-                                                  unique_id,
-                                                  num_poses)
+    scenario_id = '{0}-{1}-{2}-{3}-{4}task'.format('MR' if multirobot else 'SR',
+                                                   'CT' if constrained else 'IT',
+                                                   'DA' if dynamic_rate > 0 else 'SA',
+                                                   unique_id,
+                                                   num_poses)
 
     print scenario_id
 

@@ -27,14 +27,14 @@ RUN_COUNT=1
 for run in `seq 0 $((${RUN_COUNT} - 1))`
 do
     # Generate a set of random tasks
-    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE} --multirobot)" # --constrained --dynamic_rate 30)"
+    SCENARIO_ID="$(${SCRIPT_DIR}/random_poses.py tasks `rospack find mrta`/config/maps/${MAP_IMAGE} --num_poses ${NUM_TASKS} --buffer ${TASK_BUFFER} --scale ${MAP_SCALE})" # --multirobot)" # --constrained --dynamic_rate 30)"
 
 #    SCENARIO_ID=MR-IT-SA-6QPYML88-20task
 
     # Generate a set of random start poses
     ${SCRIPT_DIR}/random_poses.py starts `rospack find mrta`/config/maps/${MAP_IMAGE} --buffer ${ROBOT_BUFFER} --scale ${MAP_SCALE}
 
-    for mechanism in OSI # PSI SSI # OSI
+    for mechanism in SSI # PSI SSI # OSI
     do
 	    ${SCRIPT_DIR}/launch_experiment_singlemaster.py -rs -cl ${CLASSIFIER} ${mechanism} ${MAP_NAME} ${START_CONFIG} ${SCENARIO_ID}
     done # end "mechanism"

@@ -18,7 +18,7 @@
     <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
     <!--  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen"> -->
     <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen">
-        <rosparam param="robot_hosts">['tyner', 'tb12', 'tb13', 'tb14']</rosparam>
+        <rosparam param="robot_hosts">['interact-ws01', 'tb04', 'tb05']</rosparam>
         <param name="name" value="auctioneer_master"/>
         <param name="reallocate" value="$(arg reallocate)"/>
         <param name="dynamic_mechanism" value="True"/>

@@ -579,7 +579,8 @@ def parse_stats(bag_paths, output):
             total_distance += robot.distance
             print("{0} distance: {1}".format(r_name, robot.distance))
             total_collisions += robot.collisions
-            total_distance_to_assigned_medians += robot.distance_to_median
+            if robot.distance_to_median:
+                total_distance_to_assigned_medians += robot.distance_to_median
 
         if inconsistent_tasks:
             print("A robot either did not complete tasks it was awarded or vice versa. Skipping this run!")
