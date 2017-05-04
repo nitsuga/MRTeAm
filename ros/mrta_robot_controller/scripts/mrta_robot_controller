@@ -1206,7 +1206,7 @@ class RobotController:
         # unconstrained_task_ids = dep_ordered_tasks[0]
 
         # Our next task should have the least amount of unmet dependencies. The first element of the list constructed
-        # above is a list of tasks with unmet dependencies. The next element is a list of tasks with one dependency,
+        # above is a list of tasks with no unmet dependencies. The next element is a list of tasks with one dependency,
         # and so on.
         least_constrained_task_ids = []
 
@@ -1227,6 +1227,19 @@ class RobotController:
                 least_constrained.append(task)
 
         candidate_tasks = least_constrained
+
+        # Prioritize candidate tasks that OTHER tasks depend on
+        tasks_with_dependencies = []
+        for c_task in candidate_tasks:
+            for c_other in self.agenda:
+                if c_other == c_task:
+                    continue
+
+                if c_task.task_id in c_other.depends and c_task not in tasks_with_dependencies:
+                    tasks_with_dependencies.append(c_task)
+
+        if tasks_with_dependencies:
+            candidate_tasks = tasks_with_dependencies
 
         # Prioritize candidate tasks that have robot(s) moving toward them
         enroute_tasks = []
@@ -1530,17 +1543,18 @@ class RobotController:
 
             # For each (unfinished) task in our agenda, if another robot is waiting at the task location
             # then publish an 'abandoned' status, fire a 'partner waiting' event and return.
-            for task in self.agenda:
-                if self.arrived_count[task.task_id] > 0 \
-                        and not task.completed \
-                        and not self.arrived_count[self.current_task.task_id] > 0:
-                    rospy.loginfo("({0}) Abandoning task {1} to meet a teammate at task {2}".format(self.robot_name,
-                                                                                                    self.current_task.task_id,
-                                                                                                    task.task_id))
+            if self.current_task.num_robots > 1:
+                for task in self.agenda:
+                    if self.arrived_count[task.task_id] > 0 \
+                            and not task.completed \
+                            and not self.arrived_count[self.current_task.task_id] > 0:
+                        rospy.loginfo("({0}) Abandoning task {1} to meet a teammate at task {2}".format(self.robot_name,
+                                                                                                        self.current_task.task_id,
+                                                                                                        task.task_id))
 
-                    self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.ABANDONED)
-                    self.fsm.partner_waiting()
-                    return
+                        self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.ABANDONED)
+                        self.fsm.partner_waiting()
+                        return
 
             # rospy.loginfo("({0}) aclient state==ACTIVE and NOT self.in_collision.".format(self.robot_name))
 
@@ -1707,6 +1721,8 @@ class RobotController:
 
 
 if __name__ == '__main__':
+
+    sys.setrecursionlimit(10000)
 
     try:
         argv = rospy.myargv(argv=sys.argv[1:])
