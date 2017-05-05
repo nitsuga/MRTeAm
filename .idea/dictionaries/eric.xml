@@ -11,6 +11,7 @@
       <w>costmaps</w>
       <w>declareok</w>
       <w>defaultdict</w>
+      <w>deps</w>
       <w>enroute</w>
       <w>exps</w>
       <w>filedata</w>
@@ -50,6 +51,7 @@
       <w>stageros</w>
       <w>timeline</w>
       <w>timelines</w>
+      <w>toposort</w>
       <w>turtlebot</w>
       <w>undersample</w>
       <w>writeonce</w>

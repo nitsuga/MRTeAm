@@ -1149,7 +1149,7 @@ class RobotController:
                                                                                        status_msg.task_id))
 
         elif status_msg.status == mrta.msg.TaskStatus.RESUME:
-            self.moving_count[status_msg.task_id] += 1
+            # self.moving_count[status_msg.task_id] += 1
             rospy.loginfo("({0}): robot {1} has resumed moving towards task {2}".format(self.robot_name,
                                                                                         status_msg.robot_id,
                                                                                         status_msg.task_id))
@@ -1159,6 +1159,12 @@ class RobotController:
             rospy.loginfo("({0}): {1} has completed task {2}".format(self.robot_name,
                                                                      status_msg.robot_id,
                                                                      status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.FAILURE:
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): {1} has failed to complete task {2}".format(self.robot_name,
+                                                                              status_msg.robot_id,
+                                                                              status_msg.task_id))
 
         elif status_msg.status == mrta.msg.TaskStatus.ABANDONED:
             self.moving_count[status_msg.task_id] -= 1
@@ -1228,9 +1234,13 @@ class RobotController:
 
         candidate_tasks = least_constrained
 
-        # Prioritize candidate tasks that OTHER tasks depend on
+        # Prioritize single-robot candidate tasks that OTHER tasks depend on
         tasks_with_dependencies = []
         for c_task in candidate_tasks:
+
+            if c_task.num_robots > 1:
+                continue
+
             for c_other in self.agenda:
                 if c_other == c_task:
                     continue
