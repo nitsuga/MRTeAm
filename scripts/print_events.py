@@ -25,7 +25,7 @@ preferred_width = 80
 
 
 def usage(script):
-    print("Usage: {0} <bag_file> <'experiment'|'tasks'|'bids'|'awards'|'position'>".format(script))
+    print("Usage: {0} <bag_file> <'experiment'|'tasks'|'bids'|'awards'|'position'|'debug'>".format(script))
 
 
 def main(argv):

@@ -1478,7 +1478,7 @@ class Auctioneer:
     def load_tasks_from_db(self):
         rospy.loginfo("Loading tasks from {0}...".format(TASKS_DB_FILENAME))
 
-        if not self.scenario_id:
+        if not self.scenario_id or self.scenario_id.lower == 'none' :
             rospy.logerror("No scenario_id given!")
             return
 

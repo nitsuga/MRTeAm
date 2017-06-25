@@ -1,0 +1,6 @@
+image: central_london_roads_inverse_2x.png
+resolution: 2.0
+origin: [0.0, 0.0, 0.0]
+occupied_thresh: 0.53
+free_thresh: 0.1
+negate: 0

@@ -4,7 +4,7 @@
   <arg name="nogui_flag" default="" />
 
   <!-- Map server -->
-  <!--<node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file) 0.01" respawn="false" />-->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find mrta)/config/maps/$(arg map_file)" respawn="false" />
 
   <!-- Stage -->
   <node pkg="stage_ros" type="stageros" name="stageros" args="$(arg nogui_flag) $(find mrta)/config/stage/$(arg world_file)" required="true" respawn="false" >
