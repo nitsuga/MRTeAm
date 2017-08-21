@@ -39,7 +39,10 @@ robots = [{'name': 'robot_1',
           {'name': 'robot_3',
            'port': '11314'}]
 
-maps = {'brooklyn': 'brooklyn_lab.png',
+maps = {'brooklyn': {'image': 'brooklyn_lab.png',
+                     'yaml': 'brooklyn_arena.yaml',
+                     'robot_buffer': 70,
+                     'scale': 1.0},
         'smartlab': {'image': 'smartlab_ugv_arena_v2.png',
                      'yaml': 'smartlab_ugv_arena.yaml',
                      'robot_buffer': 70,
