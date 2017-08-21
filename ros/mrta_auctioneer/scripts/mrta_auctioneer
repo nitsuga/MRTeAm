@@ -1177,9 +1177,9 @@ class Auctioneer:
         rospy.loginfo("self.reallocate == {0}".format(self.reallocate))
 
         # Start up a planner proxy
-        dummy_robot_name = rospy.get_param('~dummy_robot_name', "robot_0")
-        rospy.loginfo("Auctioneer: Starting PlannerProxy")
-        self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
+        # dummy_robot_name = rospy.get_param('~dummy_robot_name', "robot_0")
+        # rospy.loginfo("Auctioneer: Starting PlannerProxy")
+        # self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
 
         # Scripted tasks that are not necessarily 'live' at the start of the experiment
         self.scripted_tasks = []
@@ -1217,25 +1217,25 @@ class Auctioneer:
 
         self.classifier = None
         self.feature_names = None
-        try:
-            clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
-            clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
-            clf_features_filename = '{0}.features'.format(clf_base_filename)
-
-            classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
-            features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
-
-            with open(classifier_path, 'rb') as classifier_file:
-                self.classifier = pickle.load(classifier_file)
-
-            self.feature_names = []
-            with open(features_path, 'rb') as features_file:
-                for line in features_file:
-                    self.feature_names.append(line.rstrip())
-        except:
-            rospy.logerr("Error opening classifier/features".format(self.task_file))
-            e_type, e_value, e_traceback = sys.exc_info()
-            rospy.logerr("{0}: {1}".format(e_type, e_value))
+        # try:
+        #     clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
+        #     clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
+        #     clf_features_filename = '{0}.features'.format(clf_base_filename)
+        #
+        #     classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
+        #     features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
+        #
+        #     with open(classifier_path, 'rb') as classifier_file:
+        #         self.classifier = pickle.load(classifier_file)
+        #
+        #     self.feature_names = []
+        #     with open(features_path, 'rb') as features_file:
+        #         for line in features_file:
+        #             self.feature_names.append(line.rstrip())
+        # except:
+        #     rospy.logerr("Error opening classifier/features".format(self.task_file))
+        #     e_type, e_value, e_traceback = sys.exc_info()
+        #     rospy.logerr("{0}: {1}".format(e_type, e_value))
 
         # Set up state machine.
         # See mrta/docs/auctioneer-fsm.png
@@ -2026,7 +2026,7 @@ class Auctioneer:
             else:
                 # Call it anyway to record information about medians and distance. Ignore the result
                 # (i.e., don't assign its return value to the variable 'mechanism')
-                self.select_mechanism_dynamic(unallocated, mechanism)
+                # self.select_mechanism_dynamic(unallocated, mechanism)
                 rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
 
             # Send a message to mark the end of the mechanism-choosing phase of
