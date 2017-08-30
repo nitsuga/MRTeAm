@@ -32,18 +32,19 @@ pp = pprint.PrettyPrinter(indent=4)
 TASKS_DB_FILENAME = 'tasks.db'
 
 # smartlab arena
-# IMG_WIDTH, IMG_HEIGHT = 800, 600
+IMG_WIDTH, IMG_HEIGHT = 800, 600
 
 # strand map
 # IMG_WIDTH, IMG_HEIGHT = 376, 868
-IMG_WIDTH, IMG_HEIGHT = 1880, 4338
+# IMG_WIDTH, IMG_HEIGHT = 1880, 4338
 
 # Every pixel of our '5cm' map represents 6.65cm. To convert from ROS coordinates
 # to pixels we need the inverse of that
 # SCALING_FACTOR = 0.15037594
+SCALING_FACTOR = 1
 
 # The inverse of 1.33
-SCALING_FACTOR = 0.751879699
+# SCALING_FACTOR = 0.751879699
 
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
@@ -63,10 +64,11 @@ ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 LAUNCH_PKG = 'mrta'
 LAUNCHFILE = 'stage_dummy_robot.launch'
 DUMMY_ROBOT_NAME = 'robot_0'
-# MAP_FILE = 'smartlab_ugv_arena_v2.png'
-# WORLD_FILE = 'smartlab_ugv_arena_dummy_robot.world'
-MAP_FILE = 'map-strand-first-floor-restricted-5cm.yaml'
-WORLD_FILE = 'strand_restricted_dummy_robot.world'
+MAP_IMAGE = 'smartlab_ugv_arena_v2.png'
+MAP_FILE = 'smartlab_ugv_arena.yaml'
+WORLD_FILE = 'smartlab_ugv_arena_dummy_robot.world'
+# MAP_FILE = 'map-strand-first-floor-restricted-5cm.yaml'
+# WORLD_FILE = 'strand_restricted_dummy_robot.world'
 #NOGUI_FLAG = ''
 NOGUI_FLAG = '-g'
 
@@ -155,6 +157,83 @@ def read_point_config(task_db, scenario_id):
         target_point_configs[scenario_id][task.task_id] = (task.location.x, task.location.y)
 
 
+def draw_arena(ctx):
+    """ Given a Cairo graphics context (ctx), draw the walls of the arena """
+    # Arena line properties
+    ctx.set_line_width((3. / IMG_WIDTH))
+    ctx.set_source_rgb(0, 0, 0)
+
+    # Draw the outside of the arena
+    ctx.rectangle(0, 0, 1, 1)
+    ctx.stroke()
+
+    ctx.set_source_rgb(0, 0, 0)
+
+    # Set line end caps to square while drawing the walls
+    default_line_cap = ctx.get_line_cap()
+    ctx.set_line_cap(cairo.LINE_CAP_SQUARE)
+
+    # Draw the walls
+    ctx.move_to(200. / IMG_WIDTH, 500. / IMG_HEIGHT)  # w5
+    ctx.line_to(200. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(300. / IMG_WIDTH, 500. / IMG_HEIGHT)  # w6
+    ctx.line_to(300. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(500. / IMG_WIDTH, 600. / IMG_HEIGHT)  # w7
+    ctx.line_to(500. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(600. / IMG_WIDTH, 500. / IMG_HEIGHT)  # w7
+    ctx.line_to(600. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(0, 400. / IMG_HEIGHT)  # w8
+    ctx.line_to(200. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(300. / IMG_WIDTH, 400. / IMG_HEIGHT)  # w9
+    ctx.line_to(500. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(600. / IMG_WIDTH, 400. / IMG_HEIGHT)  # w10
+    ctx.line_to(800. / IMG_WIDTH, 400. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(200. / IMG_WIDTH, 300. / IMG_HEIGHT)  # w11
+    ctx.line_to(200. / IMG_WIDTH, 100. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(300. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w12
+    ctx.line_to(300. / IMG_WIDTH, 100. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(0, 200. / IMG_HEIGHT)  # w13
+    ctx.line_to(200. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(300. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w14
+    ctx.line_to(500. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(600. / IMG_WIDTH, 300. / IMG_HEIGHT)  # w15
+    ctx.line_to(600. / IMG_WIDTH, 100. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(500. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w16
+    ctx.line_to(500. / IMG_WIDTH, 0)
+    ctx.stroke()
+
+    ctx.move_to(600. / IMG_WIDTH, 200. / IMG_HEIGHT)  # w11
+    ctx.line_to(800. / IMG_WIDTH, 200. / IMG_HEIGHT)
+    ctx.stroke()
+
+    # Restore the default line cap style
+    ctx.set_line_cap(default_line_cap)
+
+
 def draw_target_points(ctx, scenario_id, run_msgs):
     global target_point_configs
 
@@ -183,6 +262,7 @@ def draw_target_points(ctx, scenario_id, run_msgs):
                 break
 
     print "median task ids: {0}".format(median_task_ids)
+    median_task_ids = ['3','12','14']
 
     target_points = target_point_configs[scenario_id]
 
@@ -273,7 +353,7 @@ def draw_edges(ctx, scenario_id):
         target_pose = planner_proxy._point_to_pose(geometry_msgs.msg.Point(target[0], target[1], 0.0))
 
         # A plan is a list of poses (geometry_msgs.msg.Pose[])
-        # print("source_pose: {0}, target_pose: {1}".format(pp.pformat(source_pose), pp.pformat(target_pose)))
+        print("source_pose: {0}, target_pose: {1}\n".format(pp.pformat(source_pose), pp.pformat(target_pose)))
         plan = planner_proxy._make_nav_plan(source_pose, target_pose)
 
         start_pose = None
@@ -363,7 +443,9 @@ def plot_task_graph(bag_paths, task_dir, map_file):
             read_point_config(task_db, scenario_id)
 
         # Create a Cairo surface and get a handle to its context
+        print("Creating a {}x{} image surface.".format(IMG_WIDTH, IMG_HEIGHT))
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
+
         # print("Opening map file {0}".format(map_file))
         # surface = cairo.ImageSurface.create_from_png(map_file)
 
@@ -379,7 +461,7 @@ def plot_task_graph(bag_paths, task_dir, map_file):
         # ctx.rectangle(0, 0, 1.0, 1.0)
         # ctx.fill()
 
-        # draw_arena(ctx)
+        draw_arena(ctx)
 
         # Draw target points
         target_points = target_point_configs[scenario_id]
@@ -403,17 +485,17 @@ def plot_task_graph(bag_paths, task_dir, map_file):
         plot_filename = 'task_graph__' + bag_basename + '.png'
         plot_filename = os.path.join(traj_dir, plot_filename)
 
-        # print("Writing {0}".format(plot_filename))
-        # surface.write_to_png(plot_filename)
+        print("Writing {0}".format(plot_filename))
+        surface.write_to_png(plot_filename)
 
-        # Crop the full image
-        output_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 1400, 2000)
-        out_ctx = cairo.Context(output_surface)
-
-        out_ctx.set_source_surface(surface, 0, -600)
-        out_ctx.paint()
-
-        output_surface.write_to_png(plot_filename)
+        # # Crop the full image
+        # output_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 1400, 2000)
+        # out_ctx = cairo.Context(output_surface)
+        #
+        # out_ctx.set_source_surface(surface, 0, -600)
+        # out_ctx.paint()
+        #
+        # output_surface.write_to_png(plot_filename)
 
         stop_ros()
 

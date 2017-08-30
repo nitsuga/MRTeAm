@@ -15,7 +15,7 @@ from scipy import stats
 pp = pprint.PrettyPrinter(indent=4)
 
 # Some global constants
-mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'SUM', 'MAX']
+mechanisms = ['RR', 'OSI', 'SSI', 'PSI']#, 'SUM', 'MAX']
 start_configs = ['clustered', 'distributed']
 
 # task_files = ['SR-IT-DA-scenario2.yaml', 'SR-CT-DA-scenario2.yaml',
@@ -39,7 +39,7 @@ class Experiment(object):
         self.task_file = task_file
 
 
-def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False):
+def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False, scaleby=1.0):
     print "Plotting {0}".format(out_filename)
 
     # A dict of <mechanism_name> => <list of values>
@@ -55,13 +55,19 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    plt.title(title)
+    plt.title(title, fontsize=28)
     plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
 
     for i, mechanism in enumerate(mechanisms):
         sample = af[af.MECHANISM == mechanism][attr_name]
+
+        # for j, x in enumerate(sample):
+        #     sample[j] = sample[j] * scaleby
+
+        sample = [x * scaleby for x in sample]
+
         sample_mean = np.mean(sample)
         sample_error = stats.sem(sample)
 
@@ -121,7 +127,7 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    plt.title(title)
+    plt.title(title, fontsize=28)
     plt.ylabel(y_label)
     stat1_means = []
     stat2_means = []
@@ -144,7 +150,6 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
         stat1_errors.append(sample1_error)
 
         sample2 = af[af.MECHANISM == mechanism][attr2_name]
-
         sample2_mean = np.mean(sample2)
         sample2_error = stats.sem(sample2)
 
@@ -173,7 +178,10 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
             bottom=stat1_means)
 
     # Bar labels
-    plt.tick_params(axis='x', which='major', labelsize=18)
+    # plt.tick_params(axis='x', which='major', labelsize=18)
+    plt.tick_params(axis='x', which='major', labelsize=26)
+    plt.tick_params(axis='y', which='major', labelsize=20)
+
     plt.xticks(x_pos, mechanisms)
 
     ymin, ymax = plt.ylim()
@@ -189,13 +197,13 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     plt.close()
 
 
-def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None):
+def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None, scaleby=1.0):
     print "Plotting {0}".format(out_filename)
 
     bar_width = 0.25
     x_start = 0.25
     x_pos = np.arange(x_start, len(mechanisms) + x_start)
-    plt.title(title)
+    plt.title(title, fontsize=28)
     plt.ylabel(y_label)
 
     stat_means = defaultdict(list)
@@ -205,6 +213,9 @@ def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_f
         for j, robot_name in enumerate(robot_names):
             # print "{0}, {1}".format(mechanism, robot_name)
             sample = af[af.MECHANISM == mechanism]['{0}_{1}'.format(robot_name.replace('_', '').upper(), attr_name)]
+
+            sample = [x * scaleby for x in sample]
+
             stat_means[robot_name].append(np.mean(sample))
             stat_errors[robot_name].append(stats.sem(sample))
 
@@ -216,8 +227,14 @@ def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_f
                     stat_means[robot_name], yerr=stat_errors[robot_name],
                     color=[grey_level] * 3, width=bar_width))
 
+
     # Bar labels
-    plt.xticks([x+0.33 for x in x_pos], mechanisms)    
+    # plt.tick_params(axis='x', which='major', labelsize=18)
+    plt.tick_params(axis='x', which='major', labelsize=26)
+    plt.tick_params(axis='y', which='major', labelsize=20)
+
+    # Bar labels
+    plt.xticks([x+0.33 for x in x_pos], mechanisms)
     ymin, ymax = plt.ylim()
 
     # plt.ylim(0, ymax+(ymax*0.2))
@@ -229,6 +246,8 @@ def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_f
     plt.xlim(0, x_pos[-1] + 1)
     plt.legend([bar[0] for bar in bars], robot_names)
 
+    plt.tight_layout()
+
     plt.savefig(out_filename)
     plt.close()
 
@@ -239,7 +258,7 @@ def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None
     bar_width = 0.25
     x_start = 0.25
     x_pos = np.arange(x_start, len(mechanisms) + x_start)
-    plt.title(title)
+    plt.title(title, fontsize=28)
     plt.ylabel(y_label)
 
     stat_means_by_attr = defaultdict(lambda: defaultdict(list))
@@ -419,53 +438,53 @@ def main(argv):
 
             af = aframe[aframe.START_CONFIG == start_config][aframe.TASK_FILE == task_file]
 
-            # task_file = task_file.replace('.txt', '')
+            task_file = task_file.replace('.txt', '')
             task_file = task_file.replace('.yaml', '')
 
             # Total run time stacked: deliberation time + execution time
             # Total run time
-            plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Stacked Run Time, {1}'.format(task_file, start_config)
             plot_filename = 'stacked-runtime-{0}-{1}.pdf'.format(task_file, start_config)
             plot_stacked_stats(af = af,
                                attr1_name='DELIBERATION_TIME',
                                attr2_name='EXECUTION_PHASE_TIME',
                                title=plot_title,
                                y_label='Seconds',
-                               out_filename=plot_filename)#,
-                               #y_limit=300)
+                               out_filename=plot_filename,
+                               y_limit=300)
 
             # Total run time
-            plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Run Time, {1}'.format(task_file, start_config)
             plot_filename = 'run-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_RUN_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)#,
-                              #y_limit=300)
+                              out_filename=plot_filename,
+                              y_limit=300)
 
             # Deliberation time
-            plot_title = 'Deliberation Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Deliberation Time, {1}'.format(task_file, start_config)
             plot_filename = 'deliberation-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='DELIBERATION_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)#,
-                              #y_limit=20)
+                              out_filename=plot_filename)
+#                              y_limit=10)
 
             # Execution time
-            plot_title = 'Execution Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Execution Time, {1}'.format(task_file, start_config)
             plot_filename = 'execution-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='EXECUTION_PHASE_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)#,
-                              #y_limit=300)
+                              out_filename=plot_filename,
+                              y_limit=300)
 
             # Nap time
-            plot_title = 'Nap Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Nap Time, {1}'.format(task_file, start_config)
             plot_filename = 'nap-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='NAP_TIME',
@@ -475,7 +494,7 @@ def main(argv):
 #                               y_limit=450)
 
             # Movement time
-            plot_title = 'Movement Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Movement Time, {1}'.format(task_file, start_config)
             plot_filename = 'movement-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_MOVEMENT_TIME',
@@ -485,7 +504,7 @@ def main(argv):
                               #y_limit=300)
 
             # Waiting time
-            plot_title = 'Waiting Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Waiting Time, {1}'.format(task_file, start_config)
             plot_filename = 'waiting-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_WAITING_TIME',
@@ -495,24 +514,24 @@ def main(argv):
                               #y_limit=160)
 
             # Idle time
-            plot_title = 'Idle Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Idle Time, {1}'.format(task_file, start_config)
             plot_filename = 'idle-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_IDLE_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)#,
-                              #y_limit=150)
+                              out_filename=plot_filename,
+                              y_limit=550)
 
             # Delay time
-            plot_title = 'Overall Delay Time, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Delay Time, {1}'.format(task_file, start_config)
             plot_filename = 'delay-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_DELAY_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)#,
-                              #y_limit=40)
+                              out_filename=plot_filename,
+                              y_limit=100)
 
             # #### Distance Travelled
             # plot_title = 'Overall Distance Travelled, "{0}", {1} start'.format(point_config, start_config)
@@ -524,37 +543,40 @@ def main(argv):
             #                    out_filename=plot_filename )
 
             # Distance Travelled
-            plot_title = 'Total Distance Travelled, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Team Distance, {1}'.format(task_file, start_config)
             plot_filename = 'distance-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_DISTANCE',
                               title=plot_title,
                               y_label='meters',
-                              out_filename=plot_filename)
-                              # y_limit=80)
+                              out_filename=plot_filename,
+                              y_limit=50)
+                              #scaleby=0.01)
 
             # Near Collisions
-            plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Near Collisions, {1}'.format(task_file, start_config)
             plot_filename = 'collisions-{0}-{1}.pdf'.format(task_file, start_config)
             plot_overall_stat(af = af,
                               attr_name='TOTAL_COLLISIONS',
                               title=plot_title,
                               y_label='',
-                              out_filename=plot_filename)#,
-                              #y_limit=6)
+                              out_filename=plot_filename,
+                              y_limit=5)
 
             # Distance travelled per robot
-            plot_title = 'Distance per Robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Distance per Robot, {1}'.format(task_file, start_config)
             plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat(af = af,
                                 attr_name='DISTANCE',
                                 title=plot_title,
                                 y_label='cm',
-                                out_filename=plot_filename)#,
-                                #y_limit=35)
+                                out_filename=plot_filename,
+                                y_limit=30
+                                # scaleby=0.01)
+                                )
 
             # Stacked execution phase times per robot
-            plot_title = 'Execution phase per robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Activity per robot, {1}'.format(task_file, start_config)
             plot_filename = 'execution-phase-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_stacked_per_robot_stat(af = af,
                                         attr_names=['MOVEMENT_TIME', 'WAITING_TIME', 'DELAY_TIME', 'IDLE_TIME'],
@@ -564,34 +586,34 @@ def main(argv):
                                         #y_limit=250)
 
             # Movement time per robot
-            plot_title = 'Movement time per robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Movement time per robot, {1}'.format(task_file, start_config)
             plot_filename = 'movement-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat(af = af,
                                 attr_name='MOVEMENT_TIME',
                                 title=plot_title,
                                 y_label='Seconds',
                                 out_filename=plot_filename)#,
-                                #y_limit=250)
+                                #y_limit=1100)
             
             # Idle time per robot
-            plot_title = 'Idle time per Robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Idle time per Robot, {1}'.format(task_file, start_config)
             plot_filename = 'idle-time-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat( af = af,
                                  attr_name='IDLE_TIME',
                                  title=plot_title,
                                  y_label='Seconds',
-                                 out_filename=plot_filename)#,
-                                 #y_limit=80)
+                                 out_filename=plot_filename),
+                                 #y_limit=1000)
 
             # Delay time per robot
-            plot_title = 'Delay time per Robot: "{0}", {1} start'.format(task_file, start_config)
+            plot_title = 'Delay time per Robot, {1}'.format(task_file, start_config)
             plot_filename = 'delay-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
             plot_per_robot_stat( af = af,
                                  attr_name='DELAY_TIME',
                                  title=plot_title,
                                  y_label='Seconds',
                                  out_filename=plot_filename)#,
-                                 #y_limit=35)
+                                 #y_limit=60)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -34,8 +34,8 @@ colors = ([0.0, 1.0, 0.0],  # 'green'
           [0.0, 0.0, 1.0],  # 'blue'
           [0.5, 0.0, 1.0])  # 'violet'
 
-mpl.rcParams['patch.force_edgecolor'] = True
-mpl.rcParams['patch.facecolor'] = 'b'
+# mpl.rcParams['patch.force_edgecolor'] = True
+# mpl.rcParams['patch.facecolor'] = 'b'
 
 class Experiment(object):
     def __init__(self, bag=None, mechanism=None, start_config=None, task_file=None):

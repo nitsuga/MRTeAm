@@ -10,8 +10,8 @@ import rosbag
 import rospkg
 import sys
 
-IMG_WIDTH, IMG_HEIGHT = 602, 538
-#IMG_WIDTH, IMG_HEIGHT = 800, 600
+#IMG_WIDTH, IMG_HEIGHT = 602, 538
+IMG_WIDTH, IMG_HEIGHT = 800, 600
 
 stroke_colors = { 'robot_1': (1.0, 0.0, 0.0),   # Red
                   'robot_2': (0.0, 1.0, 0.0),   # Green
@@ -41,8 +41,10 @@ def read_point_configs():
     #for point_config in ['A', 'B', 'C', 'D', 'E']:
     #for task_file in ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'tasks_A.txt']:
 #    for task_file in ['TASC_scenario_6.txt']:
-    for task_file in ['TASC_scenario_5.txt', 'TASC_scenario_5_static.txt']:
+    #for task_file in ['TASC_scenario_5.txt', 'TASC_scenario_5_static.txt']:
 #    for task_file in ['tasks_A_dynamic.txt']:
+    for task_file in ['tasks_A.txt', 'tasks_A_dynamic.txt']:
+
         points = []
         config_file = open("{0}/{1}".format(task_file_dir, task_file), "rb")        
         for line in config_file:
@@ -54,13 +56,16 @@ def read_point_configs():
             # 'line' is in the format "s x y"
             # where s = seconds after start that the task appears
             # x,y = task location
-            s, x, y = line.split()
+            print "line: {}".format(line)
+            s, x, y, num_robots, duration = line.split()
             points.append([float(x)*100., float(y)*100.])
             
         task_point_configs[task_file] = points
 
+
 def usage():
     print 'Usage: ' + sys.argv[0] + ': <paths_to_bag_file(s)>'
+
 
 def draw_arena(ctx):
     """ Given a Cairo graphics context (ctx), draw the walls of the arena """
@@ -113,6 +118,59 @@ def draw_arena(ctx):
 
     # Restore the default line cap style
     ctx.set_line_cap(default_line_cap)
+
+def draw_arena_taros(ctx):
+    """ Given a Cairo graphics context (ctx), draw the walls of the arena """
+    # Arena line properties
+    ctx.set_line_width((3. / IMG_WIDTH))
+    ctx.set_source_rgb(0, 0, 0)
+
+    # Draw the outside of the arena
+    ctx.rectangle(0, 0, 1, 1)
+    ctx.stroke()
+
+    ctx.set_source_rgb(0, 0, 0)
+
+    # Set line end caps to square while drawing the walls
+    default_line_cap = ctx.get_line_cap()
+    ctx.set_line_cap(cairo.LINE_CAP_SQUARE)
+
+    # Draw the walls
+    ctx.move_to(205. / IMG_WIDTH, 0)  # w5
+    ctx.line_to(205. / IMG_WIDTH, 206. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(105. / IMG_WIDTH, 206. / IMG_HEIGHT)  # w6
+    ctx.line_to(205. / IMG_WIDTH, 206. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(102. / IMG_WIDTH, 336. / IMG_HEIGHT)  # w7
+    ctx.line_to(205. / IMG_WIDTH, 336. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(205. / IMG_WIDTH, 336. / IMG_HEIGHT)  # w8
+    ctx.line_to(205. / IMG_WIDTH, 538. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(422. / IMG_WIDTH, 336. / IMG_HEIGHT)  # w9
+    ctx.line_to(422. / IMG_WIDTH, 538. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(315. / IMG_WIDTH, 336. / IMG_HEIGHT)  # w10
+    ctx.line_to(520. / IMG_WIDTH, 336. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(315. / IMG_WIDTH, 206. / IMG_HEIGHT)  # w11
+    ctx.line_to(422. / IMG_WIDTH, 206. / IMG_HEIGHT)
+    ctx.stroke()
+
+    ctx.move_to(422. / IMG_WIDTH, 0)  # w12
+    ctx.line_to(422. / IMG_WIDTH, 206. / IMG_HEIGHT)
+    ctx.stroke()
+
+    # Restore the default line cap style
+    ctx.set_line_cap(default_line_cap)
+
 
 def main(argv):
 

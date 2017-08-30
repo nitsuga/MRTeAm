@@ -24,16 +24,17 @@ pp = pprint.PrettyPrinter(indent=4)
 TASKS_DB_FILENAME = 'tasks.db'
 
 # smartlab arena
-# IMG_WIDTH, IMG_HEIGHT = 800, 600
+IMG_WIDTH, IMG_HEIGHT = 800, 600
 
 # strand map
 # IMG_WIDTH, IMG_HEIGHT = 376, 868
-IMG_WIDTH, IMG_HEIGHT = 1880, 4338
+# IMG_WIDTH, IMG_HEIGHT = 1880, 4338
 
 # Every pixel of our '5cm' map represents 6.65cm. To convert from ROS coordinates
 # to pixels we need the inverse of that
 # SCALING_FACTOR = 0.15037594
-SCALING_FACTOR = 0.751879699
+# SCALING_FACTOR = 0.751879699
+SCALING_FACTOR = 1
 
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
@@ -87,16 +88,60 @@ def _read_points(task_file):
     return points
 
 
-def read_point_config(task_db, scenario_id):
+# def read_point_config(task_db, scenario_id):
+#     global target_point_configs
+#
+#     print "Reading points from {0}...".format(scenario_id)
+#
+#     scenario = task_db[scenario_id]
+#
+#     target_point_configs[scenario_id] = {}
+#     for task in scenario:
+#         target_point_configs[scenario_id][task.task_id] = (task.locaion.x, task.location.y)
+
+
+def read_point_config(task_dir, task_filename):
     global target_point_configs
 
-    print "Reading points from {0}...".format(scenario_id)
+    task_file_path = os.path.join(task_dir, task_filename)
 
-    scenario = task_db[scenario_id]
+    print "Reading points from {0}...".format(task_file_path)
+    task_file = open(task_file_path, "rb")
+    target_point_configs[task_filename] = _read_points(task_file)
+    print("target_point_configs[{0}] == {1}".format(task_filename, target_point_configs[task_filename]))
 
-    target_point_configs[scenario_id] = {}
-    for task in scenario:
-        target_point_configs[scenario_id][task.task_id] = (task.locaion.x, task.location.y)
+
+def read_point_configs():
+    print "reading point configs"
+
+    rospack = rospkg.RosPack()
+
+    task_file_dir = "{0}/task_files".format(rospack.get_path('mrta_auctioneer'))
+
+    # for point_config in ['A', 'B', 'C', 'D', 'E']:
+    # for task_file in ['brooklyn_tasks_A.txt', 'brooklyn_tasks_C.txt', 'tasks_A.txt']:
+    #    for task_file in ['TASC_scenario_6.txt']:
+    # for task_file in ['TASC_scenario_5.txt', 'TASC_scenario_5_static.txt']:
+    #    for task_file in ['tasks_A_dynamic.txt']:
+    for task_file in ['tasks_A.txt', 'tasks_A_dynamic.txt']:
+
+        points = []
+        config_file = open("{0}/{1}".format(task_file_dir, task_file), "rb")
+        task_number = 1
+        for line in config_file:
+
+            # Ignore comments
+            if line.startswith('#'):
+                continue
+
+            # 'line' is in the format "s x y"
+            # where s = seconds after start that the task appears
+            # x,y = task location
+            s, x, y, num_robots, duration = line.split()
+            points.append([task_number, float(x) * 100., float(y) * 100.])
+            task_number += 1
+
+        target_point_configs[task_file] = points
 
 
 def draw_arena(ctx):
@@ -451,13 +496,15 @@ def plot_trajectory(bag_paths, task_dir, map_file):
     if not os.path.exists(traj_dir):
         os.makedirs(traj_dir)
 
-    task_db = None
-    try:
-        # Save the poses in the tasks database
-        task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
-    except IOError:
-        print "Couldn't read tasks from {0}! Exiting.".format(TASKS_DB_FILENAME)
-        sys.exit(1)
+    read_point_configs()
+
+    # task_db = None
+    # try:
+    #     # Save the poses in the tasks database
+    #     task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
+    # except IOError:
+    #     print "Couldn't read tasks from {0}! Exiting.".format(TASKS_DB_FILENAME)
+    #     sys.exit(1)
 
     for bag_path in bag_paths:
         print("Reading {0}".format(bag_path))
@@ -493,13 +540,13 @@ def plot_trajectory(bag_paths, task_dir, map_file):
         bag_filename = os.path.basename(bag_path)
         (map, start_config, mechanism, scenario_id, remainder) = bag_filename.split('__')
 
-        if scenario_id not in target_point_configs:
-            read_point_config(task_db, scenario_id)
+        # if scenario_id not in target_point_configs:
+        #     read_point_config(task_db, scenario_id)
 
         # Create a Cairo surface and get a handle to its context
-        # surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
-        print("Opening map file {0}".format(map_file))
-        surface = cairo.ImageSurface.create_from_png(map_file)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
+        # print("Opening map file {0}".format(map_file))
+        # surface = cairo.ImageSurface.create_from_png(map_file)
 
         ctx = cairo.Context(surface)
 
@@ -509,11 +556,11 @@ def plot_trajectory(bag_paths, task_dir, map_file):
         ctx.scale(IMG_WIDTH, IMG_HEIGHT)
 
         # Paint a white background
-        # ctx.set_source_rgb(1.0, 1.0, 1.0)
-        # ctx.rectangle(0, 0, 1.0, 1.0)
-        # ctx.fill()
+        ctx.set_source_rgb(1.0, 1.0, 1.0)
+        ctx.rectangle(0, 0, 1.0, 1.0)
+        ctx.fill()
 
-        # draw_arena(ctx)
+        draw_arena(ctx)
 
         # Draw target points
         target_points = target_point_configs[scenario_id]
@@ -528,7 +575,7 @@ def plot_trajectory(bag_paths, task_dir, map_file):
 
             draw_start_locs(ctx, start_config, run_msgs)
 
-            draw_paths_to_medians(ctx, start_config, run_msgs, target_points)
+            # draw_paths_to_medians(ctx, start_config, run_msgs, target_points)
 
             draw_trajectories(ctx, run_msgs)
         except:

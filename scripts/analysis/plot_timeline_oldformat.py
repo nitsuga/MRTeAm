@@ -70,6 +70,8 @@ def _get_intervals(start_event, end_events, messages, label):
         event = message.__getattribute__(attr_name)
         if event == start_event:
             last_start_stamp = message.header.stamp.secs + (message.header.stamp.nsecs/1000000000.)
+            # print "last_start_stamp: {0}".format(last_start_stamp)
+            # print "message: {0}".format(pp.pformat(message))
             continue
         elif event in end_events:
             if not last_start_stamp:
@@ -77,6 +79,8 @@ def _get_intervals(start_event, end_events, messages, label):
                 continue
             else:
                 end_stamp = message.header.stamp.secs + (message.header.stamp.nsecs/1000000000.)
+                # print "end_stamp: {0}".format(end_stamp)
+                # print "message: {0}".format(pp.pformat(message))
                 intervals.append([last_start_stamp, end_stamp, label])
                 last_start_stamp = None
 
@@ -154,8 +158,8 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     # ax.set_xlabel('seconds')
 
     # Get the overall 'experiment' interval
-    exp_interval = _get_intervals(mrta.msg.ExperimentEvent.BEGIN_EXPERIMENT,
-                                  [mrta.msg.ExperimentEvent.END_EXPERIMENT],
+    exp_interval = _get_intervals('BEGIN_EXPERIMENT',
+                                  ['END_EXPERIMENT'],
                                   run_msgs['/experiment'],
                                   'experiment')[0]
     # print("Experiment: {0}".format(pp.pformat(exp_interval)))
@@ -168,23 +172,23 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
     ax.set_yticks([5, 15, 25])
 
     # Get deliberation intervals
-    delib_intervals = _get_intervals(mrta.msg.ExperimentEvent.BEGIN_ALLOCATION,
-                                     [mrta.msg.ExperimentEvent.END_ALLOCATION],
+    delib_intervals = _get_intervals('BEGIN_ALLOCATION',
+                                     ['END_ALLOCATION'],
                                      run_msgs['/experiment'],
                                      'deliberation')
     _normalize_times(delib_intervals, exp_start_time)
     # print("delib intervals: {0}".format(pp.pformat(delib_intervals)))
 
     # Get execution intervals
-    exec_intervals = _get_intervals(mrta.msg.ExperimentEvent.BEGIN_EXECUTION,
-                                    [mrta.msg.ExperimentEvent.END_EXECUTION],
+    exec_intervals = _get_intervals('BEGIN_EXECUTION',
+                                    ['END_EXECUTION'],
                                     run_msgs['/experiment'],
                                     'execution')
     _normalize_times(exec_intervals, exp_start_time)
 
     # Get 'nap' intervals
-    nap_intervals = _get_intervals(mrta.msg.ExperimentEvent.END_EXECUTION,
-                                   [mrta.msg.ExperimentEvent.BEGIN_ALLOCATION],
+    nap_intervals = _get_intervals('END_EXECUTION',
+                                   ['BEGIN_ALLOCATION'],
                                    run_msgs['/experiment'],
                                    'nap')
     _normalize_times(nap_intervals, exp_start_time)
@@ -201,32 +205,33 @@ def plot_timeline(run_msgs, plot_title, plot_filename):
 
         # print("{0} messages: {1}".format(robot_name, pp.pformat(robot_msgs[robot_name])))
 
-        moving_intervals = _get_intervals(mrta.msg.TaskStatus.MOVING,
-                                          [mrta.msg.TaskStatus.PAUSE,
-                                           mrta.msg.TaskStatus.ARRIVED,
-                                           mrta.msg.TaskStatus.FAILURE],
+        moving_intervals = _get_intervals('BEGIN',
+                                          ['PAUSE',
+                                           'ARRIVED',
+                                           'FAILURE',
+                                           'SUCCESS'],
                                           robot_msgs[robot_name],
                                           'moving')
         _normalize_times(moving_intervals, exp_start_time)
-        # print("moving intervals: {0}".format(pp.pformat(moving_intervals)))
+        # print("{0} moving intervals: {1}".format(robot_name, pp.pformat(moving_intervals)))
 
-        delay_intervals = _get_intervals(mrta.msg.TaskStatus.PAUSE,
-                                         [mrta.msg.TaskStatus.RESUME],
+        delay_intervals = _get_intervals('PAUSE',
+                                         ['RESUME'],
                                          robot_msgs[robot_name],
                                          'delay')
         _normalize_times(delay_intervals, exp_start_time)
         # print("delay intervals: {0}".format(pp.pformat(delay_intervals)))
 
-        waiting_intervals = _get_intervals(mrta.msg.TaskStatus.ARRIVED,
-                                           [mrta.msg.TaskStatus.BEGIN,
-                                            mrta.msg.ExperimentEvent.BEGIN_ALLOCATION],
+        waiting_intervals = _get_intervals('SUCCESS',
+                                           ['BEGIN',
+                                            'BEGIN_ALLOCATION'],
                                            robot_msgs[robot_name],
                                            'waiting')
         _normalize_times(waiting_intervals, exp_start_time)
         # print("waiting intervals: {0}".format(pp.pformat(waiting_intervals)))
 
         all_robot_intervals = delib_intervals + nap_intervals + moving_intervals + \
-                              delay_intervals + waiting_intervals
+                              delay_intervals # + waiting_intervals
 
         # print("all {0} intervals: {1}".format(robot_name, pp.pformat(all_robot_intervals)))
 
@@ -281,10 +286,10 @@ def plot_timelines(bag_paths):
         run_msgs = defaultdict(list)
         try:
             for topic, msg, msg_time in bag.read_messages():
-                try:
-                    msg.header.stamp = msg_time
-                except AttributeError:
-                    continue
+                # try:
+                #     msg.header.stamp = msg_time
+                # except AttributeError:
+                #     continue
                 run_msgs[topic].append(msg)
         except:
             print("Couldn't read messages from {0}!".format(bag_path))
@@ -293,7 +298,7 @@ def plot_timelines(bag_paths):
 
         experiment_finished = False
         for msg in run_msgs['/experiment']:
-            if msg.event == mrta.msg.ExperimentEvent.END_EXPERIMENT:
+            if msg.event == 'END_EXPERIMENT':
                 experiment_finished = True
 
         if not experiment_finished:
@@ -302,6 +307,7 @@ def plot_timelines(bag_paths):
 
         bag_basename = bag_filename.replace('.bag', '')
         bag_basename = bag_basename.replace('.yaml', '')
+        bag_basename = bag_basename.replace('.txt', '')
 
         # print("bag_basename: {0}".format(bag_basename))
         plot_filename = 'timeline__' + bag_basename + '.pdf'

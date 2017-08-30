@@ -56,8 +56,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    plt.title(title)
-    plt.ylabel(y_label)
+    #plt.title(title)
+    #plt.ylabel(y_label)
     stat_means = []
     stat_errors = []
 
@@ -122,8 +122,8 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     #     else:
     #         stat_by_mechanism[exp.mechanism].append(attr_value)
 
-    plt.title(title)
-    plt.ylabel(y_label)
+    #plt.title(title)
+    #plt.ylabel(y_label)
     stat1_means = []
     stat2_means = []
     stat1_errors = []
@@ -174,7 +174,10 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
             bottom=stat1_means)
 
     # Bar labels
-    plt.tick_params(axis='x', which='major', labelsize=18)
+    #plt.tick_params(axis='x', which='major', labelsize=18)
+    plt.tick_params(axis='x', which='major', labelsize=26)
+    plt.tick_params(axis='y', which='major', labelsize=20)
+
     plt.xticks(x_pos, mechanisms)
 
     ymin, ymax = plt.ylim()
@@ -327,7 +330,20 @@ def main(stats_file, oldstarts):
                       attr_name='EXECUTION_PHASE_TIME',
                       title=plot_title,
                       y_label='Seconds',
-                      out_filename=plot_filename)
+                      out_filename=plot_filename,
+                      y_limit=600
+                      )
+
+    #### Deliberation time
+    plot_title = 'Deliberation Time'
+    plot_filename = 'deliberation-time.pdf'
+    plot_overall_stat(af=af,
+                      attr_name='DELIBERATION_TIME',
+                      title=plot_title,
+                      y_label='Seconds',
+                      out_filename=plot_filename,
+                      #y_limit=60
+                      )
 
     #### Total run time
     plot_title = 'Total Run Time'
@@ -336,8 +352,23 @@ def main(stats_file, oldstarts):
                       attr_name='TOTAL_RUN_TIME',
                       title=plot_title,
                       y_label='Seconds',
-                      out_filename=plot_filename)
+                      out_filename=plot_filename,
+                      y_limit=600
+                      )
     # y_limit=300)
+
+    # Total run time stacked: deliberation time + execution time
+    # Total run time
+    plot_title = 'Stacked Run Time'
+    plot_filename = 'stacked-runtime.pdf'
+    plot_stacked_stats(af=af,
+                       attr1_name='DELIBERATION_TIME',
+                       attr2_name='EXECUTION_PHASE_TIME',
+                       title=plot_title,
+                       y_label='Seconds',
+                       out_filename=plot_filename,
+                       y_limit=600
+                       )
 
     #### Team distance travelled
     plot_title = 'Team Distance'
@@ -370,8 +401,20 @@ def main(stats_file, oldstarts):
                               attr_name='EXECUTION_PHASE_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)
-                              #y_limit=300)
+                              out_filename=plot_filename,
+                              y_limit=600
+                              )
+
+            # Deliberation time
+            plot_title = 'Deliberation Time, {0} start'.format(start_config)
+            plot_filename = 'deliberation-time-{0}.pdf'.format(start_config)
+            plot_overall_stat(af = af,
+                              attr_name='DELIBERATION_TIME',
+                              title=plot_title,
+                              y_label='Seconds',
+                              out_filename=plot_filename,
+                              y_limit=60
+                              )
 
             # Total run time
             plot_title = 'Total Run Time, {0} start'.format(start_config)
@@ -380,8 +423,21 @@ def main(stats_file, oldstarts):
                               attr_name='TOTAL_RUN_TIME',
                               title=plot_title,
                               y_label='Seconds',
-                              out_filename=plot_filename)#,
-                              #y_limit=300)
+                              out_filename=plot_filename,
+                              y_limit=600)
+
+            # Total run time stacked: deliberation time + execution time
+            # Total run time
+            plot_title = 'Stacked Run Time, {0} start'.format(start_config)
+            plot_filename = 'stacked-runtime-{0}.pdf'.format(start_config)
+            plot_stacked_stats(af=af,
+                               attr1_name='DELIBERATION_TIME',
+                               attr2_name='EXECUTION_PHASE_TIME',
+                               title=plot_title,
+                               y_label='Seconds',
+                               out_filename=plot_filename,
+                               y_limit=600
+                               )
 
             # Team distance travelled
             plot_title = 'Team Distance, {0} start'.format(start_config)
