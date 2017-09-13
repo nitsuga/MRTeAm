@@ -159,6 +159,16 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+            <arg name="base" value="$(arg base)" />
+            <arg name="stacks" value="$(arg stacks)" />
+            <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+        </include>
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+        </node>
+
     </group>
     <!-- END ROBOT 1 -->
 
@@ -251,6 +261,16 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+            <arg name="base" value="$(arg base)" />
+            <arg name="stacks" value="$(arg stacks)" />
+            <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+        </include>
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+        </node>
+
     </group>
     <!-- END ROBOT 2 -->
 
@@ -341,6 +361,16 @@
             <param name="robot_name" type="str" value="robot_3"/>
             <param name="reallocate" type="bool" value="$(arg reallocate)"/>
             <param name="is_turtlebot" type="bool" value="False"/>
+        </node>
+
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+            <arg name="base" value="$(arg base)" />
+            <arg name="stacks" value="$(arg stacks)" />
+            <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+        </include>
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="false"/>
         </node>
 
     </group>
