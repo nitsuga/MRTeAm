@@ -1156,24 +1156,36 @@ class Auctioneer:
         # Keep track of which team members have send an 'AGENDA_CLEARED' message
         self.agenda_cleared = defaultdict(bool)
 
+        print("param_names: {0}".format(rospy.get_param_names()))
+
         # We will use one mechanism per run (for now)
         # self.mechanism = mechanism
         self.mechanism = rospy.get_param('~mechanism')
 
         # Should we choose a mechanism as runtime (as opposed to using
         # self.mechanism all the time)?
-        self.dynamic_mechanism = rospy.get_param('~dynamic_mechanism', False)
+        self.dynamic_mechanism = rospy.get_param('~dynamic_mechanism', default=False)
+        print ("self.dynamic_mechanism == {0}".format(self.dynamic_mechanism))
 
-        # # Tasks are loaded from a configuration file, rather than
-        # # created dynamically (for now)
-        # # self.task_file = task_file
-        # self.task_file = None
-        # try:
-        #     self.task_file = rospy.get_param('~task_file')
-        # except KeyError:
-        #     rospy.logerr("Parameter 'task_file' has no value!")
+        # A scenario that comprises a set of tasks is loaded either from
+        #  1. A (yaml) configuration file or
+        #  2. A file-based database, keyed by scenario id
+        #
+        # Tasks are loaded in the load_tasks() method.
+        #
+        # If the 'task_file' parameter is non-empty, the configuration-file
+        # method (1) takes precedence. If 'task_file' is empty and 'scenario_id'
+        # is non-empty, the database method (2) is used. If both are empty, the
+        # auctioneer will wait for tasks to appear on the /tasks/new topic.
 
-        # Tasks are loaded from a file-based database (keyed by scenario id)
+        # self.task_file is used in load_tasks_from_file()
+        self.task_file = None
+        try:
+            self.task_file = rospy.get_param('~task_file')
+        except KeyError:
+            rospy.logerr("Parameter 'task_file' has no value!")
+
+        # self.scenario_id is used in load_tasks_from_db()
         self.scenario_id = None
         try:
             self.scenario_id = rospy.get_param('~scenario_id')
@@ -1185,16 +1197,11 @@ class Auctioneer:
 
         # Do we reallocate tasks or not?
         try:
-            self.reallocate = rospy.get_param('~reallocate')
+            self.reallocate = rospy.get_param('~reallocate', False)
         except KeyError:
             rospy.logerr("Parameter 'reallocate' has no value!")
 
         rospy.loginfo("self.reallocate == {0}".format(self.reallocate))
-
-        # Start up a planner proxy
-        dummy_robot_name = rospy.get_param('~dummy_robot_name', "robot_0")
-        rospy.loginfo("Auctioneer: Starting PlannerProxy")
-        self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
 
         # Scripted tasks that are not necessarily 'live' at the start of the experiment
         self.scripted_tasks = []
@@ -1222,37 +1229,46 @@ class Auctioneer:
         # task_id => list of robot_name
         self.awarded = defaultdict(list)
 
+        # If we're doing dynamic mechanism selection, set up a planner
+        # that the auctioneer can call and load a classifier to select
+        # a mechanism for the scenario at hand
+        if self.dynamic_mechanism:
+            # Start up a planner proxy
+            dummy_robot_name = rospy.get_param('~dummy_robot_name', "robot_0")
+            rospy.loginfo("Auctioneer: Starting PlannerProxy")
+            self.planner_proxy = mrta.mrta_planner_proxy.PlannerProxy(dummy_robot_name)
+
+            # Classifier used to predict an appropriate mechanism in
+            # select_mechanism_dynamic(). This classifier will have been
+            # trained in scikit-learn and dumped to a file with pickle.
+            pkg = rospkg.RosPack()
+            pkg_path = pkg.get_path('mrta_auctioneer')
+
+            self.classifier = None
+            self.feature_names = None
+            try:
+                clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
+                clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
+                clf_features_filename = '{0}.features'.format(clf_base_filename)
+
+                classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
+                features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
+
+                with open(classifier_path, 'rb') as classifier_file:
+                    self.classifier = pickle.load(classifier_file)
+
+                self.feature_names = []
+                with open(features_path, 'rb') as features_file:
+                    for line in features_file:
+                        self.feature_names.append(line.rstrip())
+            except:
+                rospy.logerr("Error opening classifier/features".format(self.task_file))
+                e_type, e_value, e_traceback = sys.exc_info()
+                rospy.logerr("{0}: {1}".format(e_type, e_value))
+
         self.ppsi_task_winners = None
 
-        # Classifier used to predict an appropriate mechanism in
-        # select_mechanism_dynamic(). This classifier will have been
-        # trained in scikit-learn and dumped to a file with pickle.
-        pkg = rospkg.RosPack()
-        pkg_path = pkg.get_path('mrta_auctioneer')
-
-        self.classifier = None
-        self.feature_names = None
-        try:
-            clf_base_filename = rospy.get_param('~classifier_name', 'clf_execution_phase_time_random_forest')
-            clf_classifier_filename = '{0}.dump'.format(clf_base_filename)
-            clf_features_filename = '{0}.features'.format(clf_base_filename)
-
-            classifier_path = os.path.join(pkg_path, 'classifier', clf_classifier_filename)
-            features_path = os.path.join(pkg_path, 'classifier', clf_features_filename)
-
-            with open(classifier_path, 'rb') as classifier_file:
-                self.classifier = pickle.load(classifier_file)
-
-            self.feature_names = []
-            with open(features_path, 'rb') as features_file:
-                for line in features_file:
-                    self.feature_names.append(line.rstrip())
-        except:
-            rospy.logerr("Error opening classifier/features".format(self.task_file))
-            e_type, e_value, e_traceback = sys.exc_info()
-            rospy.logerr("{0}: {1}".format(e_type, e_value))
-
-        # Set up state machine.
+        # Set up fysom state machine.
         # See mrta/docs/auctioneer-fsm.png
         self.fsm = Fysom( 
             events=[
@@ -1312,10 +1328,10 @@ class Auctioneer:
         # identify_team(). We'd do it here, but can't until the
         # team has been identified.
 
-        # For good measure...
         time.sleep(3)
 
     def init_publishers(self):
+        rospy.loginfo('Initializing publishers...')
 
         # Announce experiment events on '/experiment'.
         # Importantly, 'BEGIN_ALLOCATION', 'END_ALLOCATION', and
@@ -1345,8 +1361,7 @@ class Auctioneer:
                                           visualization_msgs.msg.Marker,
                                           queue_size=3)
 
-        # For good measure...
-        time.sleep(5)
+        time.sleep(3)
 
     def on_new_task(self, new_task_msg):
         rospy.loginfo("Received new task: {0}".format(pp.pformat(new_task_msg)))
@@ -1462,8 +1477,16 @@ class Auctioneer:
         rospy.loginfo("add_scripted_task(): current state=={0}".format(self.fsm.current))
 
     def load_tasks(self, data):
-        # self.load_tasks_from_file()
-        self.load_tasks_from_db()
+
+        # If self.task_file is non-empty, attempt to load tasks
+        # from a scenario defined in a (yaml) task file
+        if self.task_file:
+            self.load_tasks_from_file()
+
+        # If self.scenario_id is non-empty, attempt to load tasks
+        # from a scenario stored in a file-based database
+        elif self.scenario_id:
+            self.load_tasks_from_db()
 
         rospy.loginfo("Scripted Tasks:\n{0}".format(pp.pformat(self.scripted_tasks_by_id)))
 
@@ -2094,8 +2117,10 @@ class Auctioneer:
             else:
                 # Call it anyway to record information about medians and distance. Ignore the result
                 # (i.e., don't assign its return value to the variable 'mechanism')
-                self.select_mechanism_dynamic(unallocated, mechanism)
-                rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
+
+                # self.select_mechanism_dynamic(unallocated, mechanism)
+                # rospy.loginfo("Auctioneer: Mechanism {0} selected dynamically".format(mechanism))
+                pass
 
             # Send a message to mark the end of the mechanism-choosing phase of
             # the experiment
