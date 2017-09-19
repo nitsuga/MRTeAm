@@ -1,14 +1,14 @@
 MRTADWAPlannerROS:
 
 # Robot Configuration Parameters
-  max_vel_x: 0.6  # 0.55
+  max_vel_x: 13.3  # 0.55
 #  min_vel_x: 0.02  # 0.0
   min_vel_x: 0.0  # 0.0
 
   max_vel_y: 0.0  # diff drive robot
   min_vel_y: 0.0  # diff drive robot
 
-  # max_trans_vel: 0.55
+  max_trans_vel: 13.33
   # min_trans_vel: 0.1
 
   max_rot_vel: 2.0
@@ -17,7 +17,7 @@ MRTADWAPlannerROS:
   min_in_place_vel_theta: 0.6
   # DEPRECATED? min_in_place_vel_theta: 0.6  # TrajectoryPlannerRos
   
-  acc_lim_x: 0.5
+  acc_lim_x: 1.0
   acc_lim_theta: 1.5
   acc_lim_y: 0.0      # diff drive robot
 
@@ -27,7 +27,7 @@ MRTADWAPlannerROS:
   # latch_xy_goal_tolerance: false
 
 # Forward Simulation Parameters
-  sim_time: 1.7       # 1.7
+  sim_time: 2.0       # 1.7
 #  vx_samples: 10       # 3
   vx_samples: 20      # 3
   vy_samples: 0       # diff drive robot
@@ -41,7 +41,7 @@ MRTADWAPlannerROS:
   goal_distance_bias: 2.0      # 24.0   - wighting for how much it should attempt to reach its goal
   occdist_scale: 0.3           # 0.01   - weighting for how much the controller should avoid obstacles
 #  forward_point_distance: 0.175 # 0.325  - how far along to place an additional scoring point
-  forward_point_distance: 0.0 # 0.325  - how far along to place an additional scoring point
+  forward_point_distance: 0.1 # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
   scaling_speed: 0.2           # 0.25   - absolute velocity at which to start scaling the robot's footprint
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.

@@ -1,14 +1,21 @@
 <launch>
     <param name="/use_sim_time" value="true"/>
 
+    <arg name="base"       value="$(optenv TURTLEBOT_BASE kobuki)"/>  <!-- create, roomba -->
+    <arg name="stacks"     value="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
+    <arg name="3d_sensor"  value="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
+
     <arg name="nogui_flag" default=""/>
     <arg name="reallocate" default="false"/>
 
-    <!--  <arg name="dynamic_mechanism" default="false" /> -->
+    <arg name="dynamic_mechanism" default="false" />
 
     <arg name="dummy_robot_name" default="robot_0"/>
 
     <arg name="classifier_name" default="clf_execution_phase_time_random_forest"/>
+
+    <arg name="task_file" default=""/>
+    <arg name="scenario_id" default=""/>
 
     <!--  <node name="rviz" pkg="rviz" type="rviz" /> -->
 
@@ -159,6 +166,16 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+            <arg name="base" value="$(arg base)" />
+            <arg name="stacks" value="$(arg stacks)" />
+            <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+        </include>
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+        </node>
+
     </group>
     <!-- END ROBOT 1 -->
 
@@ -249,6 +266,16 @@
             <param name="robot_name" type="str" value="robot_2"/>
             <param name="reallocate" type="bool" value="$(arg reallocate)"/>
             <param name="is_turtlebot" type="bool" value="False"/>
+        </node>
+
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+            <arg name="base" value="$(arg base)" />
+            <arg name="stacks" value="$(arg stacks)" />
+            <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+        </include>
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="false"/>
         </node>
 
     </group>
@@ -343,15 +370,25 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
+            <arg name="base" value="$(arg base)" />
+            <arg name="stacks" value="$(arg stacks)" />
+            <arg name="3d_sensor" value="$(arg 3d_sensor)" />
+        </include>
+        <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+        </node>
+
     </group>
     <!-- END ROBOT 3 -->
 
     <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" required="true" output="screen">
-        <!--<param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)"/>-->
+        <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)"/>
         <param name="scenario_id" value="$(arg scenario_id)"/>
         <param name="mechanism" value="$(arg mechanism)"/>
         <param name="reallocate" value="$(arg reallocate)"/>
-        <!--    <param name="dynamic_mechanism" value="$(arg dynamic_mechanism)" /> -->
+        <param name="dynamic_mechanism" value="$(arg dynamic_mechanism)" />
         <param name="dummy_robot_name" value="$(arg dummy_robot_name)"/>
         <param name="classifier_name" value="$(arg classifier_name)"/>
     </node>

@@ -39,7 +39,8 @@ robots = [{'name': 'robot_1',
           {'name': 'robot_3',
            'port': '11314'}]
 
-maps = {'brooklyn': 'brooklyn_lab.png',
+maps = {
+        'brooklyn': 'brooklyn_lab.png',
         'smartlab': {'image': 'smartlab_ugv_arena_v2.png',
                      'yaml': 'smartlab_ugv_arena.yaml',
                      'robot_buffer': 70,
@@ -55,9 +56,15 @@ maps = {'brooklyn': 'brooklyn_lab.png',
         'london': {'image': 'central_london_roads_inverse_2x.png',
                    'yaml': 'central_london.yaml',
                    'robot_buffer': 10,
-                   'scale': 1.0}}
+                   'scale': 1.0},
+        'islington': {'image': 'islington_roads_100dpi_inverse.png',
+                      'yaml': 'islington.yaml',
+                      'robot_buffer': 10,
+                      'scale': 3.934}
+        }
 
-world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
+world_files = {
+               'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
                             'distributed': 'brooklyn_arena_3_robots_distributed.world',
                             'distributed_A': ''},
                'smartlab': {'clustered': 'smartlab_ugv_arena_3_robots_clustered.world',
@@ -74,7 +81,9 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                           'random': 'strand_restricted_3_robots_random.world'},
                'strand-restricted': {'clustered': 'strand_restricted_3_robots_clustered.world',
                                      'random': 'strand_restricted_3_robots_random.world'},
-               'london': {'clustered': 'central_london.world'}}
+               'london': {'clustered': 'central_london.world'},
+               'islington': {'clustered': 'islington.world'}
+               }
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
@@ -139,9 +148,15 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
     if args.reallocate:
         reallocate_flag = 'true'
 
-    # dynamic_mechanism_flag = 'false'
-    # if args.dynamic_mechanism:
-    #     dynamic_mechanism_flag = 'true'
+    dynamic_mechanism_flag = 'false'
+    try:
+        if args.dynamic_mechanism:
+            dynamic_mechanism_flag = 'true'
+    except AttributeError:
+        pass
+
+    if scenario_id == 'none':
+        scenario_id = ''
 
     # If we're doing random start poses, generate them first,
     # but ONLY if we're not "reusing" previously-generated start poses
@@ -161,7 +176,7 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
                                   main_launchfile,
                                   "nogui_flag:={0}".format(nogui_flag),
                                   "reallocate:={0}".format(reallocate_flag),
-                                  # "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
+                                  "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
                                   "map_file:={0}".format(map_yaml),
                                   "world_file:={0}".format(world_file),
                                   "scenario_id:={0}".format(scenario_id),
@@ -237,7 +252,7 @@ if __name__ == '__main__':
                         choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX', 'SEL'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
-                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted', 'london'],
+                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted', 'london', 'islington'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
                         choices=['clustered', 'distributed', 'random',

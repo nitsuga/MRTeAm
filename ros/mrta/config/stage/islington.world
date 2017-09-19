@@ -1,0 +1,41 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+#resolution 0.02
+#resolution 0.5
+resolution 1.0
+
+#interval_sim 100  # simulation timestep in milliseconds
+interval_sim 50
+interval_real 50
+
+window
+( 
+  size [ 600.000 1200.000 ]
+  center [ 9.9 21.69 ]
+#  rotate [ 30 -15 ]
+
+  scale 25.0
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "islington"
+  bitmap "../maps/islington_roads_100dpi_inverse.png"
+  size [4610 6200 2]
+
+  pose [ 2300.0 3100.0 0 0 ]
+#  pose [ 0.0 0.0 0 0 ]
+
+#  origin [2300.00 3100.00 0 0]
+#  origin [0.00 0.00 0 0]
+)
+
+# Our robots
+
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+turtlebot ( pose [ 30.0 67.0 0 40.06 ] color "red" )	# "robot_1", "sw room, upper right"
+turtlebot ( pose [ 28.0 67.0 0 31.48 ] color "green" )	# "robot_2", "sw room, upper left"
+turtlebot ( pose [ 28.0 65.0 0 41.48 ] color "blue" )	# "robot_3", "sw room, lower left"

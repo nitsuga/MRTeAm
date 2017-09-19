@@ -1,0 +1,6 @@
+image: islington_roads_300dpi_inverse.png
+resolution: 1.31166239
+origin: [0.0, 0.0, 0.0]
+occupied_thresh: 0.53
+free_thresh: 0.1
+negate: 0
