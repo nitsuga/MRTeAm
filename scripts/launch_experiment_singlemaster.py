@@ -58,7 +58,8 @@ maps = {
                    'robot_buffer': 10,
                    'scale': 1.0},
         'islington': {'image': 'islington_roads_100dpi_inverse.png',
-                      'yaml': 'islington.yaml',
+                      # 'yaml': 'islington.yaml',
+                      'yaml': 'islington_300dpi.yaml',
                       'robot_buffer': 10,
                       'scale': 3.934}
         }

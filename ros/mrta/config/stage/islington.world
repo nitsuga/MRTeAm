@@ -24,9 +24,9 @@ floorplan
 ( 
   name "islington"
   bitmap "../maps/islington_roads_100dpi_inverse.png"
-  size [4610 6200 2]
+  size [4600 6200 2]
 
-  pose [ 2300.0 3100.0 0 0 ]
+  pose [ 2302.0 3104.0 0 0 ]
 #  pose [ 0.0 0.0 0 0 ]
 
 #  origin [2300.00 3100.00 0 0]
