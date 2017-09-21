@@ -19,7 +19,7 @@ max_obstacle_height: 2.0
 raytrace_range: 3.0
 
 #The footprint of the robot and associated padding
-robot_radius: 0.175
+robot_radius: 0.0175
 
 #Cost function parameters
 #inflation_radius: 0.25

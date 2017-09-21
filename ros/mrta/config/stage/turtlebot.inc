@@ -3,11 +3,16 @@ include "hokuyo.inc"
 define turtlebot position
 (
 #  size [0.35 0.35 0.45]
-  size [0.3 0.3 0.45]
+
+#  size [0.3 0.3 0.45]
+  size [0.03 0.03 0.045]
+
   origin [0 0 0 0]
   gui_nose 1
   drive "diff"
-  hokuyo(pose [ 0.0 0.0 0.4 0.000 ])
+#  hokuyo(pose [ 0.0 0.0 0.4 0.000 ])
+  hokuyo(pose [ 0.0 0.0 0.04 0.000 ])
+
   bitmap "tb_top_plate.png"
 #  boundary 1
 
