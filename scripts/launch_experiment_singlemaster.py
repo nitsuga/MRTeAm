@@ -83,7 +83,7 @@ world_files = {
                'strand-restricted': {'clustered': 'strand_restricted_3_robots_clustered.world',
                                      'random': 'strand_restricted_3_robots_random.world'},
                'london': {'clustered': 'central_london.world'},
-               'islington': {'clustered': 'islington.world'}
+               'islington': {'clustered': 'islington-scenario1.world'}
                }
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
@@ -159,6 +159,10 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
     if scenario_id == 'none':
         scenario_id = ''
 
+    task_file = args.task_file
+    if not task_file:
+        task_file = ''
+
     # If we're doing random start poses, generate them first,
     # but ONLY if we're not "reusing" previously-generated start poses
     if args.start_config == 'random' and not args.reuse_starts:
@@ -180,6 +184,7 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
                                   "dynamic_mechanism:={0}".format(dynamic_mechanism_flag),
                                   "map_file:={0}".format(map_yaml),
                                   "world_file:={0}".format(world_file),
+                                  "task_file:={0}".format(args.task_file),
                                   "scenario_id:={0}".format(scenario_id),
                                   "mechanism:={0}".format(mechanism),
                                   "classifier_name:={0}".format(args.classifier_name)])
@@ -269,6 +274,9 @@ if __name__ == '__main__':
     parser.add_argument("-cl", "--classifier_name", type=str,
                         help="Base filename of a classifier to use for dynamic mechanism selection.",
                         default='clf_execution_phase_time_random_forest')
+
+    parser.add_argument("-t", "--task_file", type=str,
+                        help="Filename of a task file that defines a scenario.")
 
     args = parser.parse_args()
 

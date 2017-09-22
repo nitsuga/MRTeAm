@@ -4,7 +4,7 @@ include "robots.inc"
 # set the resolution of the underlying raytrace model in meters
 #resolution 0.02
 #resolution 0.5
-resolution 0.25
+resolution 0.05
 
 #interval_sim 100  # simulation timestep in milliseconds
 interval_sim 50
@@ -33,7 +33,10 @@ floorplan
 
 # Our robots
 
+# Islington map origin: Easting: 528800, Northing: 181600
+# Dispatch location:    Easting: 530100, Northing: 184400
+
 dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
-turtlebot ( pose [ 3.00 6.70 0 40.06 ] color "red" )	# "robot_1", "sw room, upper right"
+turtlebot ( pose [ 130.0 278.5 0 40.06 ] color "red" )	# "robot_1"
 turtlebot ( pose [ 2.80 6.70 0 31.48 ] color "green" )	# "robot_2", "sw room, upper left"
 turtlebot ( pose [ 2.80 6.50 0 41.48 ] color "blue" )	# "robot_3", "sw room, lower left"
