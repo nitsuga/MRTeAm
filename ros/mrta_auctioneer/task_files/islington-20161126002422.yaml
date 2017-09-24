@@ -15,7 +15,7 @@
 # Islington map origin: Easting: 528800, Northing: 181600
 # Incident location:    Easting: 531100, Northing: 186100
     x: 228.0
-    y: 450.0
+    y: 450.5
   arrival_time: 0
   num_robots: 1
   duration: 0

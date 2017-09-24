@@ -672,7 +672,7 @@ def parse_stats(bag_paths, output):
 
         # Round float values to 6 digits of precision
         for key in row_fields.keys():
-            if is_number(row_fields[key]):
+            if is_number(row_fields[key]) and key not in ['START_CONFIG']:
                 row_fields[key] = round(row_fields[key], 6)
 
         csv_file.writerow([row_fields[fn] for fn in field_names])

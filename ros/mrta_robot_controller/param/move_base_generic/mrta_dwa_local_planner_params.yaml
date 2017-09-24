@@ -1,15 +1,15 @@
 MRTADWAPlannerROS:
 
 # Robot Configuration Parameters
-  max_vel_x: 1.0  # 0.55
+  max_vel_x: 1.1  # 0.55
 #  min_vel_x: 0.02  # 0.0
   min_vel_x: 0.0  # 0.0
 
   max_vel_y: 0.0  # diff drive robot
   min_vel_y: 0.0  # diff drive robot
 
-  max_trans_vel: 1.0
-  # min_trans_vel: 0.1
+  max_trans_vel: 1.1
+  min_trans_vel: 0.0
 
   max_rot_vel: 2.0
 #  min_rot_vel: 0.02  # could set this lower
@@ -17,8 +17,8 @@ MRTADWAPlannerROS:
   min_in_place_vel_theta: 0.6
   # DEPRECATED? min_in_place_vel_theta: 0.6  # TrajectoryPlannerRos
   
-  acc_lim_x: 1.0
-  acc_lim_theta: 1.5
+  acc_lim_x: 0.3
+  acc_lim_theta: 3.0
   acc_lim_y: 0.0      # diff drive robot
 
 # Goal Tolerance Parameters
@@ -27,7 +27,7 @@ MRTADWAPlannerROS:
   # latch_xy_goal_tolerance: false
 
 # Forward Simulation Parameters
-  sim_time: 1.2       # 1.7
+  sim_time: 1.5       # 1.7
 #  vx_samples: 10       # 3
   vx_samples: 20      # 3
   vy_samples: 0       # diff drive robot

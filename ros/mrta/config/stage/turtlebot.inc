@@ -5,7 +5,7 @@ define turtlebot position
 #  size [0.35 0.35 0.45]
 
 #  size [0.3 0.3 0.45]
-  size [0.03 0.03 0.045]
+  size [0.1 0.1 0.045]
 
   origin [0 0 0 0]
   gui_nose 1

@@ -1,0 +1,22 @@
+# task_id:      A unique identifier.
+# type:         Just 'SENSOR_SWEEP' for now, but may also include 'FIRE' or 'DEBRIS' in the future.
+# arrival_time: Time (seconds) after start of an experiment that the task "appears"
+# location:     x,y coordinates of the task's location
+# num_robots:   Number of robots required to complete the task
+# duration:     Time (seconds) required to complete the task
+# depends:      Array of tasks (task_ids) that this task depends on; i.e., tasks that must be
+#               completed before this one can start.
+
+---
+- task_id: '1'
+# LAS IncidentID = 20160702002428
+  type: SENSOR_SWEEP
+  location:
+# Islington map origin: 528800 E, 181600 N
+# Incident location:    532100 E, 185900 N
+    x: 330.0
+    y: 430.0
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []

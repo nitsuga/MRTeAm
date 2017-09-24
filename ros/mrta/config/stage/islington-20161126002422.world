@@ -23,7 +23,7 @@ window
 floorplan
 ( 
   name "islington"
-  bitmap "../maps/islington_roads_100dpi_inverse.png"
+  bitmap "../maps/islington_roads_200dpi_inverse.png"
 #  size [4600 6200 2]
 #  pose [ 2302.0 3104.0 0 0 ]
   size [460.0 620.0 2]
@@ -31,12 +31,17 @@ floorplan
 
 )
 
-# Our robots
+# IncidentID: 20161126002422
 
-# Islington map origin: Easting: 528800, Northing: 181600
-# Dispatch location:    Easting: 530100, Northing: 184400
+# Islington map origin:        528800 E, 181600 N
 
 dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
-turtlebot ( pose [ 130.0 278.5 0 40.06 ] color "red" )	# "robot_1"
-turtlebot ( pose [ 2.80 6.70 0 31.48 ] color "green" )	# "robot_2", "sw room, upper left"
-turtlebot ( pose [ 2.80 6.50 0 41.48 ] color "blue" )	# "robot_3", "sw room, lower left"
+
+# (G150) Dispatch location:    530100 E, 184500 N
+turtlebot ( pose [ 130.0 278.5 0 40.06 ] color "red" )	# G150
+
+# TC50 "idle" location:        529446 E, 182366 N
+turtlebot ( pose [ 64.6 80.3 0 31.48 ] color "green" )	# TC50
+
+# E259 "idle" location:        529446 E, 182366 N
+turtlebot ( pose [ 64.8 80.6 0 41.48 ] color "blue" )	# E259

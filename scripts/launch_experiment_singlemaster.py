@@ -83,7 +83,11 @@ world_files = {
                'strand-restricted': {'clustered': 'strand_restricted_3_robots_clustered.world',
                                      'random': 'strand_restricted_3_robots_random.world'},
                'london': {'clustered': 'central_london.world'},
-               'islington': {'clustered': 'islington-scenario1.world'}
+               'islington': {'20161126002422': 'islington-20161126002422.world',
+                             '20161120003917': 'islington-20161120003917.world',
+                             '20160702002428': 'islington-20160702002428.world',
+                             '20161205002358': 'islington-20161205002358.world',
+                             '20160607002122': 'islington-20160607002122.world'}
                }
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
@@ -261,8 +265,8 @@ if __name__ == '__main__':
                         choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted', 'london', 'islington'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
-                        choices=['clustered', 'distributed', 'random',
-                                 'start1', 'start2', 'start3', 'start4', 'start5', 'start6'],
+                        # choices=['clustered', 'distributed', 'random',
+                        #          'start1', 'start2', 'start3', 'start4', 'start5', 'start6'],
                         help='Starting locations of the robots.')
     parser.add_argument('scenario_id',
                         help='Name of the scenario that defines task locations (and other properties).')

@@ -1328,7 +1328,7 @@ class Auctioneer:
         # identify_team(). We'd do it here, but can't until the
         # team has been identified.
 
-        time.sleep(3)
+        time.sleep(20)
 
     def init_publishers(self):
         rospy.loginfo('Initializing publishers...')
@@ -1361,7 +1361,7 @@ class Auctioneer:
                                           visualization_msgs.msg.Marker,
                                           queue_size=3)
 
-        time.sleep(3)
+        time.sleep(20)
 
     def on_new_task(self, new_task_msg):
         rospy.loginfo("Received new task: {0}".format(pp.pformat(new_task_msg)))

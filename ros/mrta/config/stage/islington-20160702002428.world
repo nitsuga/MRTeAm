@@ -1,0 +1,47 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+#resolution 0.02
+#resolution 0.5
+resolution 0.05
+
+#interval_sim 100  # simulation timestep in milliseconds
+interval_sim 50
+interval_real 50
+
+window
+( 
+  size [ 600.000 1200.000 ]
+  center [ 9.9 21.69 ]
+#  rotate [ 30 -15 ]
+
+  scale 25.0
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "islington"
+  bitmap "../maps/islington_roads_200dpi_inverse.png"
+#  size [4600 6200 2]
+#  pose [ 2302.0 3104.0 0 0 ]
+  size [460.0 620.0 2]
+  pose [ 230.1 310.40 0 0 ]
+
+)
+
+# IncidentID: 20160702002428
+
+# Islington map origin:        528800 E, 181600 N
+
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+
+# (G150) Dispatch location:    532300 E, 186700 N
+turtlebot ( pose [ 350.0 512.0 0 180.0 ] color "red" )	# G150
+
+# TC50 "idle" location:        529446 E, 182366 N
+turtlebot ( pose [ 64.6 80.3 0 31.48 ] color "green" )	# F250
+
+# G152 "idle" location:        529446 E, 182366 N
+turtlebot ( pose [ 64.8 80.6 0 41.48 ] color "blue" )	# Y955
