@@ -17,7 +17,7 @@ import time
 import random_poses
 
 # Paths to ROS binaries
-ROS_HOME = '/opt/ros/indigo'
+ROS_HOME = '/opt/ros/kinetic'
 # ROS_HOME = '/home/esch/opt/ros/indigo'
 ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 # ROSBAG = "{0}/bin/rosbag".format(ROS_HOME)
@@ -160,6 +160,7 @@ def launch_experiment(mechanism, map_image, map_yaml, map_scale, robot_buffer, w
                                   "map_file:={0}".format(map_yaml),
                                   "world_file:={0}".format(world_file),
                                   "scenario_id:={0}".format(scenario_id),
+                                  "task_file:={0}".format(scenario_id),
                                   "mechanism:={0}".format(mechanism),
                                   "classifier_name:={0}".format(args.classifier_name)])
     running_procs.append(main_proc)
