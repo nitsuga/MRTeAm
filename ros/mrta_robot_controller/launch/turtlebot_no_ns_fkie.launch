@@ -2,83 +2,47 @@
   <arg name="robot_name" default="robot_1" />
   <arg name="reallocate" default="False" />
 
-  <param name="/use_sim_time" value="$(arg simulation)"/>
+  <arg name="map_file" default="$(find mrta)/config/maps/smartlab_ugv_arena.yaml" />
 
-  <arg name="base"       default="$(optenv TURTLEBOT_BASE kobuki)"/>  <!-- create, rhoomba -->
-  <arg name="battery"    default="$(optenv TURTLEBOT_BATTERY /sys/class/power_supply/BAT0)"/>  <!-- /proc/acpi/battery/BAT0 in 2.6 or earlier kernels-->
-  <arg name="stacks"     default="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
-  <arg name="3d_sensor"  default="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
-  <arg name="simulation" default="$(optenv TURTLEBOT_SIMULATION false)"/>
+  <arg name="initial_pose_x" default="0.0" />
+  <arg name="initial_pose_y" default="0.0" />
+  <arg name="initial_pose_a" default="0.0" />
 
-  <arg name="map_file" default="$(find mrta)/config/maps/smartlab_ugv_arena.yaml"/>
+  <!-- turtlebot_bringup/minimal.launch -->
+  <include file="$(find turtlebot_bringup)/launch/minimal.launch" />
 
-  <!-- Map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
-    <param name="frame_id" value="/map" />
-  </node>
+  <!-- turtlebot_navigation/amcl_demo.launch -->
+  <include file="$(find turtlebot_navigation)/launch/amcl_demo.launch">
+    <arg name="map_file" value="$(arg map_file)" />
+    <arg name="initial_pose_x" value="$(arg initial_pose_x)" />
+    <arg name="initial_pose_y" value="$(arg initial_pose_y)" />
+    <arg name="initial_pose_a" value="$(arg initial_pose_a)" />
+  </include>
 
-    <remap from="map" to="/map" />
-  
-    <!-- turtlebot_bringup minimal.launch -->
-    <include file="$(find turtlebot_bringup)/launch/minimal.launch">
-      <arg name="zeroconf" value="false" />
-    </include>
-
-    <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
-      <arg name="rgb_processing" value="false" />
-      <arg name="depth_registration" value="false" />
-      <arg name="depth_processing" value="false" />
-    
-      <!-- We must specify an absolute topic name because if not it will be prefixed by "$(arg camera)".
-	   Probably is a bug in the nodelet manager: https://github.com/ros/nodelet_core/issues/7 --> 
-      <arg name="scan_topic" value="/scan" />
-    </include>
-
-    <arg name="initial_pose_x" default="0.0"/>
-    <arg name="initial_pose_y" default="0.0"/>
-    <arg name="initial_pose_a" default="0.0"/>
-
-    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/amcl_no_ns.launch.xml">
-      <arg name="initial_pose_x" value="$(arg initial_pose_x)"/>
-      <arg name="initial_pose_y" value="$(arg initial_pose_y)"/>
-      <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
-    </include>
-    
-    <include file="$(find mrta_robot_controller)/launch/include/turtlebot/move_base_no_ns.launch.xml"/>
-
-  <!--
-    Arguments to mrta_robot_controller:
+  <!-- mrta_robot_controller
+    Arguments:
       robot_name    - e.g. "robot_1"
       reallocate    - True/False: are we doing task reallocation?
       is_turtlebot  - True/False
     -->
-    <node name="mrta_robot_controller_$(arg robot_name)" pkg="mrta_robot_controller" type="mrta_robot_controller" output="screen">
-      <param name="robot_name" type="str" value="$(arg robot_name)" />
-      <param name="reallocate" type="bool" value="$(arg reallocate)" />
-      <param name="is_turtlebot" type="bool" value="True" />
-    </node>
+  <node name="mrta_robot_controller_$(arg robot_name)" pkg="mrta_robot_controller" type="mrta_robot_controller" output="screen">
+    <param name="robot_name" type="str" value="$(arg robot_name)" />
+    <param name="reallocate" type="bool" value="$(arg reallocate)" />
+    <param name="is_turtlebot" type="bool" value="True" />
+  </node>
 
-  <!-- END ROBOT -->
 
   <!-- FKIE master discovery -->
-  <!--<node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen" />-->
-<!--
-  <node pkg="master_discovery_fkie" type="zeroconf" name="master_discovery" output="screen" >
-    <param name="name" value="$(arg robot_name)_master"/>
-  </node>
--->
-
   <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen">
     <rosparam param="robot_hosts">['']</rosparam>
     <param name="name" value="$(arg robot_name)_master"/>
   </node>
-  
+
+
   <!-- FKIE master sync -->
   <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
     <rosparam param="sync_hosts">['auctioneer_master']</rosparam>
     <rosparam param="ignore_hosts">['robot_1','robot_1_master','robot_2','robot_2_master','robot_3','robot_3_master']</rosparam>
-
-    <!--<rosparam param="ignore_topics">['/map', '/camera/*']</rosparam>-->
     <rosparam param="ignore_nodes">
 [
 '/*amcl*',
