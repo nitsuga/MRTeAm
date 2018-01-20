@@ -244,13 +244,13 @@ class RobotController:
         else:
             rospy.loginfo("We're a simulated Turtlebot!")
 
-        # Topics we wish to subscribe to
-        self.announce_sub = self.award_sub = self.experiment_sub = self.amcl_pose_sub = self.status_sub = None
-        self.init_subscribers()
-
         # Topics we wish to publish
         self.amcl_echo_pub = self.bid_pub = self.task_status_pub = None
         self.init_publishers()
+
+        # Topics we wish to subscribe to
+        self.announce_sub = self.award_sub = self.experiment_sub = self.amcl_pose_sub = self.status_sub = None
+        self.init_subscribers()
 
         # actionlib client; used to send goals to the navigation stack
         if self.is_turtlebot:
@@ -465,6 +465,7 @@ class RobotController:
                                                  queue_size=10,
                                                  latch=True)
             rospy.loginfo("echoing /amcl_pose on /{0}/amcl_pose".format(self.robot_name))
+            rospy.loginfo("({0}) self.amcl_echo_pub == {1}".format(self.robot_name, self.amcl_echo_pub))
 
         # '/tasks/bid'
         self.bid_pub = rospy.Publisher('/tasks/bid',
@@ -894,7 +895,7 @@ class RobotController:
 
         # The mechanism determines the number and kind of bids we make
         if announce_msg.mechanism == 'OSI':
-            rospy.logdebug("({0}) mechanism == OSI".format(self.robot_name))
+            rospy.loginfo("({0}) mechanism == OSI".format(self.robot_name))
 
             task_msg = announce_msg.tasks[0]
 
@@ -909,8 +910,9 @@ class RobotController:
 
                 rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
                                                                   c_cost))
+
                 new_task_cost = self.get_path_cost(bid_from,
-                                                  self._point_to_pose(task_msg.location))
+                                                   self._point_to_pose(task_msg.location))
                 path_cost = c_cost + new_task_cost
 
             rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
@@ -1346,6 +1348,7 @@ class RobotController:
             if self.amcl_echo_pub:
                 self.amcl_echo_pub.publish(amcl_pose_msg)
         except AttributeError:
+            rospy.loginfo("({0}) on_tb_pose_received: error echoing pose to /{0}/amcl_pose!".format(self.robot_name))
             return
 
     def on_my_pose_received(self, amcl_pose_msg, r_name):
