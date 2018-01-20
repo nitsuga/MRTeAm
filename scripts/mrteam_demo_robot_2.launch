@@ -1,0 +1,1 @@
+TURTLEBOT_NAME=robot_2 roslaunch mrta_robot_controller turtlebot_no_ns_fkie.launch simulation:=false robot_name:=robot_2 map_file:=/home/interact-lab/mrteam_ws/src/mrta/config/maps/map-strand-first-floor-5cm.yaml initial_pose_x:=5.0 initial_pose_y:=24.8 initial_pose_a:=0.0
