@@ -12,7 +12,7 @@ import mrta.file_db
 TASKS_DB_FILENAME = 'tasks.db'
 
 
-def convert_task_files(task_dir):
+def convert_task_files(task_dir, force=False):
 
     task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
 
@@ -24,8 +24,8 @@ def convert_task_files(task_dir):
 
         # print("scenario_name: {0}".format(scenario_name))
 
-        if not task_db.exists(scenario_name):
-            print("{0} not found in tasks database, adding...".format(scenario_name))
+        if not task_db.exists(scenario_name) or force:
+            print("Writing {0} to task database...".format(scenario_name))
             try:
                 task_file = open(task_file, 'rb')
                 task_list = []
@@ -57,8 +57,13 @@ if __name__ == '__main__':
     parser.add_argument('task_dir',
                         help='The directory containing task file to convert.')
 
+    parser.add_argument('-f', '--force',
+                        action='store_true',
+                        help='Force saving the task to the database (overwrite).')
+
     args = parser.parse_args()
 
     task_dir = args.task_dir
+    force = args.force
 
-    sys.exit(convert_task_files(task_dir))
+    sys.exit(convert_task_files(task_dir, force))
