@@ -1357,7 +1357,8 @@ class RobotController:
     def _clear_of_other_robots(self):
 
         is_clear = True
-        for r_name in self.other_poses:
+        # Using .items() to make a copy of the dictionary *avoid dict changed size during iteration
+        for r_name, v in self.other_poses.items():
             other_pose = self.other_poses[r_name]
 
             if in_danger_zone(self.current_pose, other_pose) and self.robot_name > r_name and self.robot_status[r_name] == mrta.msg.TaskStatus.MOVING:
