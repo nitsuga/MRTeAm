@@ -268,7 +268,8 @@ class RobotController:
 
         # The name of the planner and 'clear_costmaps' services
         if self.is_turtlebot:
-            self.plan_srv_name = '/move_base/NavfnROS/make_plan'
+            # self.plan_srv_name = '/move_base/NavfnROS/make_plan'
+            self.plan_srv_name = '/move_base/GlobalPlanner/make_plan'
             self.cc_srv_name = '/move_base/clear_costmaps'
             self.glob_obs_layer_srv = '/move_base/global_costmap/obstacle_layer'
             self.glob_obs_layer_enabled = '/move_base/global_costmap/obstacle_layer/enabled'
