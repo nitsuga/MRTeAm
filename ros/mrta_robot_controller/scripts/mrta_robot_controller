@@ -62,7 +62,7 @@ RATE = 10
 # radians), we're in danger of colliding with it
 # DANGER_ZONE_FOV = math.pi / 2
 DANGER_ZONE_FOV = math.pi
-DANGER_ZONE_DIST = 0.5
+DANGER_ZONE_DIST = 0.3
 #DANGER_ZONE_DIST = 0.8
 
 # For pretty-printing convenience!
@@ -106,47 +106,48 @@ def in_danger_zone(my_pose, other_pose):
     if not my_pose or not other_pose:
         return in_danger
 
-    # Angle between my_pose and the positive y-axis
-
-    # my_pose orientation quaternion
-    my_q = (my_pose.orientation.x,
-            my_pose.orientation.y,
-            my_pose.orientation.z,
-            my_pose.orientation.w)
-    euler = tf.transformations.euler_from_quaternion(my_q)
-    my_yaw = euler[2]
-    rospy.logdebug("my_yaw == {0}".format(my_yaw))
-    d_theta = (math.pi / 2) - my_yaw
-    rospy.logdebug("d_theta == {0}".format(d_theta))
-
-    # Translate the treasure's position, pretending the robot is at the origin
-    trans_x = other_pose.position.x - my_pose.position.x
-    trans_y = other_pose.position.y - my_pose.position.y
-    rospy.logdebug("trans_x=={0}, trans_y=={1}".format(trans_x, trans_y))
-
-    # Rotate the translated point by d_theta
-    rot_x = (trans_x * math.cos(d_theta)) - (trans_y * math.sin(d_theta))
-    rot_y = (trans_x * math.sin(d_theta)) + (trans_y * math.cos(d_theta))
-    rospy.logdebug("rot_x=={0}, rot_y=={1}".format(rot_x, rot_y))
-
-    other_heading = math.atan2(rot_x, rot_y)
-    rospy.logdebug("other_pos heading is {0}".format(other_heading))
+#    # Angle between my_pose and the positive y-axis
+#
+#    # my_pose orientation quaternion
+#    my_q = (my_pose.orientation.x,
+#            my_pose.orientation.y,
+#            my_pose.orientation.z,
+#            my_pose.orientation.w)
+#    euler = tf.transformations.euler_from_quaternion(my_q)
+#    my_yaw = euler[2]
+#    rospy.logdebug("my_yaw == {0}".format(my_yaw))
+#    d_theta = (math.pi / 2) - my_yaw
+#    rospy.logdebug("d_theta == {0}".format(d_theta))
+#
+#    # Translate the treasure's position, pretending the robot is at the origin
+#    trans_x = other_pose.position.x - my_pose.position.x
+#    trans_y = other_pose.position.y - my_pose.position.y
+#    rospy.logdebug("trans_x=={0}, trans_y=={1}".format(trans_x, trans_y))
+#
+#    # Rotate the translated point by d_theta
+#    rot_x = (trans_x * math.cos(d_theta)) - (trans_y * math.sin(d_theta))
+#    rot_y = (trans_x * math.sin(d_theta)) + (trans_y * math.cos(d_theta))
+#    rospy.logdebug("rot_x=={0}, rot_y=={1}".format(rot_x, rot_y))
+#
+#    other_heading = math.atan2(rot_x, rot_y)
+#    rospy.logdebug("other_pos heading is {0}".format(other_heading))
 
     other_dist = math.hypot(other_pose.position.x - my_pose.position.x,
                             other_pose.position.y - my_pose.position.y)
 
-    in_fov = False
-    if -(DANGER_ZONE_FOV / 2) <= other_heading <= (DANGER_ZONE_FOV / 2):
-        in_fov = True
-
-    rospy.logdebug("in_fov=={0}".format(in_fov))
+#    in_fov = False
+#    if -(DANGER_ZONE_FOV / 2) <= other_heading <= (DANGER_ZONE_FOV / 2):
+#        in_fov = True
+#
+#    rospy.logdebug("in_fov=={0}".format(in_fov))
 
     in_dist = False
     if other_dist <= DANGER_ZONE_DIST:
         in_dist = True
     rospy.logdebug("in_dist=={0}".format(in_dist))
 
-    if in_fov and in_dist:
+#    if in_fov and in_dist:
+    if in_dist:
         in_danger = True
     rospy.logdebug("in_danger=={0}".format(in_danger))
 

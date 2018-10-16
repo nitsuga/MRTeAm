@@ -49,6 +49,7 @@
 '/interactions',
 '/*kobuki_safety_controller*',
 '/*map_server*',
+'/*master_discovery*',
 '/*mobile_base*',
 '/*mobile_base_nodelet_manager*',
 '/*move_base*',
