@@ -11,8 +11,8 @@
 - task_id: '1'
   type: SENSOR_SWEEP
   location:
-    x: 0.45
-    y: 2.75
+    x: 1.00
+    y: 2.00
   arrival_time: 0
   num_robots: 1
   duration: 0
@@ -21,8 +21,8 @@
 - task_id: '2'
   type: SENSOR_SWEEP
   location:
-    x: 1.75
-    y: 0.75
+    x: 3.00
+    y: 2.75
   arrival_time: 0
   num_robots: 1
   duration: 0
@@ -31,17 +31,17 @@
 - task_id: '3'
   type: SENSOR_SWEEP
   location:
-    x: 1.40
-    y: 1.75
+    x: 0.35
+    y: 0.75
   arrival_time: 0
   num_robots: 1
   duration: 0
-  depends: []
+  depends: ['4']
 
 - task_id: '4'
   type: SENSOR_SWEEP
   location:
-    x: 3.00
+    x: 0.45
     y: 2.75
   arrival_time: 0
   num_robots: 1
@@ -61,28 +61,28 @@
 - task_id: '6'
   type: SENSOR_SWEEP
   location:
-    x: 3.00
-    y: 0.75
-  arrival_time: 0
-  num_robots: 1
-  duration: 0
-  depends: []
-
-- task_id: '7'
-  type: SENSOR_SWEEP
-  location:
     x: 1.75
     y: 2.75
   arrival_time: 0
   num_robots: 1
   duration: 0
-  depends: []
+  depends: ['5']
+
+- task_id: '7'
+  type: SENSOR_SWEEP
+  location:
+    x: 2.35
+    y: 1.75
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: ['8']
 
 - task_id: '8'
   type: SENSOR_SWEEP
   location:
     x: 0.35
-    y: 0.75
+    y: 1.75
   arrival_time: 0
   num_robots: 1
   duration: 0

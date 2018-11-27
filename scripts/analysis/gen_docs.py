@@ -21,7 +21,8 @@ import subprocess
 # Debugging
 pp = pprint.PrettyPrinter(indent=4)
 
-DEFAULT_HOSTNAME = 'eschneider'
+# DEFAULT_HOSTNAME = 'eschneider'
+DEFAULT_HOSTNAME = 'king'
 DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/scripts/analysis')
 DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/docs/stat_templates')
 
@@ -51,13 +52,13 @@ def gen_docs(scenario_id, bag_paths, hostname, script_dir, template_dir):
     subprocess.check_call([plot_path, 'stats.csv', scenario_id], shell=False)
 
     # # 2. Run plot_trajectory.py to plot trajectories
-    # trajectory_path = os.path.join(script_dir, trajectory_script)
-    # subprocess.check_call([trajectory_path] + bag_paths, shell=False)
-    #
-    # # 3. Run plot_timeline.py to plot timelines
-    # timeline_path = os.path.join(script_dir, timeline_script)
-    # print("timeline_path: {0}".format(timeline_path))
-    # subprocess.check_call([timeline_path] + bag_paths, shell=False)
+    trajectory_path = os.path.join(script_dir, trajectory_script)
+    subprocess.check_call([trajectory_path] + bag_paths, shell=False)
+    
+    # 3. Run plot_timeline.py to plot timelines
+    timeline_path = os.path.join(script_dir, timeline_script)
+    print("timeline_path: {0}".format(timeline_path))
+    subprocess.check_call([timeline_path] + bag_paths, shell=False)
 
     # 4. Copy the stat_summary.tex tempalte to the current directory. Change its name
     #    to reflect the given hostname and task file.
@@ -106,7 +107,7 @@ if __name__ == "__main__":
 
     parser.add_argument('scenario_id',
                         type=str,
-                        required=True,
+#                        required=True,
                         help='Task file to document.')
 
     parser.add_argument('--hostname',

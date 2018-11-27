@@ -9,7 +9,9 @@ import mrta
 import mrta.file_db
 import mrta.msg
 import os
+from os import listdir
 import os.path
+from os.path import isdir, isfile, join
 import re
 import rosbag
 import rospkg
@@ -28,12 +30,18 @@ TASKS_DB_FILENAME = 'tasks.db'
 
 # strand map
 # IMG_WIDTH, IMG_HEIGHT = 376, 868
-IMG_WIDTH, IMG_HEIGHT = 1880, 4338
+#IMG_WIDTH, IMG_HEIGHT = 1880, 4338
+
+# SEB15 map
+IMG_WIDTH, IMG_HEIGHT = 350, 360
+#IMG_WIDTH, IMG_HEIGHT = 68, 70
 
 # Every pixel of our '5cm' map represents 6.65cm. To convert from ROS coordinates
 # to pixels we need the inverse of that
 # SCALING_FACTOR = 0.15037594
-SCALING_FACTOR = 0.751879699
+#SCALING_FACTOR = 0.751879699
+#SCALING_FACTOR= 0.2
+SCALING_FACTOR = 1.0
 
 # Default location of task (target point) files
 TASK_FILES_DEFAULT = "{0}/task_files".format(rospkg.RosPack().get_path('mrta_auctioneer'))
@@ -43,12 +51,20 @@ stroke_colors = {'robot_1': (1.0, 0.0, 0.0),  # Red
                  'robot_3': (0.0, 0.0, 1.0)}  # Blue
 
 # Robot start locations
-start_locations = {'clustered': ((155.0, 150.0),
-                                 (50.0, 150.0),
-                                 (50.0, 50.0)),
-                   'distributed': ((750.0, 550.0),
-                                   (50.0, 550.0),
-                                   (50.0, 50.0)),
+#start_locations = {'clustered': ((155.0, 150.0),
+#                                 (50.0, 150.0),
+#                                 (50.0, 50.0)),
+#                   'distributed': ((750.0, 550.0),
+#                                   (50.0, 550.0),
+#                                   (50.0, 50.0)),
+#                   'random': []}
+
+start_locations = {'clustered': ((290.0, 203.0),
+                                 (290.0, 170.0),
+                                 (290.0, 130.0)),
+                   'distributed': ((312.0, 312.0),
+                                   (40.0, 312.0),
+                                   (40.0, 35.0)),
                    'random': []}
 
 target_point_configs = {}
@@ -97,6 +113,18 @@ def read_point_config(task_db, scenario_id):
     target_point_configs[scenario_id] = {}
     for task in scenario:
         target_point_configs[scenario_id][task.task_id] = (task.locaion.x, task.location.y)
+
+
+def read_point_configs(task_dir):
+
+    task_filenames = [ f for f in listdir(task_dir) if isfile(join(task_dir,f)) and f.endswith("yaml")]
+
+    for task_filename in task_filenames:
+        task_file_path = join(task_dir, task_filename)
+
+        print "Reading points from {0}...".format(task_file_path)
+        task_file = open(task_file_path, "rb")
+        target_point_configs[task_filename.replace(".yaml","")] = _read_points(task_file)
 
 
 def draw_arena(ctx):
@@ -414,10 +442,10 @@ def draw_trajectories(ctx, run_msgs):
 #             print('pose_elapsed_secs: {0}'.format(pose_elapsed_secs))
 #             print('move_total_secs: {0}'.format(move_total_secs))
 
-            # alpha = pose_elapsed_secs / move_total_secs
+            #alpha = pose_elapsed_secs / move_total_secs
             alpha = 1.0
 
-            # print('alpha: {0}'.format(alpha))
+#            print('alpha: {0}'.format(alpha))
             ctx.set_source_rgba(stroke_color[0], stroke_color[1], stroke_color[2], alpha)
 
             amcl_pose = amcl_msg.pose.pose
@@ -451,13 +479,15 @@ def plot_trajectory(bag_paths, task_dir, map_file):
     if not os.path.exists(traj_dir):
         os.makedirs(traj_dir)
 
-    task_db = None
-    try:
-        # Save the poses in the tasks database
-        task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
-    except IOError:
-        print "Couldn't read tasks from {0}! Exiting.".format(TASKS_DB_FILENAME)
-        sys.exit(1)
+    read_point_configs(task_dir)
+
+#    task_db = None
+#    try:
+#        # Save the poses in the tasks database
+#        task_db = mrta.file_db.FileDB(TASKS_DB_FILENAME)
+#    except IOError:
+#        print "Couldn't read tasks from {0}! Exiting.".format(TASKS_DB_FILENAME)
+#        sys.exit(1)
 
     for bag_path in bag_paths:
         print("Reading {0}".format(bag_path))
@@ -492,11 +522,11 @@ def plot_trajectory(bag_paths, task_dir, map_file):
         bag_filename = os.path.basename(bag_path)
         (map, start_config, mechanism, scenario_id, remainder) = bag_filename.split('__')
 
-        if scenario_id not in target_point_configs:
-            read_point_config(task_db, scenario_id)
+#        if scenario_id not in target_point_configs:
+#            read_point_config(task_db, scenario_id)
 
         # Create a Cairo surface and get a handle to its context
-        # surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
+        #surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, IMG_WIDTH, IMG_HEIGHT)
         print("Opening map file {0}".format(map_file))
         surface = cairo.ImageSurface.create_from_png(map_file)
 
@@ -508,9 +538,9 @@ def plot_trajectory(bag_paths, task_dir, map_file):
         ctx.scale(IMG_WIDTH, IMG_HEIGHT)
 
         # Paint a white background
-        # ctx.set_source_rgb(1.0, 1.0, 1.0)
-        # ctx.rectangle(0, 0, 1.0, 1.0)
-        # ctx.fill()
+#        ctx.set_source_rgb(1.0, 1.0, 1.0)
+#        ctx.rectangle(0, 0, 1.0, 1.0)
+#        ctx.fill()
 
         # draw_arena(ctx)
 
@@ -527,7 +557,7 @@ def plot_trajectory(bag_paths, task_dir, map_file):
 
             draw_start_locs(ctx, start_config, run_msgs)
 
-            draw_paths_to_medians(ctx, start_config, run_msgs, target_points)
+#            draw_paths_to_medians(ctx, start_config, run_msgs, target_points)
 
             draw_trajectories(ctx, run_msgs)
         except:
@@ -558,6 +588,7 @@ if __name__ == "__main__":
                         help="Location of task configuration (target point) files")
 
     parser.add_argument('--map_file', '-m',
+                        default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-arena-350.png',
                         help="Path to the map file to draw on top of")
 
     args = parser.parse_args()

@@ -15,7 +15,8 @@ from scipy import stats
 pp = pprint.PrettyPrinter(indent=4)
 
 # Some global constants
-mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'SUM', 'MAX']
+# mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'SUM', 'MAX']
+mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
 start_configs = ['clustered', 'distributed']
 
 # task_files = ['SR-IT-DA-scenario2.yaml', 'SR-CT-DA-scenario2.yaml',
@@ -417,7 +418,7 @@ def main(argv):
         # Stats by point config
         for task_file in task_files:
 
-            af = aframe[aframe.START_CONFIG == start_config][aframe.TASK_FILE == task_file]
+            af = aframe[aframe.START_CONFIG == start_config][aframe.SCENARIO_ID == task_file]
 
             # task_file = task_file.replace('.txt', '')
             task_file = task_file.replace('.yaml', '')

@@ -12,7 +12,9 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 
-CONFIG_FILE_DEFAULT = 'reset_positions.yaml'
+# CONFIG_FILE_DEFAULT = 'reset_positions.yaml'
+CONFIG_FILE_DEFAULT = 'reset_positions-tb3.yaml'
+
 award_pub = None
 experiment_pub = None
 
