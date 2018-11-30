@@ -51,7 +51,11 @@ maps = {'brooklyn': 'brooklyn_lab.png',
         'strand-restricted': {'image': 'map-strand-first-floor-restricted-5cm.png',
                               'yaml': 'map-strand-first-floor-restricted-5cm.yaml',
                               'robot_buffer': 10,
-                              'scale': 6.65}}
+                              'scale': 6.65},
+        'seb15': {'image': 'SEB15-arena.png',
+                  'yaml': 'SEB15-arena.yaml',
+                  'robot_buffer': 10,
+                  'scale': 1.0}}
 
 world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
                             'distributed': 'brooklyn_arena_3_robots_distributed.world',
@@ -69,7 +73,9 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                'strand': {'clustered': 'strand_restricted_3_robots_clustered.world',
                           'random': 'strand_restricted_3_robots_random.world'},
                'strand-restricted': {'clustered': 'strand_restricted_3_robots_clustered.world',
-                                     'random': 'strand_restricted_3_robots_random.world'}}
+                                     'random': 'strand_restricted_3_robots_random.world'},
+               'seb15': {'clustered': 'SEB15_arena_3_robots_clustered.world',
+                         'distributed': 'SEB15_arena_3_robots_distributed.world'}}
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
@@ -233,7 +239,7 @@ if __name__ == '__main__':
                         choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX', 'SEL'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
-                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted'],
+                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted', 'seb15'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
                         choices=['clustered', 'distributed', 'random',

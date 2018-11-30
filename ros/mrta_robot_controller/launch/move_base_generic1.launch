@@ -38,7 +38,7 @@
       <param name="controller_patience" value="10.0"/>
 
       <!-- The distance away from the robot (in meters) at which obstacles will be cleated
-           from the costmap when attampting to clear space in the map. -->
+           from the costmap when attempting to clear space in the map. -->
       <param name="conservative_reset_dist" value="3.0"/>
 
       <rosparam param="recovery_behaviors">
