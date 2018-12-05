@@ -278,13 +278,13 @@ class RobotController:
             self.glob_static_layer_enabled = '/move_base/global_costmap/static_layer/enabled'
         else:
             # self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
-            self.plan_srv_name = "/{0}/move_base_node/GlobalPlanner/make_plan".format(self.robot_name)
+            self.plan_srv_name = "/{0}/move_base/GlobalPlanner/make_plan".format(self.robot_name)
             # self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
-            self.cc_srv_name = "/{0}/move_base_node/clear_costmaps".format(self.robot_name)
-            self.glob_obs_layer_srv = "/{0}/move_base_node/global_costmap/obstacle_layer".format(self.robot_name)
-            self.glob_obs_layer_enabled = '/{0}/move_base_node/global_costmap/obstacle_layer/enabled'.format(self.robot_name)
-            self.glob_static_layer_srv = '/{0}/move_base_node/global_costmap/static_layer'.format(self.robot_name)
-            self.glob_static_layer_enabled = '/{0}/move_base_node/global_costmap/static_layer/enabled'.format(self.robot_name)
+            self.cc_srv_name = "/{0}/move_base/clear_costmaps".format(self.robot_name)
+            self.glob_obs_layer_srv = "/{0}/move_base/global_costmap/obstacle_layer".format(self.robot_name)
+            self.glob_obs_layer_enabled = '/{0}/move_base/global_costmap/obstacle_layer/enabled'.format(self.robot_name)
+            self.glob_static_layer_srv = '/{0}/move_base/global_costmap/static_layer'.format(self.robot_name)
+            self.glob_static_layer_enabled = '/{0}/move_base/global_costmap/static_layer/enabled'.format(self.robot_name)
 
         rospy.loginfo("Starting obstacle_layer parameter client:")
         # rospy.loginfo(self.glob_obs_layer_srv)

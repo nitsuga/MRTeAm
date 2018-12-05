@@ -45,9 +45,19 @@
     <group ns="robot_1">
         <param name="tf_prefix" value="robot_1"/>
 
+        <!--&lt;!&ndash; turtlebot3_kcl_navigation/amcl.launch &ndash;&gt;-->
+        <!--<include file="$(find turtlebot3_kcl_navigation)/launch/amcl.launch">-->
+            <!--<arg name="odom_frame_id" value="robot_1/odom"/>-->
+            <!--<arg name="base_frame_id" value="robot_1/base_link"/>-->
+            <!--<arg name="scan_topic" value="robot_1/base_scan"/>-->
+        <!--</include>-->
+
         <!-- turtlebot3_kcl_navigation/move_base.launch -->
         <include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">
             <arg name="model" value="$(arg model)" />
+            <arg name="cmd_vel_topic" value="robot_1/cmd_vel"/>
+            <arg name="odom_topic" value="robot_1/odom"/>
+            <remap from="scan" to="base_scan"/>
         </include>
 
         <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
@@ -81,83 +91,41 @@
 
         <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
             <!--<param name="publish_frequency" type="double" value="50.0" />-->
+            <!--<param name="tf_prefix" type="string" value="robot_1" />-->
         <!--</node>-->
 
     </group>
     <!-- END ROBOT 1 -->
 
-    <!--&lt;!&ndash; BEGIN ROBOT 2 &ndash;&gt;-->
-    <!--<group ns="robot_2">-->
-        <!--<param name="tf_prefix" value="robot_2"/>-->
+    <!-- BEGIN ROBOT 2 -->
+    <group ns="robot_2">
+        <param name="tf_prefix" value="robot_2"/>
 
-        <!--&lt;!&ndash; turtlebot3_kcl_navigation/move_base.launch &ndash;&gt;-->
-        <!--<include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">-->
-            <!--<arg name="model" value="$(arg model)" />-->
-        <!--</include>-->
+        <!-- turtlebot3_kcl_navigation/move_base.launch -->
+        <include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">
+            <arg name="model" value="$(arg model)" />
+            <arg name="cmd_vel_topic" value="robot_2/cmd_vel"/>
+            <arg name="odom_topic" value="robot_2/odom"/>
+        </include>
 
-        <!--<node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">-->
-            <!--<param name="odom_frame_id" value="robot_2/odom"/>-->
-            <!--<param name="base_frame_id" value="robot_2/base_link"/>-->
-            <!--<param name="publish_frequency" value="5.0"/>-->
-        <!--</node>-->
+        <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
+            <param name="odom_frame_id" value="robot_2/odom"/>
+            <param name="base_frame_id" value="robot_2/base_link"/>
+            <param name="publish_frequency" value="5.0"/>
+        </node>
 
-        <!--&lt;!&ndash;-->
-        <!--Arguments to mrta_robot_controller:-->
-          <!--robot_name    - e.g. "robot_1"-->
-          <!--reallocate    - True/False: are we doing task reallocation?-->
-          <!--is_turtlebot  - True/False-->
-        <!--&ndash;&gt;-->
-        <!--<node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false"-->
-              <!--required="true" output="screen">-->
-            <!--<param name="robot_name" type="str" value="robot_2"/>-->
-            <!--<param name="reallocate" type="bool" value="$(arg reallocate)"/>-->
-            <!--<param name="is_turtlebot" type="bool" value="False"/>-->
-        <!--</node>-->
-
-        <!--&lt;!&ndash;  ***************** Robot Model *****************  &ndash;&gt;-->
-        <!--<include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">-->
-            <!--<arg name="model" value="$(arg model)" />-->
-        <!--</include>-->
-
-        <!--<node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">-->
-            <!--<param name="use_gui" value="false"/>-->
-            <!--<param name="rate" value="50"/>-->
-        <!--</node>-->
-
-        <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
-            <!--<param name="publish_frequency" type="double" value="50.0" />-->
-        <!--</node>-->
-
-    <!--</group>-->
-    <!--&lt;!&ndash; END ROBOT 2 &ndash;&gt;-->
-
-    <!--&lt;!&ndash; BEGIN ROBOT 3 &ndash;&gt;-->
-    <!--<group ns="robot_3">-->
-        <!--<param name="tf_prefix" value="robot_3"/>-->
-
-        <!--&lt;!&ndash; turtlebot3_kcl_navigation/move_base.launch &ndash;&gt;-->
-        <!--<include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">-->
-            <!--<arg name="model" value="$(arg model)" />-->
-        <!--</include>-->
-
-        <!--<node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">-->
-            <!--<param name="odom_frame_id" value="robot_3/odom"/>-->
-            <!--<param name="base_frame_id" value="robot_3/base_link"/>-->
-            <!--<param name="publish_frequency" value="5.0"/>-->
-        <!--</node>-->
-
-        <!--&lt;!&ndash;-->
-        <!--Arguments to mrta_robot_controller:-->
-          <!--robot_name    - e.g. "robot_1"-->
-          <!--reallocate    - True/False: are we doing task reallocation?-->
-          <!--is_turtlebot  - True/False-->
-        <!--&ndash;&gt;-->
-        <!--<node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false"-->
-              <!--required="true" output="screen">-->
-            <!--<param name="robot_name" type="str" value="robot_3"/>-->
-            <!--<param name="reallocate" type="bool" value="$(arg reallocate)"/>-->
-            <!--<param name="is_turtlebot" type="bool" value="False"/>-->
-        <!--</node>-->
+        <!--
+        Arguments to mrta_robot_controller:
+          robot_name    - e.g. "robot_1"
+          reallocate    - True/False: are we doing task reallocation?
+          is_turtlebot  - True/False
+        -->
+        <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false"
+              required="true" output="screen">
+            <param name="robot_name" type="str" value="robot_2"/>
+            <param name="reallocate" type="bool" value="$(arg reallocate)"/>
+            <param name="is_turtlebot" type="bool" value="False"/>
+        </node>
 
         <!--&lt;!&ndash;  ***************** Robot Model *****************  &ndash;&gt;-->
         <!--<include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">-->
@@ -173,8 +141,55 @@
             <!--<param name="publish_frequency" type="double" value="50.0" />-->
         <!--</node>-->
 
-    <!--</group>-->
-    <!--&lt;!&ndash; END ROBOT 3 &ndash;&gt;-->
+    </group>
+    <!-- END ROBOT 2 -->
+
+    <!-- BEGIN ROBOT 3 -->
+    <group ns="robot_3">
+        <param name="tf_prefix" value="robot_3"/>
+
+        <!-- turtlebot3_kcl_navigation/move_base.launch -->
+        <include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">
+            <arg name="model" value="$(arg model)" />
+            <arg name="cmd_vel_topic" value="robot_3/cmd_vel"/>
+            <arg name="odom_topic" value="robot_3/odom"/>
+        </include>
+
+        <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
+            <param name="odom_frame_id" value="robot_3/odom"/>
+            <param name="base_frame_id" value="robot_3/base_link"/>
+            <param name="publish_frequency" value="5.0"/>
+        </node>
+
+        <!--
+        Arguments to mrta_robot_controller:
+          robot_name    - e.g. "robot_1"
+          reallocate    - True/False: are we doing task reallocation?
+          is_turtlebot  - True/False
+        -->
+        <node name="mrta_robot_controller" pkg="mrta_robot_controller" type="mrta_robot_controller" respawn="false"
+              required="true" output="screen">
+            <param name="robot_name" type="str" value="robot_3"/>
+            <param name="reallocate" type="bool" value="$(arg reallocate)"/>
+            <param name="is_turtlebot" type="bool" value="False"/>
+        </node>
+
+        <!--&lt;!&ndash;  ***************** Robot Model *****************  &ndash;&gt;-->
+        <!--<include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">-->
+            <!--<arg name="model" value="$(arg model)" />-->
+        <!--</include>-->
+
+        <!--<node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">-->
+            <!--<param name="use_gui" value="false"/>-->
+            <!--<param name="rate" value="50"/>-->
+        <!--</node>-->
+
+        <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
+            <!--<param name="publish_frequency" type="double" value="50.0" />-->
+        <!--</node>-->
+
+    </group>
+    <!-- END ROBOT 3 -->
 
     <node name="mrta_auctioneer" pkg="mrta_auctioneer" type="mrta_auctioneer" required="true" output="screen">
         <param name="task_file" value="$(find mrta_auctioneer)/task_files/$(arg task_file)"/>

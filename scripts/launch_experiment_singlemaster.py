@@ -52,8 +52,12 @@ maps = {'brooklyn': 'brooklyn_lab.png',
                               'yaml': 'map-strand-first-floor-restricted-5cm.yaml',
                               'robot_buffer': 10,
                               'scale': 6.65},
-        'seb15': {'image': 'SEB15-arena.png',
-                  'yaml': 'SEB15-arena.yaml',
+        # 'seb15': {'image': 'SEB15-arena.png',
+        #           'yaml': 'SEB15-arena.yaml',
+        #           'robot_buffer': 10,
+        #           'scale': 1.0}}
+        'seb15': {'image': 'SEB15-arena-clean.png',
+                  'yaml': 'SEB15-arena-clean.yaml',
                   'robot_buffer': 10,
                   'scale': 1.0}}
 
