@@ -174,7 +174,7 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
 
     # Make sure intervals are sorted
     intervals = sorted(intervals, key=lambda x: x[0])
-    # print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
+    print("{0} intervals: {1}".format(robot_name, pp.pformat(intervals)))
 
     # For each interval in 'exec_phase_intervals', run through 'intervals' and see if there is a
     # gap between 'moving' or 'waiting' interval end times and the end of the execution phase interval
@@ -204,6 +204,15 @@ def _get_idle_intervals(intervals, exec_phase_intervals, robot_name):
 
             if start_valid or end_valid:
                 last_exec_interval = interval
+
+        # If either:
+        #   - there are no moving/waiting intervals
+        #   - no moving/waiting intervals occurred in this exec_phase_interval
+        # then it was idle during the entire exec_phase_interval. Record the entire
+        # execution phase as idle time.
+        if not intervals or (start_valid==False and end_valid==False):
+            idle_intervals.append([exec_phase_begin_time, exec_phase_end_time, 'idle'])
+            continue
 
         # print("exec_phase_interval: {0}".format(pp.pformat(exec_phase_interval)))
         # print("last_exec_interval: {0}".format(pp.pformat(last_exec_interval)))
@@ -530,9 +539,9 @@ def parse_stats(bag_paths, output):
                 print("{0} was awarded tasks {1} but there is no record of successful completion!".format(r_name, pp.pformat(robot.tasks)))
                 inconsistent_tasks = True
 
-            if not robot.exec_phase_begin_stamp or not robot.exec_phase_end_stamp:
-                print("Can not determine beginning or end time of {0}'s exec phase!".format(r_name))
-                continue
+#            if not robot.exec_phase_begin_stamp or not robot.exec_phase_end_stamp:
+#                print("Can not determine beginning or end time of {0}'s exec phase!".format(r_name))
+#                continue
 
             # 'moving' intervals
             moving_intervals = _get_intervals(mrta.msg.TaskStatus.MOVING,
