@@ -55,9 +55,7 @@
         <!-- turtlebot3_kcl_navigation/move_base.launch -->
         <include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">
             <arg name="model" value="$(arg model)" />
-            <arg name="cmd_vel_topic" value="robot_1/cmd_vel"/>
-            <arg name="odom_topic" value="robot_1/odom"/>
-            <remap from="scan" to="base_scan"/>
+            <arg name="scan_topic" value="base_scan"/>
         </include>
 
         <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
@@ -79,20 +77,20 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
-        <!--&lt;!&ndash;  ***************** Robot Model *****************  &ndash;&gt;-->
-        <!--<include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">-->
-            <!--<arg name="model" value="$(arg model)" />-->
-        <!--</include>-->
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">
+            <arg name="model" value="$(arg model)" />
+        </include>
 
-        <!--<node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">-->
-            <!--<param name="use_gui" value="false"/>-->
-            <!--<param name="rate" value="50"/>-->
-        <!--</node>-->
+        <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+            <param name="rate" value="50"/>
+        </node>
 
-        <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
-            <!--<param name="publish_frequency" type="double" value="50.0" />-->
-            <!--<param name="tf_prefix" type="string" value="robot_1" />-->
-        <!--</node>-->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0" />
+            <param name="tf_prefix" type="string" value="robot_1" />
+        </node>
 
     </group>
     <!-- END ROBOT 1 -->
@@ -104,8 +102,7 @@
         <!-- turtlebot3_kcl_navigation/move_base.launch -->
         <include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">
             <arg name="model" value="$(arg model)" />
-            <arg name="cmd_vel_topic" value="robot_2/cmd_vel"/>
-            <arg name="odom_topic" value="robot_2/odom"/>
+            <arg name="scan_topic" value="base_scan"/>
         </include>
 
         <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
@@ -127,19 +124,19 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
-        <!--&lt;!&ndash;  ***************** Robot Model *****************  &ndash;&gt;-->
-        <!--<include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">-->
-            <!--<arg name="model" value="$(arg model)" />-->
-        <!--</include>-->
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">
+            <arg name="model" value="$(arg model)" />
+        </include>
 
-        <!--<node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">-->
-            <!--<param name="use_gui" value="false"/>-->
-            <!--<param name="rate" value="50"/>-->
-        <!--</node>-->
+        <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+            <param name="rate" value="50"/>
+        </node>
 
-        <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
-            <!--<param name="publish_frequency" type="double" value="50.0" />-->
-        <!--</node>-->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0" />
+        </node>
 
     </group>
     <!-- END ROBOT 2 -->
@@ -151,8 +148,7 @@
         <!-- turtlebot3_kcl_navigation/move_base.launch -->
         <include file="$(find turtlebot3_kcl_navigation)/launch/move_base.launch">
             <arg name="model" value="$(arg model)" />
-            <arg name="cmd_vel_topic" value="robot_3/cmd_vel"/>
-            <arg name="odom_topic" value="robot_3/odom"/>
+            <arg name="scan_topic" value="base_scan"/>
         </include>
 
         <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false" output="screen">
@@ -174,19 +170,19 @@
             <param name="is_turtlebot" type="bool" value="False"/>
         </node>
 
-        <!--&lt;!&ndash;  ***************** Robot Model *****************  &ndash;&gt;-->
-        <!--<include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">-->
-            <!--<arg name="model" value="$(arg model)" />-->
-        <!--</include>-->
+        <!--  ***************** Robot Model *****************  -->
+        <include file="$(find turtlebot3_bringup)/launch/includes/description.launch.xml">
+            <arg name="model" value="$(arg model)" />
+        </include>
 
-        <!--<node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">-->
-            <!--<param name="use_gui" value="false"/>-->
-            <!--<param name="rate" value="50"/>-->
-        <!--</node>-->
+        <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
+            <param name="use_gui" value="false"/>
+            <param name="rate" value="50"/>
+        </node>
 
-        <!--<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
-            <!--<param name="publish_frequency" type="double" value="50.0" />-->
-        <!--</node>-->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0" />
+        </node>
 
     </group>
     <!-- END ROBOT 3 -->
