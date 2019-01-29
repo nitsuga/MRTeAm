@@ -1,0 +1,90 @@
+# task_id:      A unique identifier.
+# type:         Just 'SENSOR_SWEEP' for now, but may also include 'FIRE' or 'DEBRIS' in the future.
+# arrival_time: Time (seconds) after start of an experiment that the task "appears"
+# location:     x,y coordinates of the task's location
+# num_robots:   Number of robots required to complete the task
+# duration:     Time (seconds) required to complete the task
+# depends:      Array of tasks (task_ids) that this task depends on; i.e., tasks that must be
+#               completed before this one can start.
+
+---
+- task_id: '1'
+  type: SENSOR_SWEEP
+  location:
+    x: 0.25
+    y: 2.50
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: []
+
+- task_id: '2'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.45
+    y: 0.60
+  arrival_time: 0
+  num_robots: 2
+  duration: 0
+  depends: []
+
+- task_id: '3'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.20
+    y: 1.60
+  arrival_time: 0
+  num_robots: 2
+  duration: 0
+  depends: []
+
+- task_id: '4'
+  type: SENSOR_SWEEP
+  location:
+    x: 2.85
+    y: 2.50
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: ['3']
+
+- task_id: '5'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.95
+    y: 1.60
+  arrival_time: 0
+  num_robots: 2
+  duration: 0
+  depends: []
+
+- task_id: '6'
+  type: SENSOR_SWEEP
+  location:
+    x: 2.85
+    y: 0.60
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: ['5']
+
+- task_id: '7'
+  type: SENSOR_SWEEP
+  location:
+    x: 1.45
+    y: 2.65
+  arrival_time: 0
+  num_robots: 2
+  duration: 0
+  depends: []
+
+- task_id: '8'
+  type: SENSOR_SWEEP
+  location:
+    x: 0.25
+    y: 0.60
+  arrival_time: 0
+  num_robots: 1
+  duration: 0
+  depends: ['7']
+
