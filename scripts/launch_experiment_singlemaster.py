@@ -24,9 +24,9 @@ ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
 
 # How many seconds to wait before killing all processes
-TIMEOUT_DEFAULT = 1200
+TIMEOUT_DEFAULT = 600 
 # PSI can take longer than other mechanisms, with the clustered start config
-TIMEOUT_PSI = 1200
+TIMEOUT_PSI = 600
 
 # Keep track of processes to terminate when done
 running_procs = []
@@ -59,7 +59,11 @@ maps = {'brooklyn': 'brooklyn_lab.png',
         'seb15': {'image': 'SEB15-arena-clean.png',
                   'yaml': 'SEB15-arena-clean.yaml',
                   'robot_buffer': 10,
-                  'scale': 1.0}}
+                  'scale': 1.0},
+        'seb15-mr': {'image': 'SEB15-MR-arena-clean.png',
+                     'yaml': 'SEB15-MR-arena-clean.yaml',
+                     'robot_buffer': 10,
+                     'scale': 1.0}}
 
 world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.world',
                             'distributed': 'brooklyn_arena_3_robots_distributed.world',
@@ -79,7 +83,10 @@ world_files = {'brooklyn': {'clustered': 'brooklyn_arena_3_robots_clustered.worl
                'strand-restricted': {'clustered': 'strand_restricted_3_robots_clustered.world',
                                      'random': 'strand_restricted_3_robots_random.world'},
                'seb15': {'clustered': 'SEB15_arena_3_robots_clustered.world',
-                         'distributed': 'SEB15_arena_3_robots_distributed.world'}}
+                         'distributed': 'SEB15_arena_3_robots_distributed.world'},
+               'seb15-mr': {'clustered': 'SEB15_MR_arena_3_robots_clustered.world',
+                            'distributed': 'SEB15_MR_arena_3_robots_distributed.world'}}
+
 
 mechanisms = ['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX']
 
@@ -243,7 +250,7 @@ if __name__ == '__main__':
                         choices=['OSI', 'PSI', 'SSI', 'RR', 'SUM', 'MAX', 'SEL'],
                         help='Mechanism to allocate tasks.')
     parser.add_argument('map',
-                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted', 'seb15'],
+                        choices=['brooklyn', 'smartlab', 'strand', 'strand-restricted', 'seb15', 'seb15-mr'],
                         help='Map through which the robots move.')
     parser.add_argument('start_config',
                         choices=['clustered', 'distributed', 'random',

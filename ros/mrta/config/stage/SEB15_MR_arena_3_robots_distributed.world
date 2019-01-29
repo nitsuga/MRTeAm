@@ -1,0 +1,36 @@
+include "floorplan.inc"
+include "robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+resolution 0.02
+
+#interval_sim 100  # simulation timestep in milliseconds
+interval_sim 50
+interval_real 50
+
+window
+( 
+  size [ 1024.000 1024.000 ]
+  center [ 1.59 1.59 ]
+#  rotate [ 30 -15 ]
+
+  scale 200.0
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "smartlab_ugv_arena"
+  bitmap "../maps/SEB15-MR-arena-clean.png"
+#  size [3.18 3.18 0.53]
+#  pose [ 1.59 1.59 0 0 ]
+  size [3.18 3.18 0.53]
+  pose [ 1.59 1.59 0 0 ]
+)
+
+# Our robots
+
+dummy( pose [ 0.0 0.0 0.0 0.0 ] )			# "robot_0", nowhere!
+burger ( pose [ 3.00 2.94 0 180.0 ] color "red" )	# "robot_1", "sw room, upper right"
+burger ( pose [ 0.17 2.94 0 0.0 ] color "green" )	# "robot_2", "sw room, upper left"
+burger ( pose [ 0.17 0.21 0 0.0 ] color "blue" )	# "robot_3", "sw room, lower left"
