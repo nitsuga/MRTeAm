@@ -24,9 +24,9 @@ ROSLAUNCH = "{0}/bin/roslaunch".format(ROS_HOME)
 ROSBAG = "{0}/lib/rosbag/record".format(ROS_HOME)
 
 # How many seconds to wait before killing all processes
-TIMEOUT_DEFAULT = 600 
+TIMEOUT_DEFAULT = 350 
 # PSI can take longer than other mechanisms, with the clustered start config
-TIMEOUT_PSI = 600
+TIMEOUT_PSI = 350
 
 # Keep track of processes to terminate when done
 running_procs = []
