@@ -588,7 +588,9 @@ if __name__ == "__main__":
                         help="Location of task configuration (target point) files")
 
     parser.add_argument('--map_file', '-m',
-                        default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-MR-arena-clean.png',
+                        #default='/home/k1759936/ros/mrteam_ws/src/mrta/ros/mrta/config/maps/SEB15-MR-arena-clean.png',
+                        default='/home/k1759936/ros/mrteam_ws/src/mrta/ros/mrta/config/maps/SEB15-arena-clean.png',   
+                        #default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-MR-arena-clean.png',
                         #default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-arena-clean.png',
                         help="Path to the map file to draw on top of")
 
