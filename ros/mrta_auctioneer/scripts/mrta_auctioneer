@@ -428,6 +428,7 @@ class AuctionPSI(Auction):
                 task_msg = self._construct_task_msg(won_task)
                 award_msg.tasks.append(task_msg)
 
+                stamp(award_msg)
                 self.auctioneer.award_pub.publish(award_msg)
 
                 rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
@@ -860,6 +861,7 @@ class AuctionSUM(Auction):
 
                 award_msg.tasks.append(self._construct_task_msg(won_task))
 
+            stamp(award_msg)
             self.auctioneer.award_pub.publish(award_msg)
 
             rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
@@ -1029,6 +1031,7 @@ class AuctionMAX(Auction):
 
                 award_msg.tasks.append(self._construct_task_msg(won_task))
 
+            stamp(award_msg)
             self.auctioneer.award_pub.publish(award_msg)
 
             rospy.logdebug("sending award message:\n{0}".format(pp.pformat(award_msg)))
