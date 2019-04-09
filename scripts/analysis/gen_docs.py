@@ -22,9 +22,12 @@ import subprocess
 pp = pprint.PrettyPrinter(indent=4)
 
 # DEFAULT_HOSTNAME = 'eschneider'
-DEFAULT_HOSTNAME = 'king'
-DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/scripts/analysis')
-DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/docs/stat_templates')
+# DEFAULT_HOSTNAME = 'king'
+DEFAULT_HOSTNAME = 'redd'
+#DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/scripts/analysis')
+#DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/docs/stat_templates')
+DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'ros/mrteam_ws/src/mrta/scripts/analysis')
+DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'ros/mrteam_ws/src/mrta/docs/stat_templates')
 
 plot_stats_script = 'plot_stats.py'
 trajectory_script = 'plot_trajectory.py'
