@@ -1,0 +1,1756 @@
+#!/usr/bin/env python
+
+"""mrta_robot_controller
+
+This script (and class) controls the task-bidding and goal-seeking behavior of a
+robot.
+
+Usage: robot_controller.py [robot_name] [goal-x-pos] [goal-y-pos]
+
+ robot_name: the desired ROS node name of the robot. If none is given, then a
+  random name is chosen.
+
+The RobotController class uses a state machine to implement bidding and goal-
+seeking behavior.
+
+Eric Schneider <eric.schneider@liverpool.ac.uk>
+
+References:
+
+[2] Kulich, Miroslav, Jan Faigl, and Libor Preucil. "On distance utility in the exploration task."
+    Robotics and Automation (ICRA), 2011 IEEE International Conference on. IEEE, 2011.
+"""
+
+# Standard Python modules
+from collections import defaultdict
+import datetime
+from itertools import chain, combinations
+import math
+import pprint
+import sys
+from threading import Lock
+import time
+from toposort import *
+import uuid
+
+# Fysom state machine
+from fysom import Fysom
+
+# ROS modules
+from actionlib import SimpleActionClient
+import actionlib_msgs.msg
+import dynamic_reconfigure.client
+import geometry_msgs.msg
+import move_base_msgs.msg
+import nav_msgs.msg
+import nav_msgs.srv
+import navfn.srv
+import rospy
+import smach
+import smach_ros
+from smach_ros import SimpleActionState
+import std_srvs.srv
+import tf.transformations
+
+import mrta
+import mrta.msg
+
+# We'll sleep 1/RATE seconds in every pass of the idle loop.
+RATE = 10
+
+# If another robot is with this distance (in meters) and field of view (in
+# radians), we're in danger of colliding with it
+# DANGER_ZONE_FOV = math.pi / 2
+DANGER_ZONE_FOV = math.pi
+DANGER_ZONE_DIST = 0.3
+#DANGER_ZONE_DIST = 0.8
+
+# For pretty-printing convenience!
+pp = pprint.PrettyPrinter(indent=2)
+
+# Utility functions
+
+
+def stamp(msg):
+    """ Set the timestamp of a message to the current wall-clock time."""
+    rospy.rostime.switch_to_wallclock()
+    msg.header.stamp = rospy.rostime.get_rostime()
+
+
+def powerset(iterable):
+    """
+    powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
+
+    Shamelessly taken from:
+      https://docs.python.org/2/library/itertools.html#recipes
+
+    :param iterable:
+    :return:
+    """
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
+
+
+def in_danger_zone(my_pose, other_pose):
+    """
+    Determine whether or not another robot is in my path, i.e., whether or not
+    I'm likely to collide with it.
+
+    :param geometry_msgs.msg.Pose my_pose: my current pose
+    :param geometry_msgs.msg.Pose other_pose: the other robot's pose
+    :return: True or False
+    :rtype: bool
+    """
+    in_danger = False
+
+    if not my_pose or not other_pose:
+        return in_danger
+
+#    # Angle between my_pose and the positive y-axis
+#
+#    # my_pose orientation quaternion
+#    my_q = (my_pose.orientation.x,
+#            my_pose.orientation.y,
+#            my_pose.orientation.z,
+#            my_pose.orientation.w)
+#    euler = tf.transformations.euler_from_quaternion(my_q)
+#    my_yaw = euler[2]
+#    rospy.logdebug("my_yaw == {0}".format(my_yaw))
+#    d_theta = (math.pi / 2) - my_yaw
+#    rospy.logdebug("d_theta == {0}".format(d_theta))
+#
+#    # Translate the treasure's position, pretending the robot is at the origin
+#    trans_x = other_pose.position.x - my_pose.position.x
+#    trans_y = other_pose.position.y - my_pose.position.y
+#    rospy.logdebug("trans_x=={0}, trans_y=={1}".format(trans_x, trans_y))
+#
+#    # Rotate the translated point by d_theta
+#    rot_x = (trans_x * math.cos(d_theta)) - (trans_y * math.sin(d_theta))
+#    rot_y = (trans_x * math.sin(d_theta)) + (trans_y * math.cos(d_theta))
+#    rospy.logdebug("rot_x=={0}, rot_y=={1}".format(rot_x, rot_y))
+#
+#    other_heading = math.atan2(rot_x, rot_y)
+#    rospy.logdebug("other_pos heading is {0}".format(other_heading))
+
+    other_dist = math.hypot(other_pose.position.x - my_pose.position.x,
+                            other_pose.position.y - my_pose.position.y)
+
+#    in_fov = False
+#    if -(DANGER_ZONE_FOV / 2) <= other_heading <= (DANGER_ZONE_FOV / 2):
+#        in_fov = True
+#
+#    rospy.logdebug("in_fov=={0}".format(in_fov))
+
+    in_dist = False
+    if other_dist <= DANGER_ZONE_DIST:
+        in_dist = True
+    rospy.logdebug("in_dist=={0}".format(in_dist))
+
+#    if in_fov and in_dist:
+    if in_dist:
+        in_danger = True
+    rospy.logdebug("in_danger=={0}".format(in_danger))
+
+    return in_danger
+
+
+class RobotController:
+    """ Controls robot behavior. """
+
+    # def __init__(self, robot_name=None, reallocate=False, is_turtlebot=False):
+    def __init__(self):
+
+        """
+        Initialize some ROS stuff (pub/sub, actionlib client) and also
+        our state machine.
+        """
+
+        # A lock (mutex) to deal with out of order award/announce messages
+        self.award_lock = Lock()
+
+        # Our current estimated pose. This should be received the navigation
+        # stack's amcl localization package. See on_my_pose_received().
+        self.current_pose = None
+
+        # Our current task (mrta.SensorSweepTask)
+        self.current_task = None
+
+        self.other_poses = defaultdict(geometry_msgs.msg.Pose)
+        self.amcl_pose_subs = {}
+
+        # Keep track of all robots' status (including this one).
+        # Keys are robot_ids, and values come from the "status" field
+        # defined in mrta.msg.TaskStatus
+        self.robot_status = defaultdict(int)
+
+        # Keep track of the completion status of all tasks
+        # Keys are task_ids, values are True/False
+        self.task_complete = defaultdict(bool)
+
+        # Maintain a cache of path distances between points so that we don't
+        # have to look them up (via an expensive service call) every time.
+        # Keys are tuples in the form of ((start_x,start_y),(goal_x,goal_y))#
+        # and values are distances in meters (floats).
+        self._path_distance_cache = {}
+
+        # Keep track of potential collisions with other robots
+        # self.collisions = defaultdict(Collision)
+
+        self.in_collision = False
+
+        # For some mechanisms, in order to compute a bid value (path cost)
+        # we need to compute a path from the position of the most-recently-
+        # awarded task point, rather than from the robot's current position.
+        self.last_won_location = None
+
+        # List of tasks that we have been awarded (SensorSweepTask)
+        self.agenda = []
+
+        # Keep track of the number of robots that are moving toward task locations
+        self.moving_count = defaultdict(int)
+
+        # Keep track of the number of robots that have arrived at task locations
+        self.arrived_count = defaultdict(int)
+
+        # Unless true, we may only bid on tasks but NOT begin executing tasks
+        self.ok_to_execute = False
+
+        # Use this flag to prevent bidding (or other costmap-dependent actions)
+        # while we're clearing costmaps
+        self._clearing_costmaps = False
+
+        # Initialize our node
+        node_name = 'mrta_robot_controller'
+        rospy.loginfo("Starting node '{0}'...".format(node_name))
+        # rospy.init_node(node_name, log_level=rospy.DEBUG)
+        rospy.init_node(node_name)
+
+        # The rate at which we'll sleep while idle
+        self.rate = rospy.Rate(RATE)
+
+        # Robot name. If not given, pick a random string.
+        self.robot_name = rospy.get_param('~robot_name', str(uuid.uuid1()).replace('-', '').replace('_', ''))
+        rospy.loginfo("robot_name: {0}".format(self.robot_name))
+
+        # reallocate
+        self.reallocate = rospy.get_param('~reallocate', False)
+        rospy.loginfo("reallocate: {0}".format(self.reallocate))
+
+        # is_turtlebot
+        self.is_turtlebot = rospy.get_param('~is_turtlebot', False)
+        rospy.loginfo("is_turtlebot: {0}".format(self.is_turtlebot))
+
+        if self.is_turtlebot:
+            rospy.loginfo("We're a real Turtlebot!")
+        else:
+            rospy.loginfo("We're a simulated Turtlebot!")
+
+        # Topics we wish to publish
+        self.amcl_echo_pub = self.bid_pub = self.task_status_pub = None
+        self.init_publishers()
+
+        # Topics we wish to subscribe to
+        self.announce_sub = self.award_sub = self.experiment_sub = self.amcl_pose_sub = self.status_sub = None
+        self.init_subscribers()
+
+        # actionlib client; used to send goals to the navigation stack
+        if self.is_turtlebot:
+            ac_name = '/move_base'
+        else:
+            ac_name = "/{0}/move_base".format(self.robot_name)
+
+        rospy.loginfo("Starting actionlib client '{0}'".format(ac_name))
+        self.aclient = SimpleActionClient(ac_name,
+                                          move_base_msgs.msg.MoveBaseAction)
+
+        # Wait until the action server has started up
+        self.aclient.wait_for_server()
+        rospy.loginfo("{0} connected.".format(ac_name))
+
+        # The name of the planner and 'clear_costmaps' services
+        if self.is_turtlebot:
+            # self.plan_srv_name = '/move_base/NavfnROS/make_plan'
+            self.plan_srv_name = '/move_base/GlobalPlanner/make_plan'
+            self.cc_srv_name = '/move_base/clear_costmaps'
+            self.glob_obs_layer_srv = '/move_base/global_costmap/obstacle_layer'
+            self.glob_obs_layer_enabled = '/move_base/global_costmap/obstacle_layer/enabled'
+            self.glob_static_layer_srv = '/move_base/global_costmap/static_layer'
+            self.glob_static_layer_enabled = '/move_base/global_costmap/static_layer/enabled'
+        else:
+            # self.plan_srv_name = "/{0}/move_base_node/NavfnROS/make_plan".format(self.robot_name)
+            self.plan_srv_name = "/{0}/move_base/GlobalPlanner/make_plan".format(self.robot_name)
+            # self.plan_srv_name = "/{0}/move_base_node/HRTeamPlanner/make_plan".format(self.robot_name)
+            self.cc_srv_name = "/{0}/move_base/clear_costmaps".format(self.robot_name)
+            self.glob_obs_layer_srv = "/{0}/move_base/global_costmap/obstacle_layer".format(self.robot_name)
+            self.glob_obs_layer_enabled = '/{0}/move_base/global_costmap/obstacle_layer/enabled'.format(self.robot_name)
+            self.glob_static_layer_srv = '/{0}/move_base/global_costmap/static_layer'.format(self.robot_name)
+            self.glob_static_layer_enabled = '/{0}/move_base/global_costmap/static_layer/enabled'.format(self.robot_name)
+
+        rospy.loginfo("Starting obstacle_layer parameter client:")
+        # rospy.loginfo(self.glob_obs_layer_srv)
+        self.obs_layer_param_client = dynamic_reconfigure.client.Client(self.glob_obs_layer_srv, timeout=5)
+
+        rospy.loginfo("Starting static_layer parameter client")
+        # rospy.loginfo(self.glob_static_layer_srv)
+        self.static_layer_param_client = dynamic_reconfigure.client.Client(self.glob_static_layer_srv, timeout=5)
+
+        # Set up client for the service that makes path plans
+        rospy.loginfo("Starting 'make_plan' service client")
+        rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
+        rospy.wait_for_service(self.plan_srv_name)
+        rospy.logdebug("Service {0} ready.".format(self.plan_srv_name))
+
+        self._nav_plan_client = rospy.ServiceProxy(self.plan_srv_name,
+                                                   nav_msgs.srv.GetPlan)
+
+        # Set up client for the service that clear costmaps
+        rospy.loginfo("Starting 'clear_costmaps' service client")
+
+        rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
+        rospy.wait_for_service(self.cc_srv_name)
+        rospy.logdebug("Service {0} ready.".format(self.cc_srv_name))
+
+        self._clear_costmaps_client = rospy.ServiceProxy(self.cc_srv_name,
+                                                         std_srvs.srv.Empty)
+
+        self._clearing_costmaps = True
+
+        # self._disable_obstacle_layer()
+        # self._clear_costmaps()
+        # self._clear_costmaps()
+
+        self._disable_static_layer()
+        self._enable_static_layer()
+
+        self._clearing_costmaps = False
+
+        # Set up state machine.
+        # See mrta/docs/robot-controller.fsm.png
+        self.fsm = Fysom(
+            events=[
+                ('startup', 'none', 'idle'),
+
+                # Choosing/sending goals
+                ('have_incomplete_tasks', 'idle', 'choose_task'),
+                ('no_unconstrained_tasks', 'choose_task', 'idle'),
+                ('no_incomplete_tasks', 'idle', 'idle'),
+                # ('no_tasks', 'idle', 'idle'),
+                ('goal_chosen', 'choose_task', 'send_goal'),
+                ('no_reachable_tasks', 'choose_task', 'idle'),
+                ('goal_sent', 'send_goal', 'moving'),
+                ('partner_waiting', 'moving', 'choose_task'),
+
+                # Goal success/failure
+                ('goal_reached', '*', 'arrived'),
+                ('arrival_sent', '*', 'execute_task'),
+                ('task_succeeded', 'execute_task', 'task_success'),
+                ('task_failed', 'execute_task', 'task_failure'),
+                ('resume', 'task_success', 'idle'),
+                ('goal_not_reached', '*', 'task_failure'),
+                ('resume', 'task_failure', 'idle'),
+
+                #/resume
+                ('pause', 'moving', 'paused'),
+                ('resume', 'paused', 'moving'),
+
+                # Collision avoidance
+                ('collision_detected', '*', 'collision_pause'),
+                ('collision_cleared', 'collision_pause', 'collision_resume'),
+                ('collision_resolved', '*', 'idle'),
+            ],
+            callbacks={
+                'onidle': self.idle,
+                # 'onbid': self.bid,
+                # 'onwon': self.won,
+                'onchoose_task': self.choose_task,
+                'onsend_goal': self.send_goal,
+                'onmoving': self.moving,
+                'onarrived': self.arrived,
+                'onexecute_task': self.execute_task,
+                'ontask_success': self.task_success,
+                'ontask_failure': self.task_failure,
+                'onshutdown': self.shutdown,
+                # 'onresolve_collision': self.resolve_collision,
+                'oncollision_pause': self.collision_pause,
+                'oncollision_resume': self.collision_resume
+            }
+        )
+
+        # Start the state machine
+        self.fsm.startup()
+
+        # Set up smach state machine
+        # sm = smach.StateMachine(outcomes=['shutdown'])
+
+        # with sm:
+        # # IDLE
+        # smach.StateMachine.add('IDLE', Idle(),
+        # transitions={'have_tasks': 'CHOOSE_TASK',
+        # 'no_tasks': 'IDLE'})
+
+        #     # CHOOSE_TASK
+        #     smach.StateMachine.add('CHOOSE_TASK', ChooseTask(),
+        #                            transitions={'goal_chosen': 'SEND_GOAL',
+        #                                         'no_tasks': 'IDLE'})
+
+        # # smach introspection server
+        # sis = smach_ros.IntrospectionServer("{0}_sis".format(self.robot_name), sm,
+        #                                     "/{0}/SM_ROOT".format(self.robot_name))
+        # sis.start()
+
+        # # Run the smach state machine
+        # outcome = sm.execute()
+
+    def init_subscribers(self):
+        """ Initialize subscriptions and register callbacks """
+
+        rospy.loginfo('Initializing subscribers...')
+
+        # '/experiment'
+        self.experiment_sub = rospy.Subscriber(
+            '/experiment',
+            mrta.msg.ExperimentEvent,
+            self.on_experiment_event_received)
+        rospy.loginfo('subscribed to /experiment')
+
+        # If we're a Turtlebot, subscribe to '/amcl_pose' and republish
+        # on '/{self.robot_name}/amcl_pose'
+        if self.is_turtlebot:
+            self.amcl_pose_sub = rospy.Subscriber('/amcl_pose',
+                                                  geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                  self.on_tb_pose_received)
+
+        # '/robot_<n>/amcl_pose'
+        for robot_num in range(1, 4):
+            r_name = "robot_{0}".format(robot_num)
+
+            callback = None
+            if r_name == self.robot_name:
+                callback = self.on_my_pose_received
+            else:
+                callback = self.on_teammate_pose_received
+
+            self.amcl_pose_subs[r_name] = rospy.Subscriber(
+                "/{0}/amcl_pose".format(r_name),
+                geometry_msgs.msg.PoseWithCovarianceStamped,
+                callback, callback_args=r_name)
+            rospy.loginfo("subscribed to /{0}/amcl_pose".format(r_name))
+
+        # '/tasks/announce'
+        # We respond only to sensor sweep task announcements (for now)
+        self.announce_sub = rospy.Subscriber('/tasks/announce',
+                                             mrta.msg.AnnounceSensorSweep,
+                                             self.bid)
+        rospy.loginfo('subscribed to /tasks/announce')
+
+        # '/tasks/award'
+        self.award_sub = rospy.Subscriber('/tasks/award',
+                                          mrta.msg.TaskAward,
+                                          self.won)
+        rospy.loginfo('subscribed to /tasks/award')
+
+        # '/tasks/status'
+        self.status_sub = rospy.Subscriber('/tasks/status',
+                                           mrta.msg.TaskStatus,
+                                           self.status_received)
+
+        # For good measure...
+        time.sleep(3)
+
+    def init_publishers(self):
+        """ Initialize publishers. """
+
+        # If we're a Turtlebot, echo /amcl_pose to /{self.robot_name/amcl_pose
+        if self.is_turtlebot:
+            self.amcl_echo_pub = rospy.Publisher("/{0}/amcl_pose".format(self.robot_name),
+                                                 geometry_msgs.msg.PoseWithCovarianceStamped,
+                                                 queue_size=10,
+                                                 latch=True)
+            rospy.loginfo("echoing /amcl_pose on /{0}/amcl_pose".format(self.robot_name))
+            rospy.loginfo("({0}) self.amcl_echo_pub == {1}".format(self.robot_name, self.amcl_echo_pub))
+
+        # '/tasks/bid'
+        self.bid_pub = rospy.Publisher('/tasks/bid',
+                                       mrta.msg.TaskBid,
+                                       queue_size=100)
+        rospy.loginfo('publishing on /tasks/bid')
+
+        # Announce task events on '/tasks/status':
+        # 'BEGIN', 'PAUSE', 'RESUME', 'SUCCESS', 'FAILURE', 'ALL_TASKS_COMPLETE'
+        self.task_status_pub = rospy.Publisher('/tasks/status',
+                                               mrta.msg.TaskStatus,
+                                               queue_size=3)
+        rospy.loginfo('publishing on /tasks/status')
+
+        # '/debug'
+        self.debug_pub = rospy.Publisher('/debug',
+                                         mrta.msg.Debug,
+                                         queue_size=3)
+
+        rospy.loginfo('publishing on /debug')
+
+        # For good measure...
+        time.sleep(3)
+
+    def _is_task_in_agenda(self, _task):
+        in_agenda = False
+        for task in self.agenda:
+            if task.task_id == _task.task_id:
+                in_agenda = True
+
+        return in_agenda
+
+    def _is_task_id_in_agenda(self, _task_id):
+        in_agenda = False
+        for task in self.agenda:
+            if task.task_id == _task_id:
+                in_agenda = True
+
+        return in_agenda
+
+    def _get_task_by_id(self, task_id):
+        for task in self.agenda:
+            if task.task_id == task_id:
+                return task
+
+    def _is_reachable_distance(self, distance):
+        """
+        True if the distance is some 'reasonable' number (e.g. less than 10000).
+        This test is used in several places. It's been moved into a function so
+        that the actual test can be defined/updated in one place.
+
+        :param distance: float
+        :return: True/False
+        """
+
+        if distance < 10000:
+            return True
+
+        return False
+
+    def get_path_cost(self, start, goal):
+        """
+        Get the path distance from start to goal. Performs a service call to
+        the global planner if we don't find the distance in a cache.
+
+        :param geometry_msgs.msg.Pose start: start point
+        :param geometry_msgs.msg.Pose goal: end point
+        :return: distance in meters
+        :rtype: float
+        """
+
+        # Let's consider the distances start->goal and goal->start
+        # to be equivalent. We'll need keys to look up (and possibly
+        # store) distances for each direction
+        start_tuple = (start.position.x, start.position.y)
+        goal_tuple = (goal.position.x, goal.position.y)
+        sg_key = (start_tuple, goal_tuple)
+        gs_key = (goal_tuple, start_tuple)
+
+        # The distance to return
+        distance = None
+
+        # First check the cache
+        if sg_key in self._path_distance_cache and self._is_reachable_distance(self._path_distance_cache[sg_key]):
+            distance = self._path_distance_cache[sg_key]
+            rospy.logdebug("  CACHE HIT (sg), distance=={0}".format(distance))
+        elif gs_key in self._path_distance_cache and self._is_reachable_distance(self._path_distance_cache[gs_key]):
+            distance = self._path_distance_cache[gs_key]
+            rospy.logdebug("  CACHE HIT (gs), distance=={0}".format(distance))
+
+        # Otherwise call the planner to find the distance
+        else:
+            rospy.logdebug("  CACHE MISS, LOOKING UP...")
+
+            distance = self._lookup_path_cost(start, goal)
+
+            # Store the distance in the cache
+            self._path_distance_cache[sg_key] = distance
+            self._path_distance_cache[gs_key] = distance
+
+        rospy.logdebug("({0}): get_path_cost: ({1},{2})->({3},{4}) == {5}".format(
+            self.robot_name,
+            start.position.x, start.position.y,
+            goal.position.x, goal.position.y,
+            distance))
+
+        return distance
+
+    def _disable_obstacle_layer(self):
+        """ Disable the obstacle layer of the global costmap """
+
+        rospy.loginfo("({0}) Disabling obstacle layer in global costmap".format(self.robot_name))
+        self.obs_layer_param_client.update_configuration({'enabled': False})
+
+        # Wait until we can confirm the layer is actually enabled
+        while rospy.get_param(self.glob_obs_layer_enabled):
+            self.rate.sleep()
+
+        time.sleep(0.25)
+        rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
+
+    def _enable_obstacle_layer(self):
+        """ Enable the obstacle layer of the global costmap """
+
+        rospy.loginfo("({0}) Enabling obstacle layer in global costmap".format(self.robot_name))
+        self.obs_layer_param_client.update_configuration({'enabled': True})
+
+        # Wait until we can confirm the layer is actually enabled
+        while not rospy.get_param(self.glob_obs_layer_enabled):
+            self.rate.sleep()
+
+        time.sleep(0.25)
+        rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
+
+    def _disable_static_layer(self):
+        """ Disable the static layer of the global costmap """
+
+        rospy.loginfo("({0}) Disabling static layer in global costmap".format(self.robot_name))
+        self.static_layer_param_client.update_configuration({'enabled': False})
+
+        # Wait until we can confirm the layer is actually enabled
+        while rospy.get_param(self.glob_static_layer_enabled):
+            self.rate.sleep()
+
+        time.sleep(0.25)
+        rospy.loginfo("({0}) ...disabled.".format(self.robot_name))
+
+    def _enable_static_layer(self):
+        """ Enable the static layer of the global costmap """
+
+        rospy.loginfo("({0}) Enabling static layer in global costmap".format(self.robot_name))
+        self.static_layer_param_client.update_configuration({'enabled': True})
+
+        # Wait until we can confirm the layer is actually enabled
+        while not rospy.get_param(self.glob_static_layer_enabled):
+            self.rate.sleep()
+
+        time.sleep(0.25)
+        rospy.loginfo("({0}) ...enabled.".format(self.robot_name))
+
+    @staticmethod
+    def _point_to_point_msg(point):
+        """ Convert a mrta.Point to a geometry_msgs.msg.Point
+
+        :param mrta.Point: point
+        :return: A new g.m.Point object
+        :rtype: geometry_msgs.msg.Point
+        """
+        point_msg = geometry_msgs.msg.Point()
+        point_msg.x = point.x
+        point_msg.y = point.y
+        point_msg.z = point.z
+
+        return point_msg
+
+    @staticmethod
+    def _point_to_pose(point):
+        """ Convert a mrta.Point to a geometry_msgs.msg.Pose
+
+        :param mrta.Point: point
+        :return: A new g.m.Pose object
+        :rtype: geometry_msgs.msg.Pose
+        """
+        pose_msg = geometry_msgs.msg.Pose()
+        pose_msg.position = point
+        pose_msg.orientation.w = 1.0
+
+        return pose_msg
+
+    @staticmethod
+    def _pose_to_posestamped(pose, frame_id='map'):
+        """ Convert a geometry_msgs.msg.Pose to a geometry_msgs.msg.PoseStamped
+
+        :param geometry_msgs.msg.Pose: point
+        :return: A new g.m.PoseStamped object
+        :rtype: geometry_msgs.msg.PoseStamped
+        """
+        pose_stamped_msg = geometry_msgs.msg.PoseStamped()
+
+        pose_stamped_msg.header.stamp = rospy.get_rostime()
+        pose_stamped_msg.header.frame_id = frame_id
+        pose_stamped_msg.pose = pose
+
+        return pose_stamped_msg
+
+    def _clear_costmaps(self):
+        """ Reset the costmaps to their initial states (basically the static layer). """
+
+        try:
+            rospy.logdebug("Waiting for service {0}".format(self.cc_srv_name))
+            rospy.wait_for_service(self.cc_srv_name)
+            rospy.logdebug("Service ready.")
+
+            self._clear_costmaps_client()
+
+            rospy.logdebug("({0}) cleared costmaps".format(self.robot_name))
+
+        except rospy.ServiceException, e:
+            rospy.logerr("Service call failed: {0}".format(e))
+
+    def _make_nav_plan(self, start, goal):
+        """ Create a global plan between start and goal
+
+        :param geometry_msgs.msg.Pose: start
+        :param geometry_msgs.msg.Pose: goal
+        :return: A path from start to goal
+        :rtype: geometry_msgs.msg.Pose[]
+        """
+
+        # We need to convert start and goal from type geometry_msgs.msg.Pose
+        # to type geometry_msgs.PoseStamped. tolerance (from the docs):
+        # "If the goal is obstructed, how many meters the planner can
+        # relax the constraint in x and y before failing."
+        start_stamped = self._pose_to_posestamped(start)
+        goal_stamped = self._pose_to_posestamped(goal)
+
+        req = nav_msgs.srv.GetPlanRequest()
+        req.start = start_stamped
+        req.goal = goal_stamped
+        req.tolerance = 0.1
+
+        try:
+            rospy.logdebug("Waiting for service {0}".format(self.plan_srv_name))
+            rospy.wait_for_service(self.plan_srv_name)
+            rospy.logdebug("Service ready.")
+            resp = self._nav_plan_client(req)
+
+            rospy.logdebug("Got plan:\n{0}".format(pp.pformat(resp)))
+
+            return resp.plan.poses
+
+        except rospy.ServiceException, e:
+            rospy.logerr("Service call failed: {0}".format(e))
+
+    @staticmethod
+    def _normalize_angle(angle):
+        res = angle
+        while res > math.pi:
+            res -= 2.0 * math.pi
+        while res < -math.pi:
+            res += 2.0 * math.pi
+        return res
+
+    def _lookup_path_cost(self, start, goal):
+        """
+        Call the global planner service to obtain a path from start to goal
+        and then calculate its cost. The cost is the sum of distances between
+        points in the path PLUS the angular changes (in randians) needed to
+        re-orient from every point to its successor.
+
+        This is taken from the alufr ROS package. See getPlanCost() in
+        navstack_module.cpp at:
+        https://code.google.com/p/alufr-ros-pkg/source/browse/.
+
+        :param geometry_msgs.msg.Pose: start
+        :param geometry_msgs.msg.Pose: goal
+        :return: The cost of the shortest path from start to goal
+        :rtype: float
+        """
+
+        # rospy.loginfo("Getting path from {0}...".format(self.plan_srv_name))
+
+        # 'path' is a list of objects of type geometry_msgs.PoseStamped
+        path = self._make_nav_plan(start, goal)
+
+        # rospy.loginfo('...got path')
+
+        path_cost = 0.0
+        from_pose = None
+        for pose_stamped in path:
+            if from_pose is None:
+                from_pose = pose_stamped.pose
+                continue
+            else:
+                to_pose = pose_stamped.pose
+
+                pos_delta = math.hypot(
+                    to_pose.position.x - from_pose.position.x,
+                    to_pose.position.y - from_pose.position.y)
+
+                rospy.logdebug("pos_delta: {0}".format(pos_delta))
+
+                path_cost += pos_delta
+
+                ## Adding rotational distance to the path cost sounds cool, but
+                ## the path returned by make_plan doesn't seem to specify
+                ## orientations in its poses.
+                # yaw_to = tf.transformations.euler_from_quaternion(to_pose.orientation)[2]
+                # yaw_from = tf.transformations.euler_from_quaternion(from_pose.orientation)[2]
+                # yaw_delta = math.fabs(self._normalize_angle(yaw_to-yaw_from))
+                # path_cost += yaw_delta
+
+                from_pose = pose_stamped.pose
+
+        # If a path can't be calculated, make its cost the maximum int value
+        # This comparison should be safe in Python!
+        if path_cost == 0.0:
+            path_cost = float(sys.maxint)
+
+        rospy.logdebug("({0}) Path cost from ({1},{2}) to ({3},{4}) is {5}".format(
+            self.robot_name,
+            start.position.x, start.position.y,
+            goal.position.x, goal.position.y,
+            path_cost))
+
+        return path_cost
+
+    def _cumulative_cost(self, start, tasks=None, greedy=True):
+        """
+        Get the cumulative cost of performing all tasks (visiting task points)
+        from start. If greedy==True, tasks are ordered to minimize the cost of
+        each hop (i.e., the next closest task is chosen). Otherwise, the
+        original list order is used. Ideally, this should be a real TSP solution.
+
+        :param geometry_msgs.msg.Pose: start
+        :param mrta.SensorSweepTask[]: tasks
+        :return: The cumulative cost (distance) of visiting all of the task points
+        :rtype: float
+        """
+        cumulative_cost = 0.0
+
+        # Only consider tasks that haven't been completed yet
+        tasks = [t for t in tasks if not t.completed]
+
+        if greedy:
+            # rospy.logdebug("_cumulative_cost(), tasks:\n{0}".format(pp.pformat(tasks)))
+
+            tasks_copy = tasks[:]
+            reordered_tasks = []
+
+            from_pose = start
+            while tasks_copy:
+                min_cost = None
+                min_cost_task = None
+                for task in tasks_copy:
+                    to_pose = self._point_to_pose(task.location)
+                    cost = self.get_path_cost(from_pose, to_pose)
+
+                    rospy.logdebug("cost from {0} to {1} is {2}".format(pp.pformat(from_pose),
+                                                                        pp.pformat(to_pose),
+                                                                        cost))
+
+                    if min_cost is None or cost < min_cost:
+                        min_cost = cost
+                        min_cost_task = task
+
+                reordered_tasks.append(min_cost_task)
+                tasks_copy.remove(min_cost_task)
+                from_pose = self._point_to_pose(min_cost_task.location)
+
+            tasks = reordered_tasks
+            rospy.logdebug("tasks=reordered_tasks={0}".format(pp.pformat(tasks)))
+
+        from_pose = start
+        for task in tasks:
+            to_pose = self._point_to_pose(task.location)
+            cost = self.get_path_cost(from_pose, to_pose)
+            cumulative_cost += cost
+            from_pose = to_pose
+
+        final_pose = None
+        if tasks:
+            final_pose = self._point_to_pose(tasks[-1].location)
+        else:
+            final_pose = start
+
+        return (cumulative_cost, final_pose)
+
+    def on_task_announced(self, msg):
+        # Trigger the 'task_announced' fsm event, with the message as a parameter
+        rospy.logdebug("task announced:\n{0}".format(pp.pformat(msg)))
+        self.fsm.task_announced(msg=msg)
+
+    def on_task_award(self, msg):
+        # Trigger the 'task_won' fsm event, with the message as a parameter
+        rospy.logdebug("task won:\n{0}".format(pp.pformat(msg)))
+        self.fsm.task_won(msg=msg)
+
+    @staticmethod
+    def _construct_bid_msg(task_ids, robot_id, bid):
+        bid_msg = mrta.msg.TaskBid()
+        bid_msg.task_ids = task_ids
+        bid_msg.robot_id = robot_id
+        bid_msg.bid = bid
+
+        return bid_msg
+
+    def bid(self, announce_msg):
+        rospy.loginfo("({0}): bid()".format(self.robot_name))
+
+        rospy.logdebug("({0}) announce_msg:\n{1}".format(self.robot_name,
+                                                         pp.pformat(announce_msg)))
+        self.award_lock.acquire()
+
+        while self._clearing_costmaps:
+            # rospy.loginfo("{0}: clearing costmaps...".format(self.robot_name))
+            self.rate.sleep()
+
+        # Disable the global costmap's obstacle layer
+        # self._disable_obstacle_layer()
+        # self._clear_costmaps()
+        #
+        # self._disable_static_layer()
+        # self._enable_static_layer()
+        #
+        # time.sleep(0.5)
+
+        # The mechanism determines the number and kind of bids we make
+        if announce_msg.mechanism == 'OSI':
+            rospy.loginfo("({0}) mechanism == OSI".format(self.robot_name))
+
+            task_msg = announce_msg.tasks[0]
+
+            # Maximum/infinite bid value by default. If we haven't already been allocated this
+            # task, we'll adjust the value down.
+            path_cost = float(sys.maxint)
+            if not self._is_task_id_in_agenda(task_msg.task.task_id):
+                # Get the cumulative cost of all tasks in our agenda so far
+                (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                           self.agenda,
+                                                           greedy=True)
+
+                rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
+                                                                  c_cost))
+
+                new_task_cost = self.get_path_cost(bid_from,
+                                                   self._point_to_pose(task_msg.location))
+                path_cost = c_cost + new_task_cost
+
+            rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
+                self.robot_name,
+                task_msg.task.task_id,
+                path_cost))
+
+            bid_msg = self._construct_bid_msg([task_msg.task.task_id],
+                                              self.robot_name,
+                                              path_cost)
+            stamp(bid_msg)
+            rospy.loginfo("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+            self.bid_pub.publish(bid_msg)
+
+        elif announce_msg.mechanism == 'PSI' or announce_msg.mechanism == 'PPSI':
+            rospy.loginfo("({0}) mechanism == {1}".format(self.robot_name, announce_msg.mechanism))
+
+            # In PSI we always calculate bids (path costs) from our current
+            # position
+            bid_from = self.current_pose
+
+            for task_msg in announce_msg.tasks:
+                path_cost = self.get_path_cost(bid_from, self._point_to_pose(task_msg.location))
+
+                rospy.loginfo("({0}) path_cost to task {1}: {2}".format(
+                    self.robot_name,
+                    task_msg.task.task_id,
+                    path_cost))
+
+                bid_msg = self._construct_bid_msg([task_msg.task.task_id],
+                                                  self.robot_name,
+                                                  path_cost)
+
+                stamp(bid_msg)
+                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+                self.bid_pub.publish(bid_msg)
+
+        elif announce_msg.mechanism == 'SSI':
+            rospy.loginfo("({0}) mechanism == SSI".format(self.robot_name))
+
+            # Get the cumulative cost of all tasks in our agenda so far
+            (c_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                       self.agenda,
+                                                       greedy=True)
+
+            rospy.loginfo("({0}) cumulative cost: {1}".format(self.robot_name,
+                                                              c_cost))
+            minimum_cost = None
+            minimum_cost_task_id = None
+
+            for task_msg in announce_msg.tasks:
+                # path_cost = self.get_path_cost(bid_from,
+                #                                  self._point_to_pose(task_msg.location))
+
+                # Maximum/infinite bid value by default. If we haven't already been allocated this
+                # task, we'll adjust the value down.
+                path_cost = float(sys.maxint)
+                if not self._is_task_id_in_agenda(task_msg.task.task_id):
+
+                    new_task_cost = self.get_path_cost(bid_from,
+                                                       self._point_to_pose(task_msg.location))
+
+                    path_cost = c_cost + new_task_cost
+
+                    rospy.loginfo("({0}) path_cost to task {1}: {2}".format(self.robot_name,
+                                                                            task_msg.task.task_id,
+                                                                            path_cost))
+
+                if minimum_cost is None or path_cost < minimum_cost:
+                    minimum_cost = path_cost
+                    minimum_cost_task_id = task_msg.task.task_id
+
+            rospy.loginfo("({0}) minimum_cost={1} to task {2}".format(
+                self.robot_name,
+                minimum_cost,
+                minimum_cost_task_id))
+
+            bid_msg = self._construct_bid_msg([minimum_cost_task_id],
+                                              self.robot_name,
+                                              minimum_cost)
+
+            stamp(bid_msg)
+            rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+            self.bid_pub.publish(bid_msg)
+
+        elif announce_msg.mechanism == 'SUM' or announce_msg.mechanism == 'MAX':
+            rospy.logdebug("({0}) mechanism == SUM".format(self.robot_name))
+
+            # Get the base cumulative cost of all tasks in our agenda so far
+            (base_cost, bid_from) = self._cumulative_cost(self.current_pose,
+                                                          self.agenda,
+                                                          greedy=True)
+
+            rospy.loginfo("({0}) base cumulative cost: {1}".format(self.robot_name,
+                                                                   base_cost))
+
+            # 1. Enumerate the power set of tasks
+            task_pset = powerset(announce_msg.tasks)
+            # rospy.loginfo("({0}) task_pset has length {1}".format(self.robot_name, len(task_pset)))
+
+            bid_count = 0
+            # 2. Find the cost of each subset (bundle). For each:
+            for bundle in task_pset:
+                bundle_task_ids = [t.task.task_id for t in bundle]
+
+                # Can this ever happen?
+                if not bundle_task_ids:
+                    rospy.loginfo("bundle_task_ids is empty!")
+                    continue
+
+                temp_agenda = []
+
+                # 2a. Construct an mrta.SensorSweepTask object for each task in bundle
+                task_in_agenda = False
+                for task_msg in bundle:
+                    new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
+                                                    float(task_msg.location.x),
+                                                    float(task_msg.location.y),
+                                                    0.0, # z
+                                                    int(task_msg.task.num_robots),
+                                                    float(task_msg.task.duration),
+                                                    task_msg.task.depends)
+
+                    if self._is_task_id_in_agenda(task_msg.task.task_id):
+                        task_in_agenda = True
+                    else:
+                        temp_agenda.append(new_task)
+
+                # 2b. Determine the cost of a tour of all tasks in
+                #     self.agenda (our existing tasks) + temp_agenda (this bundle
+                #     of announced tasks). If any of the tasks in the bundle under
+                #     consideration are already in our agenda, return a 'very large'
+                #     (effectively infinite) bid value
+                marginal_cost = float(sys.maxint)
+
+                if not task_in_agenda:
+                    (hypothetical_cost, nil) = self._cumulative_cost(self.current_pose,
+                                                                     self.agenda + temp_agenda,
+                                                                     greedy=True)
+
+                    marginal_cost = hypothetical_cost - base_cost
+
+                # 3. Publish a bid
+                rospy.logdebug("({0}) marginal cost={1} to tasks {2}".format(
+                    self.robot_name,
+                    marginal_cost,
+                    bundle_task_ids))
+
+                bid_msg = self._construct_bid_msg(bundle_task_ids,
+                                                  self.robot_name,
+                                                  marginal_cost)
+
+                stamp(bid_msg)
+                rospy.logdebug("bid_msg:\n{0}".format(pp.pformat(bid_msg)))
+
+                bid_count += 1
+                rospy.logdebug("({0}) publishing bid #{1}".format(self.robot_name, bid_count))
+                self.bid_pub.publish(bid_msg)
+                # self.rate.sleep()
+        else:
+            rospy.logerr("bid(): mechanism '{0}' not supported".format(self.mechanism))
+
+        self.award_lock.release()
+
+        rospy.loginfo("({0}) bid(): current_state=={1}".format(self.robot_name,
+                                                               self.fsm.current))
+
+    def won(self, award_msg):
+        rospy.loginfo("({0}): won()".format(self.robot_name))
+
+        # Make sure that this robot won the task
+        if award_msg.robot_id != self.robot_name:
+            return
+
+        self.award_lock.acquire()
+
+        for task_msg in award_msg.tasks:
+            rospy.loginfo("({0}) I won task {1}!".format(self.robot_name,
+                                                         task_msg.task.task_id))
+
+            rospy.loginfo("({0}): task {1} depends on {2}".format(self.robot_name, task_msg.task.task_id, pp.pformat(task_msg.task.depends)))
+
+            new_task = mrta.SensorSweepTask(str(task_msg.task.task_id),
+                                            float(task_msg.location.x),
+                                            float(task_msg.location.y),
+                                            0.0, # z
+                                            int(task_msg.task.num_robots),
+                                            float(task_msg.task.duration),
+                                            task_msg.task.depends)
+
+            rospy.loginfo("({0}): task {1} depends on ".format(self.robot_name, new_task.task_id, pp.pformat(new_task.depends)))
+
+            self.agenda.append(new_task)
+            self.last_won_location = task_msg.location
+
+        self.award_lock.release()
+
+        rospy.loginfo("({0}) won(): current_state=={1}".format(self.robot_name,
+                                                               self.fsm.current))
+
+    def status_received(self, status_msg):
+        rospy.loginfo("({0}): status_received()".format(self.robot_name))
+
+        # DEBUG
+        now_ts = (datetime.datetime.now() - datetime.datetime(1970, 1, 1)).total_seconds()
+        msg_ts = status_msg.header.stamp.secs + (status_msg.header.stamp.nsecs/1000000000.)
+        msg_diff = now_ts - msg_ts
+        debug_msg = mrta.msg.Debug()
+        debug_msg.key = "status-{0}".format(self.robot_name)
+        debug_msg.value = str(msg_diff)
+        self.debug_pub.publish(debug_msg)
+        # pp.pprint(debug_msg)
+
+        # Update our little databse of robot statuses
+        self.robot_status[status_msg.robot_id] = status_msg.status
+
+        # Update the number of robots that are moving toward task location
+        if status_msg.status == mrta.msg.TaskStatus.MOVING:
+            self.moving_count[status_msg.task_id] += 1
+            rospy.loginfo("({0}): {1} robots are moving toward task {2}".format(self.robot_name,
+                                                                                self.moving_count[status_msg.task_id],
+                                                                                status_msg.task_id))
+
+        # Update the number of robots that have arrived at a task location
+        elif status_msg.status == mrta.msg.TaskStatus.ARRIVED:
+            self.arrived_count[status_msg.task_id] += 1
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): {1} robots have arrived at task {2}".format(self.robot_name,
+                                                                              self.arrived_count[status_msg.task_id],
+                                                                              status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.PAUSE:
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): robot {1} has paused moving towards task {2}".format(self.robot_name,
+                                                                                       status_msg.robot_id,
+                                                                                       status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.RESUME:
+            # self.moving_count[status_msg.task_id] += 1
+            rospy.loginfo("({0}): robot {1} has resumed moving towards task {2}".format(self.robot_name,
+                                                                                        status_msg.robot_id,
+                                                                                        status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.SUCCESS:
+            self.task_complete[status_msg.task_id] = True
+            rospy.loginfo("({0}): {1} has completed task {2}".format(self.robot_name,
+                                                                     status_msg.robot_id,
+                                                                     status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.FAILURE:
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): {1} has failed to complete task {2}".format(self.robot_name,
+                                                                              status_msg.robot_id,
+                                                                              status_msg.task_id))
+
+        elif status_msg.status == mrta.msg.TaskStatus.ABANDONED:
+            self.moving_count[status_msg.task_id] -= 1
+            rospy.loginfo("({0}): robot {1} has abandoned moving towards task {2}".format(self.robot_name,
+                                                                                          status_msg.robot_id,
+                                                                                          status_msg.task_id))
+
+    def choose_task(self, e):
+        rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
+        rospy.loginfo("({0}) agenda: {1}".format(self.robot_name, pp.pformat([t.task_id for t in self.agenda])))
+
+        # Disable the global costmap's obstacle layer
+        self._disable_obstacle_layer()
+        self._clear_costmaps()
+        # self._clear_costmaps()
+
+        self._disable_static_layer()
+        self._enable_static_layer()
+
+        time.sleep(0.75)
+
+        # task_deps is a directed graph. Nodes represent tasks and edges represent
+        # (ordering) dependencies. The format is
+        #
+        #  task_deps[task_i] = [task_j, task_k, ...]
+        #
+        # where task_i requires task_j, task_k, ... to be completed before it can begin.
+        # Sorting is done with the toposort module. See: https://pypi.python.org/pypi/toposort
+
+        task_deps = defaultdict(list)
+        for task in self.agenda:
+            rospy.loginfo("({0}) topo sorting task {1}".format(self.robot_name, task.task_id))
+            # Don't consider completed tasks
+            if self.task_complete[task.task_id]:
+                continue
+            uncompleted_dependencies = [t_id for t_id in task.depends if not self.task_complete[t_id]]
+            task_deps[task.task_id] = set(uncompleted_dependencies)
+
+        dep_ordered_tasks = list(toposort(task_deps))
+
+        rospy.loginfo("({0}) dep_ordered_tasks: {1}".format(self.robot_name, pp.pformat(dep_ordered_tasks)))
+
+        # Our next task should have no unmet dependencies. The first element of the list constructed
+        # above should contain only such tasks.
+        # unconstrained_task_ids = dep_ordered_tasks[0]
+
+        # Our next task should have the least amount of unmet dependencies. The first element of the list constructed
+        # above is a list of tasks with no unmet dependencies. The next element is a list of tasks with one dependency,
+        # and so on.
+        least_constrained_task_ids = []
+
+        for task_ids in dep_ordered_tasks:
+            least_constrained_task_ids = task_ids
+
+            # Filter out tasks that we don't own
+            least_constrained_task_ids = [t_id for t_id in least_constrained_task_ids if self._is_task_id_in_agenda(t_id)]
+
+            if least_constrained_task_ids:
+                break
+
+        rospy.loginfo("({0}): least_constrained_task_ids: {1}".format(self.robot_name,pp.pformat(least_constrained_task_ids)))
+
+        least_constrained = []
+        for task in self.agenda:
+            if task.task_id in least_constrained_task_ids:
+                least_constrained.append(task)
+
+        candidate_tasks = least_constrained
+
+        # Prioritize single-robot candidate tasks that OTHER tasks depend on
+        tasks_with_dependencies = []
+        for c_task in candidate_tasks:
+
+            if c_task.num_robots > 1:
+                continue
+
+            for c_other in self.agenda:
+                if c_other == c_task:
+                    continue
+
+                if c_task.task_id in c_other.depends and c_task not in tasks_with_dependencies:
+                    tasks_with_dependencies.append(c_task)
+
+        if tasks_with_dependencies:
+            candidate_tasks = tasks_with_dependencies
+
+        # Prioritize candidate tasks that have robot(s) moving toward them
+        enroute_tasks = []
+        for c_task in candidate_tasks:
+            rospy.loginfo("({0}): Checking {1} for robots en route... ".format(self.robot_name, c_task.task_id))
+            if 0 < self.moving_count[c_task.task_id] < c_task.num_robots:
+                rospy.loginfo("({0}): {1} robots en route to {2}, adding it as a candidate... ".format(self.robot_name,
+                                                                                                       self.moving_count[c_task.task_id],
+                                                                                                       c_task.task_id))
+                enroute_tasks.append(c_task)
+
+        rospy.loginfo("({0}): enroute_tasks: {1}".format(self.robot_name, pp.pformat(enroute_tasks)))
+
+        # # Prioritize tasks that have other robots moving towards them if
+        # # they are present in our 'least constrained' set
+        # lc_and_er = set(candidate_tasks) & set(enroute_tasks)
+        # if lc_and_er:
+        #     candidate_tasks = list(lc_and_er)
+        if enroute_tasks:
+            candidate_tasks = enroute_tasks
+
+        # Prioritize candidate tasks that have robot(s) arrived and waiting
+        waiting_tasks = []
+        for c_task in candidate_tasks:
+            rospy.loginfo("({0}): Checking {1} for waiting... ".format(self.robot_name, c_task.task_id))
+            if 0 < self.arrived_count[c_task.task_id] < c_task.num_robots:
+                waiting_tasks.append(c_task)
+
+        rospy.loginfo("({0}): waiting_tasks: {1}".format(self.robot_name, pp.pformat(waiting_tasks)))
+
+        # # Prioritize tasks that have other robots moving towards them if
+        # # they are present in our 'least constrained' set
+        # lc_and_waiting = set(candidate_tasks) & set(waiting_tasks)
+        # if lc_and_waiting:
+        #     candidate_tasks = list(lc_and_waiting)
+        if waiting_tasks:
+            candidate_tasks = waiting_tasks
+
+        # We have two ways to choose the next task from our agenda:
+        # 1. ("non-greedy") Choose the first task that hasn't been completed yet
+        # 2. ("greedy")     Choose the next closest task
+
+        greedy_selection = True
+
+        goal_task = None
+        min_uncompleted_dist = None
+        # for task in self.agenda:
+        for task in candidate_tasks:
+            if not task.completed:
+                if greedy_selection:
+                    from_pose = self.current_pose
+                    to_pose = self._point_to_pose(self._point_to_point_msg(task.location))
+                    path_cost = self.get_path_cost(from_pose, to_pose)
+
+                    if not min_uncompleted_dist or path_cost < min_uncompleted_dist:
+                        goal_task = task
+                        min_uncompleted_dist = path_cost
+                else:
+                    goal_task = task
+                    break
+
+        self.current_task = goal_task
+
+        # Sanity check
+        if not self.current_task:
+            if len(dep_ordered_tasks) > 1:
+                rospy.loginfo("({0}): no unconstrained tasks...".format(self.robot_name))
+                self.fsm.no_unconstrained_tasks()
+            else:
+                rospy.loginfo("({0}) event: no_tasks".format(self.robot_name))
+                self.fsm.no_tasks()
+        else:
+            rospy.loginfo("({0}) Task {1} chosen".format(self.robot_name, self.current_task.task_id))
+
+        # If the minimum cost (closest task) is sys.maxint, then
+        # we don't have any valid paths
+        if min_uncompleted_dist > 100000:
+            rospy.loginfo("({0}) There are no reachable tasks. Clearing costmaps manually...".format(self.robot_name))
+            self._clear_costmaps()
+            self._clear_costmaps()
+            self._disable_static_layer()
+            self._enable_static_layer()
+            time.sleep(1)
+            self.fsm.no_reachable_tasks()
+            return
+
+        rospy.loginfo("({0}) event: goal_chosen".format(self.robot_name))
+        self.fsm.goal_chosen()
+
+    def on_tb_pose_received(self, amcl_pose_msg):
+        """ Echo poses published on /amcl_pose to /{self.robot_name}/amcl_pose"""
+        rospy.loginfo("on_tb_pose_received(): /amcl_pose received")
+        try:
+            if self.amcl_echo_pub:
+                self.amcl_echo_pub.publish(amcl_pose_msg)
+        except AttributeError:
+            rospy.loginfo("({0}) on_tb_pose_received: error echoing pose to /{0}/amcl_pose!".format(self.robot_name))
+            return
+
+    def on_my_pose_received(self, amcl_pose_msg, r_name):
+        # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
+        # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as
+        # geometry_msgs/Pose
+        self.current_pose = amcl_pose_msg.pose.pose
+
+    def _clear_of_other_robots(self):
+
+        is_clear = True
+        for r_name in self.other_poses:
+            other_pose = self.other_poses[r_name]
+
+            if in_danger_zone(self.current_pose, other_pose) and self.robot_name > r_name and self.robot_status[r_name] == mrta.msg.TaskStatus.MOVING:
+                is_clear = False
+                break
+
+        return is_clear
+
+    def on_teammate_pose_received(self, amcl_pose_msg, r_name):
+        rospy.logdebug("({0}) on_teammate_pose_received ({1})".format(self.robot_name, r_name))
+
+        # Sometimes self.fsm might isn't initialized yet...
+        try:
+            if self.fsm:
+                pass
+        except AttributeError:
+            return
+
+        # amcl_pose_msg is typed as geometry_msgs/PoseWithCovarianceStamped.
+        # We'll just keep track of amcl_pose_msg.pose.pose, which is typed as
+        # geometry_msgs/Pose
+        other_pose = amcl_pose_msg.pose.pose
+        self.other_poses[r_name] = other_pose
+        rospy.logdebug("({0}) {1} is now at {2}".format(self.robot_name, r_name,pp.pformat(other_pose)))
+        rospy.logdebug("({0}) I am at {1}".format(self.robot_name,pp.pformat(self.current_pose)))
+
+        if self._clear_of_other_robots():
+            if self.in_collision:
+                self.in_collision = False
+                rospy.loginfo("({0}) Resuming from collision!".format(self.robot_name))
+
+        else:
+            rospy.logdebug("({0}) is in danger of collision!!".format(self.robot_name))
+
+            # Only pause for collision if we're currently in the 'moving' state and if this
+            # is the first time we're detecting a potential collision (i.e., we're not already
+            # paused).
+            if self.fsm.current == 'moving' and not self.in_collision:
+                self.in_collision = True
+                rospy.loginfo("({0}) on_teammate_pose_received: pausing for collision with {1}".format(self.robot_name, r_name))
+
+    def on_experiment_event_received(self, event_msg):
+        if event_msg.event == mrta.msg.ExperimentEvent.BEGIN_ALLOCATION:
+            rospy.loginfo("({0}) BEGIN_ALLOCATION: ok_to_execute==False".format(self.robot_name))
+            self.ok_to_execute = False
+            self.aclient.cancel_goal()
+
+            # Prevent bidding while we're clearing costmaps
+            self._clearing_costmaps = True
+
+            # Disable the global costmap's obstacle layer
+            self._disable_obstacle_layer()
+            self._clear_costmaps()
+
+            self._disable_static_layer()
+            self._enable_static_layer()
+
+            time.sleep(1.0)
+            self._clearing_costmaps = False
+
+            # If RE-allocating tasks, remove incomplete tasks from agenda and publish
+            # an AGENDA_CLEARED TaskStatus message.
+            if self.reallocate:
+
+                self.agenda = [t for t in self.agenda if t.completed]
+
+                # Send a message to signal that we are clearing our agenda of incomplete tasks
+                self.publish_task_status('-1', mrta.msg.TaskStatus.AGENDA_CLEARED)
+
+        elif event_msg.event == mrta.msg.ExperimentEvent.BEGIN_EXECUTION:
+            rospy.loginfo("({0}) BEGIN_EXECUTION: ok_to_execute==True".format(self.robot_name))
+            self.ok_to_execute = True
+            rospy.loginfo("({0}) BEGIN_EXECUTION: current state=={1}".format(self.robot_name,
+                                                                             self.fsm.current))
+
+        elif event_msg.event == 'END_EXPERIMENT':
+            # clear agenda
+            self.aclient.cancel_goal()
+            del self.agenda[:]
+            self.ok_to_execute = True
+
+            # After this point, we may or may not receive a message telling us to return to
+            # our starting point. This might come in the form of a new 'task' awarded in
+            # '/tasks/award'
+
+            # self.shutdown(None)
+
+    # def goal_done_cb(self, term_state, result):
+    # rospy.loginfo("goal_done_cb(): term_state=={0}, result=={1}".format(term_state,
+    # result))
+    # if term_state == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+    # self.fsm.goal_reached()
+    #     else:
+    #         self.fsm.goal_not_reached()
+
+    def send_goal(self, e):
+        rospy.loginfo("({0}) state: send_goal".format(self.robot_name))
+
+        # Clear costmaps first, just to be safe
+        self._clear_costmaps()
+#        self._clear_costmaps()
+
+        # Enable the global costmap's obstacle layer
+        self._disable_obstacle_layer()
+        self._enable_obstacle_layer()
+
+        self._disable_static_layer()
+        self._enable_static_layer()
+
+        time.sleep(1.0)
+
+        goal_task = self.current_task
+
+        # Send a message to signal that we are moving toward the task
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.MOVING)
+
+        # Construct the goal message to send to the move_base service
+        goal_msg = move_base_msgs.msg.MoveBaseGoal()
+        goal_msg.target_pose.header.frame_id = 'map'
+        goal_msg.target_pose.header.stamp = rospy.Time.now()
+
+        goal_msg.target_pose.pose.position.x = float(goal_task.location.x)
+        goal_msg.target_pose.pose.position.y = float(goal_task.location.y)
+        goal_msg.target_pose.pose.orientation.z = 1.0
+        goal_msg.target_pose.pose.orientation.w = 0.0
+
+        rospy.logdebug("({0}) sending goal: {1}".format(self.robot_name, pp.pformat(goal_msg)))
+        # self.aclient.send_goal(goal_msg, done_cb=self.goal_done_cb)
+        self.aclient.send_goal(goal_msg)
+
+        self.fsm.goal_sent()
+
+    def publish_task_status(self, task_id, task_status):
+        status_msg = mrta.msg.TaskStatus()
+        status_msg.robot_id = self.robot_name
+        status_msg.task_id = task_id
+        status_msg.status = task_status
+        stamp(status_msg)
+        self.task_status_pub.publish(status_msg)
+
+    def collision_pause(self, e):
+        rospy.loginfo("({0}) state: collision_pause".format(self.robot_name))
+
+        rospy.loginfo("({0}) Pausing to avoid collision...".format(self.robot_name))
+        self.aclient.cancel_goal()
+
+        # Mark a pause in this task's execution
+        self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.PAUSE)
+
+        while self.in_collision:
+            self.rate.sleep()
+            if self._clear_of_other_robots():
+                self.in_collision = False
+
+        self.fsm.collision_cleared()
+
+        # Duration to pause
+        # pause_duration = 1 + random.random()
+        # time.sleep(pause_duration)
+
+    def collision_resume(self, e):
+        rospy.loginfo("({0}) state: collision_resume".format(self.robot_name))
+
+        rospy.loginfo("({0}) Resuming...".format(self.robot_name))
+
+        # Mark a resumption of this task's execution
+        self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.RESUME)
+
+        self.fsm.collision_resolved()
+
+    def moving(self, e):
+        rospy.loginfo("({0}) state: moving".format(self.robot_name))
+	
+	self.rate.sleep(30)
+	self.in_collision = True
+        # Wait until the goal is reached
+        # self.aclient.wait_for_result()
+
+        # The actionlib client will send a "goal reached" message, triggering
+        # goal_done_cb() to change the current state. Wait here until then.
+        # while self.fsm.current == 'moving':
+        #     self.rate.sleep()
+
+        rospy.loginfo("({0}) IN 'moving', state: {1}".format(self.robot_name, self.fsm.current))
+
+        ACTIVE = actionlib_msgs.msg.GoalStatus.ACTIVE
+        PENDING = actionlib_msgs.msg.GoalStatus.PENDING
+
+        # Sometimes wait_for_result() returns, but the goal is still active. Why?
+        while self.aclient.get_state() == ACTIVE or self.aclient.get_state() == PENDING:
+
+            if self.in_collision:
+                self.fsm.collision_detected()
+                return
+
+            # For each (unfinished) task in our agenda, if another robot is waiting at the task location
+            # then publish an 'abandoned' status, fire a 'partner waiting' event and return.
+            if self.current_task.num_robots > 1:
+                for task in self.agenda:
+                    if self.arrived_count[task.task_id] > 0 \
+                            and not task.completed \
+                            and not self.arrived_count[self.current_task.task_id] > 0:
+                        rospy.loginfo("({0}) Abandoning task {1} to meet a teammate at task {2}".format(self.robot_name,
+                                                                                                        self.current_task.task_id,
+                                                                                                        task.task_id))
+
+                        self.publish_task_status(self.current_task.task_id, mrta.msg.TaskStatus.ABANDONED)
+                        self.fsm.partner_waiting()
+                        return
+
+            # rospy.loginfo("({0}) aclient state==ACTIVE and NOT self.in_collision.".format(self.robot_name))
+
+            self.rate.sleep()
+
+        rospy.loginfo("({0}) aclient state=={1}".format(self.robot_name, self.aclient.get_state()))
+
+        # Disable the obstacle layer and clear costmaps again
+        # self._disable_obstacle_layer()
+        # self._clear_costmaps()
+        # self._clear_costmaps()
+
+        # If resolving collisions, just return here
+        if self.fsm.current == 'resolve_collision':
+            return
+
+        if self.aclient.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED:
+            rospy.loginfo("({0}): Arrived at task {1}".format(self.robot_name, self.current_task.task_id))
+            self.fsm.goal_reached()
+        else:
+            rospy.loginfo("({0}) GoalStatus=={1}".format(self.robot_name, self.aclient.get_state()))
+            # hax...
+            if self.fsm.current == 'moving':
+                self.fsm.goal_not_reached()
+
+    def arrived(self, e):
+        rospy.loginfo("({0}) state: arrived".format(self.robot_name))
+
+        goal_task = self.current_task
+
+        # Send a message to mark the beginning of this task's 'execution'
+        rospy.loginfo("({0}) publishing 'ARRIVED' to /tasks/status".format(self.robot_name))
+
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.ARRIVED)
+
+        # Wait for the task's required number of robots to arrive
+        rospy.loginfo("({0}): waiting for {1} robots to arrive at task {2}".format(self.robot_name,
+                                                                                   goal_task.num_robots,
+                                                                                   goal_task.task_id))
+
+        while self.arrived_count[goal_task.task_id] < goal_task.num_robots:
+            self.rate.sleep()
+
+        rospy.loginfo("({0}): All robots have arrived at task {1}".format(self.robot_name,
+                                                                          goal_task.task_id))
+
+        # Wait for the task's dependencies to be met
+        rospy.loginfo("({0}): waiting for {1}'s dependencies to be met".format(self.robot_name,
+                                                                               goal_task.task_id))
+
+        constrained = True
+        while constrained:
+            constrained = False
+            self.rate.sleep()
+            for task_id in goal_task.depends:
+                if not self.task_complete[task_id]:
+                    constrained = True
+                    break
+
+        rospy.loginfo("({0}): {1}'s dependencies are met".format(self.robot_name,
+                                                                 goal_task.task_id))
+
+        # We shouldn't fail to execute any task, since execution is virtual...
+        self.fsm.arrival_sent()
+
+    def execute_task(self, e):
+        rospy.loginfo("({0}) state: execute_task".format(self.robot_name))
+
+        goal_task = self.current_task
+
+        # Send a message to mark the beginning of this task's 'execution'
+        rospy.loginfo("({0}) publishing 'BEGIN' to /tasks/status".format(self.robot_name))
+
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.BEGIN)
+
+        # Possibly wait for other robots to arrive?
+
+        # 'Execute' the task: sleep for the required time
+        time.sleep(goal_task.duration)
+
+        # We shouldn't fail to execute any task, since execution is virtual...
+        self.fsm.task_succeeded()
+
+        # self.fsm.task_failed()
+
+    def task_success(self, e):
+        rospy.loginfo("({0}) state: task_success".format(self.robot_name))
+
+        goal_task = self.current_task
+
+        # Send a message to mark the end of this task's execution
+        rospy.loginfo("({0}) publishing 'SUCCESS' to /tasks/status".format(self.robot_name))
+
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.SUCCESS)
+
+        goal_task.completed = True
+        self.current_task = None
+
+        time.sleep(1)
+
+        self.fsm.resume()
+
+    def task_failure(self, e):
+        rospy.loginfo("({0}) state: task_failure".format(self.robot_name))
+
+        goal_task = self.current_task
+
+        rospy.loginfo("({0}) publishing 'FAILURE' to /tasks/status".format(self.robot_name))
+
+        # Send a message to mark the end of this task's execution
+        self.publish_task_status(goal_task.task_id, mrta.msg.TaskStatus.FAILURE)
+
+        goal_task.completed = False
+        self.current_task = None
+
+        time.sleep(1)
+
+        self.fsm.resume()
+
+    def idle(self, e):
+        rospy.loginfo("({0}) state: idle".format(self.robot_name))
+
+        # We idle here unless two conditions are true:
+        # 1. We have incomplete tasks in our agenda
+        # 2. self.ok_to_execute == True
+        have_incomplete_tasks = False
+        while not have_incomplete_tasks or not self.ok_to_execute:
+            rospy.logdebug("no incomplete tasks or ok_to_execute==False")
+
+            self.rate.sleep()
+
+            for task in self.agenda:
+                if not task.completed:
+                    have_incomplete_tasks = True
+                    break
+
+        rospy.logdebug("({0}) have_incomplete_tasks=={1}".format(self.robot_name,
+                                                                 have_incomplete_tasks))
+
+        if have_incomplete_tasks:
+            self.fsm.have_incomplete_tasks()
+            # else:
+            # The allocation and execution phases are finished.
+
+            # Send a message to mark the completion of all tasks
+            # all_complete_msg = mrta.msg.TaskStatus()
+            # all_complete_msg.robot_id = self.robot_name
+            # all_complete_msg.task_id = '*'
+            # all_complete_msg.status = 'ALL_TASKS_COMPLETE'
+            # stamp(all_complete_msg)
+            # self.task_status_pub.publish(all_complete_msg)
+
+            # self.fsm.no_incomplete_tasks()
+
+    def shutdown(self, e):
+        # Do any cleanup here before shutting down
+
+        rospy.loginfo("{0} shutting down...".format(self.robot_name))
+
+        # Instead of exiting, wait to be shut down from outside
+        # sys.exit(0)
+        while not rospy.is_shutdown():
+            self.rate.sleep()
+
+
+if __name__ == '__main__':
+
+    sys.setrecursionlimit(10000)
+
+    try:
+        argv = rospy.myargv(argv=sys.argv[1:])
+        # print "arguments: {0}".format(argv)
+        rc = RobotController(*argv)
+        # print("rc final state: {0}".format(rc.fsm.current))
+
+        while not rospy.is_shutdown():
+            rc.rate.sleep()
+
+    except rospy.ROSInterruptException:
+        pass
+
+    print('######## robot_controller exiting ########')
