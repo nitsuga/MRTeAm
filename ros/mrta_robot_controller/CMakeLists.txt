@@ -133,6 +133,7 @@ include_directories(
 
 catkin_install_python(PROGRAMS
   scripts/mrta_robot_controller
+  scripts/mrta_robot_controller_xd
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
