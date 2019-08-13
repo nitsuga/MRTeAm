@@ -357,6 +357,10 @@ class RobotController:
                 ('collision_detected', '*', 'collision_pause'),
                 ('collision_cleared', 'collision_pause', 'collision_resume'),
                 ('collision_resolved', '*', 'idle'),
+		
+		# Faults implementation
+		('time_out_reached', 'moving', 'choose_faults'),
+		('motor_faults_chosen', 'choose_faults', 'induce_motor_faults'),
             ],
             callbacks={
                 'onidle': self.idle,
@@ -372,7 +376,9 @@ class RobotController:
                 'onshutdown': self.shutdown,
                 # 'onresolve_collision': self.resolve_collision,
                 'oncollision_pause': self.collision_pause,
-                'oncollision_resume': self.collision_resume
+                'oncollision_resume': self.collision_resume,
+		'onchoose_faults': self.choose_faults,
+		'oninduce_motor_faults': self.induce_motor_faults
             }
         )
 
@@ -1463,7 +1469,7 @@ class RobotController:
 
         # Clear costmaps first, just to be safe
         self._clear_costmaps()
-#        self._clear_costmaps()
+	# self._clear_costmaps()
 
         # Enable the global costmap's obstacle layer
         self._disable_obstacle_layer()
@@ -1533,11 +1539,24 @@ class RobotController:
 
         self.fsm.collision_resolved()
 
+    def choose_faults(self, e, fault_type):
+	rospy.loginfo("({0}) state: choose_faults".format(self.robot_name))
+	self.in_collision = True
+	self.rate.sleep(30)
+	self.in_collision = False
+
+    def induce_motor_faults(self, e):
+	rospy.loginfo("({0}) state: induce_motor_faults".format(self.robot_name))
+	self.in_collision = True
+	self.rate.sleep(30)
+	self.in_collision = False
+
     def moving(self, e):
         rospy.loginfo("({0}) state: moving".format(self.robot_name))
 	
-	self.rate.sleep(30)
-	self.in_collision = True
+	#self.rate.sleep(30)
+	#self.in_collision = True
+
         # Wait until the goal is reached
         # self.aclient.wait_for_result()
 
