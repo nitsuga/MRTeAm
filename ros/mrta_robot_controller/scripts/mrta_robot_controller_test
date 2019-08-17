@@ -32,6 +32,7 @@ from threading import Lock
 import time
 from toposort import *
 import uuid
+from threading import Timer
 
 # Fysom state machine
 from fysom import Fysom
@@ -51,6 +52,7 @@ import smach_ros
 from smach_ros import SimpleActionState
 import std_srvs.srv
 import tf.transformations
+import std_msgs.msg
 
 import mrta
 import mrta.msg
@@ -247,6 +249,7 @@ class RobotController:
 
         # Topics we wish to publish
         self.amcl_echo_pub = self.bid_pub = self.task_status_pub = None
+	self.motor_power_pub = None
         self.init_publishers()
 
         # Topics we wish to subscribe to
@@ -383,7 +386,9 @@ class RobotController:
         )
 
         # Start the state machine
+	rospy.loginfo("Starting Finite State Machine")
         self.fsm.startup()
+	rospy.loginfo("Finished Finite State Machine")
 
         # Set up smach state machine
         # sm = smach.StateMachine(outcomes=['shutdown'])
@@ -494,7 +499,13 @@ class RobotController:
                                          queue_size=3)
 
         rospy.loginfo('publishing on /debug')
-
+	
+	# '/motor_power': this topic is for enable (True) or disable (False) robot motors. 
+	self.motor_power_pub = rospy.Publisher('/motor_power',
+						std_msgs.msg.Bool,
+						queue_size=3)
+	rospy.loginfo('publishing on /motor_power')
+	
         # For good measure...
         time.sleep(3)
 
@@ -1542,14 +1553,18 @@ class RobotController:
     def choose_faults(self, e, fault_type):
 	rospy.loginfo("({0}) state: choose_faults".format(self.robot_name))
 	self.in_collision = True
-	self.rate.sleep(30)
+	time.sleep(10)
 	self.in_collision = False
 
-    def induce_motor_faults(self, e):
-	rospy.loginfo("({0}) state: induce_motor_faults".format(self.robot_name))
-	self.in_collision = True
-	self.rate.sleep(30)
-	self.in_collision = False
+    def induce_motor_faults(self):
+	rospy.loginfo("({0}) state: induce_motor_faults ######################".format(self.robot_name))
+	self.motor_power_pub.publish(data = False)
+	rospy.loginfo("({0}) state: motor_faults induced ###################".format(self.robot_name))
+	time.sleep(10)
+	rospy.loginfo("({0}) state: wait 10s before reenable the motors ###################".format(self.robot_name))
+	self.motor_power_pub.publish(data = True)
+	rospy.loginfo("({0}) state: Motors are reenabled ###################".format(self.robot_name))
+	
 
     def moving(self, e):
         rospy.loginfo("({0}) state: moving".format(self.robot_name))
@@ -1564,6 +1579,16 @@ class RobotController:
         # goal_done_cb() to change the current state. Wait here until then.
         # while self.fsm.current == 'moving':
         #     self.rate.sleep()
+	def disable_motors():
+	    rospy.loginfo("({0}) state: 30s Timer reached. TURN OFF MOTORS #########################".format(self.robot_name))
+	    self.motor_power_pub.publish(data = False) 
+	    
+	    rospy.loginfo("({0}) state: Robot motors are disabled ##################".format(self.robot_name))
+	    
+	rospy.loginfo("({0}) state: Start to setup the Timer.#########################".format(self.robot_name))
+	fault_timer = Timer(30, self.induce_motor_faults)
+	fault_timer.start()
+	rospy.loginfo("({0}) state: Timer starts running.#########################".format(self.robot_name))
 
         rospy.loginfo("({0}) IN 'moving', state: {1}".format(self.robot_name, self.fsm.current))
 
