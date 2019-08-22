@@ -53,6 +53,8 @@ from smach_ros import SimpleActionState
 import std_srvs.srv
 import tf.transformations
 import std_msgs.msg
+import sensor_msgs.msg
+
 
 import mrta
 import mrta.msg
@@ -249,11 +251,12 @@ class RobotController:
 
         # Topics we wish to publish
         self.amcl_echo_pub = self.bid_pub = self.task_status_pub = None
-	self.motor_power_pub = None
+	self.motor_power_pub = scan_pub = None
         self.init_publishers()
 
         # Topics we wish to subscribe to
         self.announce_sub = self.award_sub = self.experiment_sub = self.amcl_pose_sub = self.status_sub = None
+	self.scan_sub = None
         self.init_subscribers()
 
         # actionlib client; used to send goals to the navigation stack
@@ -464,6 +467,10 @@ class RobotController:
         self.status_sub = rospy.Subscriber('/tasks/status',
                                            mrta.msg.TaskStatus,
                                            self.status_received)
+	# '/scan' 
+	self.scan_sub = rospy.Subscriber('/scan',
+					sensor_msgs.msg.LaserScan,
+					self.scan_received)
 
         # For good measure...
         time.sleep(3)
@@ -506,6 +513,16 @@ class RobotController:
 						queue_size=3)
 	rospy.loginfo('publishing on /motor_power')
 	
+	# '/cmd_vel' control motor velocity
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel",
+                                           geometry_msgs.msg.Twist,
+                                           queue_size=10)
+
+	# '/scan' periodically add noise messages to /scan topic (partial laser sensor faults)
+	self.scan_pub = rospy.Publisher("/scan",
+					sensor_msgs.msg.LaserScan,
+					queue_size=10)
+
         # For good measure...
         time.sleep(3)
 
@@ -1193,6 +1210,29 @@ class RobotController:
                                                                                           status_msg.robot_id,
                                                                                           status_msg.task_id))
 
+    def scan_received(self, scan_msg):
+        # Test if the scan_sub is working or not
+	rospy.loginfo("({0}) state: scan_received".format(self.robot_name))
+	scan_msg = sensor_msgs.msg.LaserScan()
+	scan_msg.header = std_msgs.msg.Header(stamp = rospy.Time.now(), frame_id = 'base_scan')
+	scan_msg.angle_min = 0.0
+	scan_msg.angle_max = 6.26
+	scan_msg.angle_increment = 0.0174
+	scan_msg.scan_time = 0.0
+	scan_msg.range_min = 0.12
+	scan_msg.range_max = 3.5
+	scan_msg.ranges = [0]
+	scan_msg.intensities = [0]
+	
+	self.scan_pub.publish(scan_msg)
+	self.rate.sleep()
+	#self.unsubscribe_scan()
+
+    def unsubscribe_scan(self):
+	rospy.loginfo("({0}) state: unsubscribe to /scan topic".format(self.robot_name))
+	self.scan_sub.unregister()
+
+
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
         rospy.loginfo("({0}) agenda: {1}".format(self.robot_name, pp.pformat([t.task_id for t in self.agenda])))
@@ -1556,14 +1596,28 @@ class RobotController:
 	time.sleep(10)
 	self.in_collision = False
 
-    def induce_motor_faults(self):
+    def induce_motor_faults(self, event):
 	rospy.loginfo("({0}) state: induce_motor_faults ######################".format(self.robot_name))
+	rospy.loginfo("({0}) state: induce_motor_faults called at {1} ######################".format(self.robot_name, event.current_real))
 	self.motor_power_pub.publish(data = False)
 	rospy.loginfo("({0}) state: motor_faults induced ###################".format(self.robot_name))
-	time.sleep(10)
+	time.sleep(5)
 	rospy.loginfo("({0}) state: wait 10s before reenable the motors ###################".format(self.robot_name))
 	self.motor_power_pub.publish(data = True)
 	rospy.loginfo("({0}) state: Motors are reenabled ###################".format(self.robot_name))
+
+    def induce_partial_motor_faults(self):
+	rospy.loginfo("({0}) state: induce_parcial_motor_faults ######################".format(self.robot_name))
+	if True:
+	    self.update_command_vel(0.0)
+
+    def update_command_vel(self, linear_x):
+        cmd_vel_msg = geometry_msgs.msg.Twist()
+
+        cmd_vel_msg.linear.x = linear_x
+        #cmd_vel_msg.linear.y = linear_y
+
+        self.cmd_vel_pub.publish(cmd_vel_msg)
 	
 
     def moving(self, e):
@@ -1580,14 +1634,16 @@ class RobotController:
         # while self.fsm.current == 'moving':
         #     self.rate.sleep()
 	def disable_motors():
-	    rospy.loginfo("({0}) state: 30s Timer reached. TURN OFF MOTORS #########################".format(self.robot_name))
+	    rospy.loginfo("({0}) state: 10s Timer reached. TURN OFF MOTORS #########################".format(self.robot_name))
 	    self.motor_power_pub.publish(data = False) 
 	    
 	    rospy.loginfo("({0}) state: Robot motors are disabled ##################".format(self.robot_name))
 	    
 	rospy.loginfo("({0}) state: Start to setup the Timer.#########################".format(self.robot_name))
-	fault_timer = Timer(30, self.induce_motor_faults)
-	fault_timer.start()
+	#fault_timer = Timer(10, self.induce_motor_faults)
+	#fault_timer.start()
+	rospy.Timer(rospy.Duration(10), self.induce_motor_faults, oneshot=True)
+
 	rospy.loginfo("({0}) state: Timer starts running.#########################".format(self.robot_name))
 
         rospy.loginfo("({0}) IN 'moving', state: {1}".format(self.robot_name, self.fsm.current))
