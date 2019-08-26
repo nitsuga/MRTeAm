@@ -61,6 +61,8 @@ import mrta.msg
 
 # We'll sleep 1/RATE seconds in every pass of the idle loop.
 RATE = 10
+# This SCAN_TARE is for sending noise messages to scan topic 
+SCAN_RATE = 10 
 
 # If another robot is with this distance (in meters) and field of view (in
 # radians), we're in danger of colliding with it
@@ -231,6 +233,19 @@ class RobotController:
 
         # The rate at which we'll sleep while idle
         self.rate = rospy.Rate(RATE)
+	self.scan_rate = rospy.Rate(SCAN_RATE)
+
+	# Which faults shoud be induced in the robot
+	self.complete_motor_faults = False
+	self.periodical_motor_faults = False
+	self.complete_scan_faults = False
+	self.patial_scan_faults = False
+
+	# Keep track of the healthy status of robots
+	self.is_healthy = True 
+
+	# Store the noise laser scan messages
+	self.noise_scan = sensor_msgs.msg.LaserScan()
 
         # Robot name. If not given, pick a random string.
         self.robot_name = rospy.get_param('~robot_name', str(uuid.uuid1()).replace('-', '').replace('_', ''))
@@ -365,8 +380,11 @@ class RobotController:
                 ('collision_resolved', '*', 'idle'),
 		
 		# Faults implementation
-		('time_out_reached', 'moving', 'choose_faults'),
-		('motor_faults_chosen', 'choose_faults', 'induce_motor_faults'),
+		('timer_reached', '*', 'choose_faults'),
+		('complete_motor_faults_chosen', 'choose_faults', 'induce_complete_motor_faults'),
+		('periodical_motor_faults_chosen', 'choose_faults', 'induce_periodical_motor_faults'),
+		('complete_scan_faults_chosen', 'choose_faults', 'induce_complete_scan_faults'),
+		('partial_scan_faults_chosen', 'choose_faults', 'induce_partial_scan_faults')
             ],
             callbacks={
                 'onidle': self.idle,
@@ -384,7 +402,10 @@ class RobotController:
                 'oncollision_pause': self.collision_pause,
                 'oncollision_resume': self.collision_resume,
 		'onchoose_faults': self.choose_faults,
-		'oninduce_motor_faults': self.induce_motor_faults
+		'oninduce_complete_motor_faults': self.induce_complete_motor_faults,
+		'oninduce_periodical_complete_motor_faults': self.induce_periodical_motor_faults,
+		'oninduce_complete_scan_faults': self.induce_complete_scan_faults,
+		'oninduce_partial_scan_faults': self.induce_partial_scan_faults
             }
         )
 
@@ -468,9 +489,9 @@ class RobotController:
                                            mrta.msg.TaskStatus,
                                            self.status_received)
 	# '/scan' 
-	self.scan_sub = rospy.Subscriber('/scan',
-					sensor_msgs.msg.LaserScan,
-					self.scan_received)
+	#self.scan_sub = rospy.Subscriber('/scan',
+	#				sensor_msgs.msg.LaserScan,
+	#				self.scan_received)
 
         # For good measure...
         time.sleep(3)
@@ -512,6 +533,8 @@ class RobotController:
 						std_msgs.msg.Bool,
 						queue_size=3)
 	rospy.loginfo('publishing on /motor_power')
+	# enable robot motors
+	self.motor_power_pub.publish(data = True)
 	
 	# '/cmd_vel' control motor velocity
         self.cmd_vel_pub = rospy.Publisher("/cmd_vel",
@@ -1210,28 +1233,6 @@ class RobotController:
                                                                                           status_msg.robot_id,
                                                                                           status_msg.task_id))
 
-    def scan_received(self, scan_msg):
-        # Test if the scan_sub is working or not
-	rospy.loginfo("({0}) state: scan_received".format(self.robot_name))
-	scan_msg = sensor_msgs.msg.LaserScan()
-	scan_msg.header = std_msgs.msg.Header(stamp = rospy.Time.now(), frame_id = 'base_scan')
-	scan_msg.angle_min = 0.0
-	scan_msg.angle_max = 6.26
-	scan_msg.angle_increment = 0.0174
-	scan_msg.scan_time = 0.0
-	scan_msg.range_min = 0.12
-	scan_msg.range_max = 3.5
-	scan_msg.ranges = [0]
-	scan_msg.intensities = [0]
-	
-	self.scan_pub.publish(scan_msg)
-	self.rate.sleep()
-	#self.unsubscribe_scan()
-
-    def unsubscribe_scan(self):
-	rospy.loginfo("({0}) state: unsubscribe to /scan topic".format(self.robot_name))
-	self.scan_sub.unregister()
-
 
     def choose_task(self, e):
         rospy.loginfo("({0}) state: choose_task".format(self.robot_name))
@@ -1590,26 +1591,82 @@ class RobotController:
 
         self.fsm.collision_resolved()
 
-    def choose_faults(self, e, fault_type):
-	rospy.loginfo("({0}) state: choose_faults".format(self.robot_name))
-	self.in_collision = True
-	time.sleep(10)
-	self.in_collision = False
+    def choose_faults(self, e):
+	rospy.loginfo("({0}) state: choose_faults ######".format(self.robot_name))
+	if self.complete_motor_faults: 
+	    rospy.loginfo("({0}) state: complete_motor_faults_chosen #######".format(self.robot_name))
+	    self.fsm.complete_motor_faults_chosen()
+	elif self.periodical_motor_faults:
+	    rospy.loginfo("({0}) state: periodical_motor_faults_chosen ######".format(self.robot_name))
+	    self.fsm.periodical_motor_faults_chosen()
+	elif self.complete_scan_faults:
+	    rospy.loginfo("({0}) state: complete_scan_faults_chosen #######".format(self.robot_name))
+	    self.fsm.complete_scan_faults_chosen()
+	elif self.partial_scan_faults:
+	    rospy.loginfo("({0}) state: partial_scan_faults_chosen #######".format(self.robot_name))
+	    self.fsm.partial_scan_faults_chosen()
 
-    def induce_motor_faults(self, event):
-	rospy.loginfo("({0}) state: induce_motor_faults ######################".format(self.robot_name))
-	rospy.loginfo("({0}) state: induce_motor_faults called at {1} ######################".format(self.robot_name, event.current_real))
+
+    def induce_complete_motor_faults(self, e):
+	rospy.loginfo("({0}) state: induce_complete_motor_faults ######################".format(self.robot_name))
 	self.motor_power_pub.publish(data = False)
+	#self.disable_motor()
 	rospy.loginfo("({0}) state: motor_faults induced ###################".format(self.robot_name))
-	time.sleep(5)
-	rospy.loginfo("({0}) state: wait 10s before reenable the motors ###################".format(self.robot_name))
-	self.motor_power_pub.publish(data = True)
-	rospy.loginfo("({0}) state: Motors are reenabled ###################".format(self.robot_name))
+	#time.sleep(5)
+	#rospy.loginfo("({0}) state: wait 10s before reenable the motors ###################".format(self.robot_name))
+	#self.motor_power_pub.publish(data = True)
+	#rospy.loginfo("({0}) state: Motors are reenabled ###################".format(self.robot_name))
 
-    def induce_partial_motor_faults(self):
-	rospy.loginfo("({0}) state: induce_parcial_motor_faults ######################".format(self.robot_name))
-	if True:
-	    self.update_command_vel(0.0)
+    def induce_periodical_motor_faults(self, e):
+	rospy.loginfo("({0}) state: induce_periodical_motor_faults ######################".format(self.robot_name))
+	self.motor_power_pub.publish(data = False)
+	def enable_motor(self):
+	    self.motor_power_pub.publish(data = True)
+	motor_disabled = True
+	while motor_disabled: 
+	    self.periodical_motor_faults_timer = rospy.Timer(rospy.Duration(5), enable_motor)
+	    rospy.loginfo("({0}) state: timer set to enable motor ######################".format(self.robot_name))
+	    motor_disabled = False
+	
+	
+    def induce_complete_scan_faults(self, e):
+	rospy.loginfo("({0}) state: induce_complete_scan_faults ######################".format(self.robot_name))
+
+    def induce_partial_scan_faults(self, e):
+	rospy.loginfo("({0}) state: induce_partial_scan_faults ######################".format(self.robot_name))	
+	
+	self.scan_pub.publish(self.noise_scan)
+	
+    def disable_motor(self):
+	self.motor_power_pub.publish(data = False)
+
+    #def enable_motor(self):
+	#self.motor_power_pub.publish(data = True)
+
+    def scan_received(self, scan_msg):
+        # Test if the scan_sub is working or not
+	rospy.loginfo("({0}) state: scan_received".format(self.robot_name))
+	#scan_msg = sensor_msgs.msg.LaserScan()
+	#scan_msg.header = std_msgs.msg.Header(stamp = rospy.Time.now(), frame_id = 'base_scan')
+	#scan_msg.angle_min = 0.0
+	#scan_msg.angle_max = 6.26
+	#scan_msg.angle_increment = 0.0174
+	#scan_msg.scan_time = 0.0
+	#scan_msg.range_min = 0.12
+	#scan_msg.range_max = 3.5
+	scan_msg.ranges = [0]
+	scan_msg.intensities = [0]
+	
+	#self.scan_pub.publish(scan_msg)
+
+	self.induce_partial_scan_faults()
+	self.noise_scan = scan_msg
+	self.scan_rate.sleep()
+	#self.unsubscribe_scan()
+
+    def unsubscribe_scan(self):
+	rospy.loginfo("({0}) state: unsubscribe to /scan topic".format(self.robot_name))
+	self.scan_sub.unregister()
 
     def update_command_vel(self, linear_x):
         cmd_vel_msg = geometry_msgs.msg.Twist()
@@ -1619,6 +1676,9 @@ class RobotController:
 
         self.cmd_vel_pub.publish(cmd_vel_msg)
 	
+    def timer_callback(self, faults_timer):
+	rospy.loginfo("({0}) state: timer_reached call chosen_faults ############".format(self.robot_name))
+	self.fsm.timer_reached()
 
     def moving(self, e):
         rospy.loginfo("({0}) state: moving".format(self.robot_name))
@@ -1633,18 +1693,21 @@ class RobotController:
         # goal_done_cb() to change the current state. Wait here until then.
         # while self.fsm.current == 'moving':
         #     self.rate.sleep()
-	def disable_motors():
-	    rospy.loginfo("({0}) state: 10s Timer reached. TURN OFF MOTORS #########################".format(self.robot_name))
-	    self.motor_power_pub.publish(data = False) 
 	    
-	    rospy.loginfo("({0}) state: Robot motors are disabled ##################".format(self.robot_name))
-	    
-	rospy.loginfo("({0}) state: Start to setup the Timer.#########################".format(self.robot_name))
-	#fault_timer = Timer(10, self.induce_motor_faults)
+	#rospy.loginfo("({0}) state: Start to setup the Timer.#########################".format(self.robot_name))
+	#fault_timer = Timer(10, self.induce_complete_motor_faults)
 	#fault_timer.start()
-	rospy.Timer(rospy.Duration(10), self.induce_motor_faults, oneshot=True)
 
-	rospy.loginfo("({0}) state: Timer starts running.#########################".format(self.robot_name))
+	rospy.loginfo("IS {0} in healthy? ({1}).".format(self.robot_name, self.is_healthy))
+	while self.is_healthy:
+	    self.complete_motor_faults = False
+	    self.periodical_motor_faults = False
+	    self.complete_scan_faults = False
+	    self.partial_scan_faults = True 
+	    self.faults_timer = rospy.Timer(rospy.Duration(10), self.timer_callback, oneshot=True)
+	    self.is_healthy = False
+	    rospy.loginfo("IS {0} in healthy? ({1}).".format(self.robot_name, self.is_healthy))
+	
 
         rospy.loginfo("({0}) IN 'moving', state: {1}".format(self.robot_name, self.fsm.current))
 
