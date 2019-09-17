@@ -22,17 +22,20 @@ import subprocess
 pp = pprint.PrettyPrinter(indent=4)
 
 # DEFAULT_HOSTNAME = 'eschneider'
-# DEFAULT_HOSTNAME = 'king'
-DEFAULT_HOSTNAME = 'redd'
-#DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/scripts/analysis')
-#DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/docs/stat_templates')
-DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'ros/mrteam_ws/src/mrta/scripts/analysis')
-DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'ros/mrteam_ws/src/mrta/docs/stat_templates')
+DEFAULT_HOSTNAME = 'king'
+# DEFAULT_HOSTNAME = 'redd'
+DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/scripts/analysis')
+DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'GIT/mrta/docs/stat_templates')
+#DEFAULT_SCRIPT_DIR = os.path.join(os.environ['HOME'], 'ros/mrteam_ws/src/mrta/scripts/analysis')
+#DEFAULT_TEMPLATE_DIR = os.path.join(os.environ['HOME'], 'ros/mrteam_ws/src/mrta/docs/stat_templates')
 
-plot_stats_script = 'plot_stats.py'
-trajectory_script = 'plot_trajectory.py'
+#plot_stats_script = 'plot_stats.py'
+plot_stats_script = 'plot_stats_fault.py'
+#trajectory_script = 'plot_trajectory.py'
+trajectory_script = 'plot_trajectory_fault.py'
 gen_trajectory_script = 'gen_trajectory_latex.py'
-timeline_script = 'plot_timeline.py'
+#timeline_script = 'plot_timeline.py'
+timeline_script = 'plot_timeline_fault.py'
 gen_timeline_script = 'gen_timeline_latex.py'
 
 template_filename = 'stat_summary.tex'

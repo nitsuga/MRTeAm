@@ -59,12 +59,12 @@ stroke_colors = {'robot_1': (1.0, 0.0, 0.0),  # Red
 #                                   (50.0, 50.0)),
 #                   'random': []}
 
-start_locations = {'clustered': ((290.0, 203.0),
-                                 (290.0, 170.0),
-                                 (290.0, 130.0)),
-                   'distributed': ((312.0, 312.0),
-                                   (40.0, 312.0),
-                                   (40.0, 35.0)),
+start_locations = {'clustered': ((314.0, 223.0),
+                                 (314.0, 186.0),
+                                 (314.0, 150.0)),
+                   'distributed': ((314.0, 314.0),
+                                   (38.0, 314.0),
+                                   (38.0, 38.0)),
                    'random': []}
 
 target_point_configs = {}
@@ -544,7 +544,14 @@ def plot_trajectory(bag_paths, task_dir, map_file):
 
         # draw_arena(ctx)
 
-        # Draw target points
+        
+	# Clean scenario_id and make it match with the task_files' name
+	(task_type, task_constraints, allocation_type, fault_type, extra_part1 ) =  scenario_id.split('-', 4)
+	if fault_type =='SEB15':
+	    fault_type = 'NF'
+	scenario_id = scenario_id.replace('-{0}'.format(fault_type), '')
+
+	# Draw target points
         target_points = target_point_configs[scenario_id]
 
         run_msgs = defaultdict(list)
@@ -590,8 +597,8 @@ if __name__ == "__main__":
     parser.add_argument('--map_file', '-m',
                         #default='/home/k1759936/ros/mrteam_ws/src/mrta/ros/mrta/config/maps/SEB15-MR-arena-clean.png',
                         #default='/home/k1759936/ros/mrteam_ws/src/mrta/ros/mrta/config/maps/SEB15-arena-clean.png',   
-                        #default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-MR-arena-clean.png',
-                        default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-arena-clean.png',
+                        default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-MR-arena-clean.png',
+                        #default='/home/interact/GIT/mrta/ros/mrta/config/maps/SEB15-arena-clean.png',
                         help="Path to the map file to draw on top of")
 
     args = parser.parse_args()
