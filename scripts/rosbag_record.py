@@ -11,7 +11,10 @@ import mrta.msg
 from collections import defaultdict
 from threading import Lock, Thread
 from std_msgs.msg import String
+from std_msgs.msg import Bool
+import std_msgs.msg
 import geometry_msgs.msg
+
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -23,6 +26,7 @@ rosbag_name = '%s__%s.bag' % (sys.argv[1], time_stamp)
 rec_bag = rosbag.Bag(rosbag_name, 'w')
 
 experiment = tasks_stat = tasks_award = tasks_new = debug = tasks_announce = robot_1_amcl = robot_2_amcl = robot_3_amcl = None                  
+motor_torque = fault_induced = None
 
 
 def chatterbox(msg):
@@ -75,6 +79,15 @@ def r3_pose_received(amcl_msg):
     rec_bag.write('/robot_3/amcl_pose',amcl_msg)
     mutex.release()
 
+def motor_torque(motor_msg):
+    mutex.acquire()
+    rec_bag.write('/motor_torque', motor_msg)
+    mutex.release()
+
+def fault_induced(fault_msg):
+    mutex.acquire()
+    rec_bag.write('/fault_induced', fault_msg)
+    mutex.release()
 
 experiment = rospy.Subscriber('/experiment',
                                mrta.msg.ExperimentEvent,
@@ -111,6 +124,14 @@ robot_2_amcl = rospy.Subscriber('/robot_2/amcl_pose',
 robot_3_amcl = rospy.Subscriber('/robot_3/amcl_pose',
                                  geometry_msgs.msg.PoseWithCovarianceStamped,
                                  r3_pose_received)
+
+motor_torque = rospy.Subscriber('/motor_torque',
+                               std_msgs.msg.Bool,
+                               motor_torque)
+
+fault_induced = rospy.Subscriber('/fault_induced',
+                               std_msgs.msg.Bool,
+                               fault_induced)
 time.sleep(1) 
 
 print(pp.pformat('Recording data to file with name: %s' %(rosbag_name))) 
@@ -123,6 +144,8 @@ print(pp.pformat('Subscribed to /tasks/announce'))
 print(pp.pformat('Subscribed to /robot_1/amcl_pose'))
 print(pp.pformat('Subscribed to /robot_2/amcl_pose'))
 print(pp.pformat('Subscribed to /robot_3/amcl_pose'))
+print(pp.pformat('Subscribed to /motor_torque'))
+print(pp.pformat('Subscribed to /fault_induced'))
 
 def sig_handler(sig, frame):
     """ kill node and stop recording data when we get a SIGINT """
