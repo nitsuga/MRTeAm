@@ -1,0 +1,64 @@
+<launch>
+  <arg name="robot_name" default="robot_1" />
+  <arg name="reallocate" default="False" />
+
+  <arg name="map_file" default="$(find mrta)/config/maps/smartlab_ugv_arena.yaml" />
+
+  <arg name="initial_pose_x" default="0.0" />
+  <arg name="initial_pose_y" default="0.0" />
+  <arg name="initial_pose_a" default="0.0" />
+
+  <!-- turtlebot3_bringup/minimal.launch -->
+  <include file="$(find turtlebot3_bringup)/launch/turtlebot3_robot.launch" />
+
+  <!-- turtlebot3_navigation/turtlebot3_navigation.launch -->
+  <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+    <arg name="map_file" value="$(arg map_file)" />
+  </include>
+
+  <!-- mrta_robot_controller
+    Arguments:
+      robot_name    - e.g. "robot_1"
+      reallocate    - True/False: are we doing task reallocation?
+      is_turtlebot  - True/False
+    -->
+  <node name="mrta_robot_controller_$(arg robot_name)" pkg="mrta_robot_controller" type="mrta_robot_controller" output="screen">
+    <param name="robot_name" type="str" value="$(arg robot_name)" />
+    <param name="reallocate" type="bool" value="$(arg reallocate)" />
+    <param name="is_turtlebot" type="bool" value="True" />
+  </node>
+
+
+  <!-- FKIE master discovery -->
+  <node pkg="master_discovery_fkie" type="master_discovery" name="master_discovery" output="screen">
+    <rosparam param="robot_hosts">['']</rosparam>
+    <param name="name" value="$(arg robot_name)_master"/>
+  </node>
+
+
+  <!-- FKIE master sync -->
+  <node pkg="master_sync_fkie" type="master_sync" name="master_sync" output="screen">
+    <rosparam param="sync_hosts">['auctioneer_master']</rosparam>
+    <rosparam param="ignore_hosts">['robot_1','robot_1_master','robot_2','robot_2_master','robot_3','robot_3_master']</rosparam>
+    <rosparam param="ignore_nodes">
+[
+'/*amcl*',
+'/*bumper2pointcloud*',
+'/*camera/*',
+'/*cmd_vel_mux*',
+'/*depthimage_to_laserscan*',
+'/*diagnostic_aggregator*',
+'/*kobuki_safety_controller*',
+'/*map_server*',
+'/*mobile_base*',
+'/*mobile_base_nodelet_manager*',
+'/*move_base*',
+'/*navigation_velocity_smoother*',
+'/*navigation_safety_controller*',
+'/*robot_state_publisher*',
+'/*turtlebot_laptop_battery*'
+]
+    </rosparam>
+  </node>
+
+</launch>
