@@ -16,8 +16,11 @@ pp = pprint.PrettyPrinter(indent=4)
 
 # Some global constants
 # mechanisms = ['RR', 'OSI', 'SSI', 'PSI', 'SUM', 'MAX']
-mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
+# mechanisms = ['RR', 'OSI', 'SSI', 'PSI']
 # mechanisms = ['SSI']
+fault_types = ['CMF', 'TMF', 'PLF', 'NF']
+mechanisms = ['CMF', 'TMF', 'PLF', 'NF']
+
 start_configs = ['clustered', 'distributed']
 
 # task_files = ['SR-IT-DA-scenario2.yaml', 'SR-CT-DA-scenario2.yaml',
@@ -39,7 +42,7 @@ class Experiment(object):
         self.mechanism = mechanism
         self.start_config = start_config
         self.task_file = task_file
-
+	
 
 def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_filename=None, y_limit=None, plot_samples=False):
     print "Plotting {0}".format(out_filename)
@@ -62,8 +65,10 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     stat_means = []
     stat_errors = []
 
-    for i, mechanism in enumerate(mechanisms):
-        sample = af[af.MECHANISM == mechanism][attr_name]
+    #for i, mechanism in enumerate(mechanisms):
+    for i, fault_type in enumerate(fault_types):	
+        #sample = af[af.MECHANISM == mechanism][attr_name]
+        sample = af[af.FAULT_TYPE == fault_type][attr_name]
         sample_mean = np.mean(sample)
         sample_error = stats.sem(sample)
 
@@ -83,7 +88,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
             plt.plot([(i+.15) for x in sample], sample, 'r.')
 
     # x-coordinates of the bars
-    x_pos = np.arange(len(mechanisms))
+    # x_pos = np.arange(len(mechanisms))
+    x_pos = np.arange(len(fault_types))
     # Plot bars with std errors
     plt.bar(x_pos, stat_means, yerr=stat_errors, capsize=8,
             color=[0.75, 0.75, 0.75], width=0.6, align='center')
@@ -93,7 +99,8 @@ def plot_overall_stat(af=None, attr_name=None, title=None, y_label=None, out_fil
     plt.tick_params(axis='x', which='major', labelsize=26)
     plt.tick_params(axis='y', which='major', labelsize=20)
 
-    plt.xticks(x_pos, mechanisms)
+    #plt.xticks(x_pos, mechanisms)
+    plt.xticks(x_pos, fault_types)
     ymin, ymax = plt.ylim()
 
     if y_limit:
@@ -130,8 +137,9 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
     stat1_errors = []
     stat2_errors = []
 
-    for i, mechanism in enumerate(mechanisms):
-        sample1 = af[af.MECHANISM == mechanism][attr1_name]
+   # for i, mechanism in enumerate(mechanisms):
+    for i, fault_type in enumerate(fault_types):
+        sample1 = af[af.FAULT_TYPE == fault_type][attr1_name]
 
         sample1_mean = np.mean(sample1)
         sample1_error = stats.sem(sample1)
@@ -145,8 +153,8 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
         stat1_means.append(sample1_mean)
         stat1_errors.append(sample1_error)
 
-        sample2 = af[af.MECHANISM == mechanism][attr2_name]
-
+        # sample2 = af[af.MECHANISM == mechanism][attr2_name]
+	sample2 = af[af.FAULT_TYPE == fault_type][attr2_name]
         sample2_mean = np.mean(sample2)
         sample2_error = stats.sem(sample2)
 
@@ -165,7 +173,8 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
             plt.plot([(i+.15) for x in sample2], sample2, 'r.')
 
     # x-coordinates of the bars
-    x_pos = np.arange(len(mechanisms))
+    # x_pos = np.arange(len(mechanisms))
+    x_pos = np.arange(len(fault_types))
     # Plot bars with std errors
     plt.bar(x_pos, stat1_means, yerr=stat1_errors, capsize=8,
             color=[0.5,0.5,0.5], width=0.6, align='center')
@@ -176,7 +185,8 @@ def plot_stacked_stats(af=None, attr1_name=None, attr2_name=None, title=None, y_
 
     # Bar labels
     plt.tick_params(axis='x', which='major', labelsize=18)
-    plt.xticks(x_pos, mechanisms)
+    # plt.xticks(x_pos, mechanisms)
+    plt.xticks(x_pos, fault_types)
 
     ymin, ymax = plt.ylim()
 
@@ -196,17 +206,21 @@ def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_f
 
     bar_width = 0.25
     x_start = 0.25
-    x_pos = np.arange(x_start, len(mechanisms) + x_start)
-    plt.title(title)
-    plt.ylabel(y_label)
+    # x_pos = np.arange(x_start, len(mechanisms) + x_start)
+    x_pos = np.arange(x_start, len(fault_types) + x_start)
+
+    #plt.title(title)
+    #plt.ylabel(y_label)
 
     stat_means = defaultdict(list)
     stat_errors = defaultdict(list)
 
-    for i, mechanism in enumerate(mechanisms):
+    # for i, mechanism in enumerate(mechanisms):
+    for i, fault_type in enumerate(fault_types):
         for j, robot_name in enumerate(robot_names):
             # print "{0}, {1}".format(mechanism, robot_name)
-            sample = af[af.MECHANISM == mechanism]['{0}_{1}'.format(robot_name.replace('_', '').upper(), attr_name)]
+            # sample = af[af.MECHANISM == mechanism]['{0}_{1}'.format(robot_name.replace('_', '').upper(), attr_name)]
+            sample = af[af.FAULT_TYPE == fault_type]['{0}_{1}'.format(robot_name.replace('_', '').upper(), attr_name)]
             stat_means[robot_name].append(np.mean(sample))
             stat_errors[robot_name].append(stats.sem(sample))
 
@@ -219,7 +233,8 @@ def plot_per_robot_stat(af=None, attr_name=None, title=None, y_label=None, out_f
                     color=[grey_level] * 3, width=bar_width))
 
     # Bar labels
-    plt.xticks([x+0.33 for x in x_pos], mechanisms)    
+    # plt.xticks([x+0.33 for x in x_pos], mechanisms)    
+    plt.xticks([x+0.33 for x in x_pos], fault_types) 
     ymin, ymax = plt.ylim()
 
     # plt.ylim(0, ymax+(ymax*0.2))
@@ -240,18 +255,21 @@ def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None
 
     bar_width = 0.25
     x_start = 0.25
-    x_pos = np.arange(x_start, len(mechanisms) + x_start)
+    # x_pos = np.arange(x_start, len(mechanisms) + x_start)
+    x_pos = np.arange(x_start, len(fault_types) + x_start)
     plt.title(title)
     plt.ylabel(y_label)
 
     stat_means_by_attr = defaultdict(lambda: defaultdict(list))
     stat_errors_by_attr = defaultdict(lambda: defaultdict(list))
 
-    for mechanism in mechanisms:
+    # for mechanism in mechanisms:
+    for fault_type in fault_types:
         for robot_name in robot_names:
             for attr_name in attr_names:
                 # print "{0}, {1}, {2}".format(mechanism, robot_name, attr_name)
-                sample = af[af.MECHANISM==mechanism]['{0}_{1}'.format(robot_name.replace('_','').upper(), attr_name)]
+                # sample = af[af.MECHANISM==mechanism]['{0}_{1}'.format(robot_name.replace('_','').upper(), attr_name)]
+                sample = af[af.FAULT_TYPE==fault_type]['{0}_{1}'.format(robot_name.replace('_','').upper(), attr_name)]
                 # pp.pprint(sample)
                 stat_means_by_attr[robot_name][attr_name].append(np.mean(sample))
                 stat_errors_by_attr[robot_name][attr_name].append(stats.sem(sample))
@@ -269,7 +287,8 @@ def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None
         grey_level = 0.75
 
         # last_means = None
-        bottoms = [0.0 for x in mechanisms]
+        # bottoms = [0.0 for x in mechanisms]
+        bottoms = [0.0 for x in fault_types]
         for j, attr_name in enumerate(attr_names):
             # print("{0}-{1}".format(robot_name, attr_name))
             # print("bottoms: {0}".format(pp.pformat(bottoms)))
@@ -289,7 +308,8 @@ def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None
             # last_means = stat_means_by_attr[robot_name][attr_name]
 
     # Bar labels
-    plt.xticks([x+0.33 for x in x_pos], mechanisms)
+    # plt.xticks([x+0.33 for x in x_pos], mechanisms)
+    plt.xticks([x+0.33 for x in x_pos], fault_types)
     ymin, ymax = plt.ylim()
 
     # plt.ylim(0, ymax+(ymax*0.2))
@@ -310,6 +330,7 @@ def plot_stacked_per_robot_stat(af=None, attr_names=[], title=None, y_label=None
 def main(argv):
 
     aframe = pd.read_csv(argv[0])
+    #print('aframe = {0}'.format(aframe))	
 
     task_files = argv[1:]
 
@@ -326,6 +347,7 @@ def main(argv):
 
     # Stats for all point configs, grouped by start config { CLUSTERED, DISTRIBUTED }
     for start_config in start_configs:
+    #for fault_type in fault_types:
 
         # #### Deliberation time
         # plot_title = 'Overall Deliberation Time: (All point configs), {0} start'.format(start_config)
@@ -420,9 +442,16 @@ def main(argv):
         for task_file in task_files:
 
             af = aframe[aframe.START_CONFIG == start_config][aframe.SCENARIO_ID == task_file]
-
+	    #print('af = {0}'.format(af))
+	    #print('aframe.START_CONFIG is {0}'.format(aframe.START_CONFIG))
+	    #print('aframe.SCENARIO_ID is {0}'.format(aframe.SCENARIO_ID))
             # task_file = task_file.replace('.txt', '')
+	    #print('start_config is {0}'.format(start_config))
+
             task_file = task_file.replace('.yaml', '')
+
+	    #print('task_file is {0}'.format(task_file))
+	    #print('mechanism is {0}'.format(fault_type))
 
             # Total run time stacked: deliberation time + execution time
             # Total run time
@@ -435,7 +464,8 @@ def main(argv):
                                y_label='Seconds',
                                out_filename=plot_filename)#,
                                #y_limit=300)
-
+	    
+	    
             # Total run time
             plot_title = 'Total Run Time, "{0}", {1} start'.format(task_file, start_config)
             #plot_filename = 'run-{0}-{1}.pdf'.format(task_file, start_config)
@@ -536,9 +566,10 @@ def main(argv):
             plot_overall_stat(af = af,
                               attr_name='TOTAL_DISTANCE',
                               title=plot_title,
-                              y_label='meters',
-                              out_filename=plot_filename,
-                              y_limit=35)
+                              #title='',
+                              y_label='Meters',
+                              out_filename=plot_filename)#,
+                              #y_limit=60)
 
             # Near Collisions
             plot_title = 'Overall Near Collisions, "{0}", {1} start'.format(task_file, start_config)
@@ -552,13 +583,26 @@ def main(argv):
 
             # Distance travelled per robot
             plot_title = 'Distance per Robot: "{0}", {1} start'.format(task_file, start_config)
-            plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            #plot_filename = 'distance-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            plot_filename = 'distance-per-robot-{0}-{1}.png'.format(task_file, start_config)
             plot_per_robot_stat(af = af,
                                 attr_name='DISTANCE',
                                 title=plot_title,
-                                y_label='cm',
-                                out_filename=plot_filename)#,
-                                #y_limit=35)
+                                #title='',
+                                y_label='Meters',
+                                out_filename=plot_filename,
+                                y_limit=55)
+
+            # Success rate per robot
+            plot_title = 'Success rate per Robot: "{0}", {1} start'.format(task_file, start_config)
+            #plot_filename = 'success-rate-per-robot-{0}-{1}.pdf'.format(task_file, start_config)
+            plot_filename = 'success-rate-per-robot-{0}-{1}.png'.format(task_file, start_config)
+            plot_per_robot_stat(af = af,
+                                attr_name='SUCCESS_RATE',
+                                title=plot_title,
+                                y_label='',
+                                out_filename=plot_filename,
+                                y_limit=1.4)
 
             # Stacked execution phase times per robot
             plot_title = 'Execution phase per robot: "{0}", {1} start'.format(task_file, start_config)
@@ -566,7 +610,7 @@ def main(argv):
             plot_stacked_per_robot_stat(af = af,
                                         attr_names=['MOVEMENT_TIME', 'WAITING_TIME', 'DELAY_TIME', 'IDLE_TIME'],
                                         title=plot_title,
-                                        y_label='seconds',
+                                        y_label='Seconds',
                                         out_filename=plot_filename)#,
                                         #y_limit=250)
 
