@@ -1,0 +1,14 @@
+[Unit]
+Description=MRTeAm robot controller startup service
+
+[Service]
+Type=forking
+User=interact
+TimeoutStopSec=60
+ExecStart=/home/interact/GIT/mrta/startup/scripts/mrteam-robot-controller-service.sh start 
+ExecStop=/home/interact/GIT/mrta/startup/scripts/mrteam-robot-controller-service.sh stop
+
+[Install]
+WantedBy=multi-user.target
+After=turtlebot3
+
