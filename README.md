@@ -1,4 +1,4 @@
-MRTeAm
-======
+MRTeAm: Multi-Robot Task Allocation/Teamwork
+============================================
 
-[**M**ulti-**R**obot **T**ask **A**llocation/teamwork] A framework for experimenting with task allocation mechanisms for robot teams in ROS.
+A framework for experimenting with task allocation mechanisms for robot teams in [ROS](https://www.ros.org).
